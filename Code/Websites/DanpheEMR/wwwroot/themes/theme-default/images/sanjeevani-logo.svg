@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150">
+  <g transform="translate(60,10)">
+    <circle cx="50" cy="46" r="44" fill="#1d33e1"/>
+    <polyline points="16,50 30,50 36,32 45,66 54,38 61,50 84,50" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="76" cy="20" r="7" fill="#00c98d"/>
+  </g>
+  <text x="110" y="118" text-anchor="middle" font-family="Oswald, 'Nunito', Arial, sans-serif" font-weight="700" font-size="30" letter-spacing="1" fill="#1a2440">SANJEEVANI</text>
+  <text x="110" y="140" text-anchor="middle" font-family="'Nunito', Arial, sans-serif" font-weight="600" font-size="15" letter-spacing="4" fill="#00a878">HEALTH</text>
+</svg>

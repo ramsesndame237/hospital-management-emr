@@ -27,15 +27,13 @@ namespace DanpheEMR
             {
                 config.SwaggerDoc("v1", new Info
                 {
-                    Title = "DanpheEMR APIs",
+                    Title = "Sanjeevani EMR APIs",
                     Version = "v1",
                     Contact = new Contact()
                     {
-                        Name = "DanpheEMR",
-                        Email = "info.danphe-emr.com",
-                        Url = new Uri("https://danphehealth.com/").ToString()
+                        Name = "Sanjeevani EMR"
                     },
-                    Description = "We are testing Swagger in DanpheEMR",
+                    Description = "We are testing Swagger in Sanjeevani EMR",
                     TermsOfService = "This section includes Terms and Services"
                 });
                 config.AddSecurityDefinition("Bearer", new ApiKeyScheme
