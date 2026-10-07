@@ -186,6 +186,7 @@
           Exclude="wwwroot\DanpheApp\node_modules\**;wwwroot\DanpheApp\src\**;wwwroot\DanpheApp\*.json;wwwroot\DanpheApp\.vscode\**;wwwroot\preview*.html"
           CopyToPublishDirectory="PreserveNewest" />
     <None Include="appsettings.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="web.config" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
