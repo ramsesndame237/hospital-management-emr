@@ -178,6 +178,16 @@
     </None>
   </ItemGroup>
 
+  <!-- Default content items are disabled above, so ship the static site and
+       settings explicitly. Angular sources and node_modules are build-time only;
+       only the compiled DanpheApp/dist output is needed at runtime. -->
+  <ItemGroup>
+    <None Include="wwwroot\**"
+          Exclude="wwwroot\DanpheApp\node_modules\**;wwwroot\DanpheApp\src\**;wwwroot\DanpheApp\*.json;wwwroot\DanpheApp\.vscode\**;wwwroot\preview*.html"
+          CopyToPublishDirectory="PreserveNewest" />
+    <None Include="appsettings.json" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Audit.EntityFramework" Version="14.0.2" />
     <PackageReference Include="Audit.NET" Version="14.0.2" />
