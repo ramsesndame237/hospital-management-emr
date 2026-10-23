@@ -15,6 +15,9 @@ import type { SqlExecutor } from '../database/sql-executor';
 
 export const REDIS = Symbol('REDIS');
 
+/** Type du client Redis pour les modules qui le reçoivent par injection, sans importer la bibliothèque. */
+export type RedisClient = Redis;
+
 /** Ferme proprement la connexion Redis à l'arrêt (Dokploy envoie SIGTERM à chaque déploiement). */
 class RedisLifecycle implements OnApplicationShutdown {
   constructor(@Inject(REDIS) private readonly redis: Redis | null) {}

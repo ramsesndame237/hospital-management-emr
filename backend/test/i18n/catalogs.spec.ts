@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { PORTAL_TEXT_KEYS } from '../../src/modules/api-docs';
+import { DEFAULT_FR_TEXTS } from '../../src/modules/api-docs/infrastructure/portal/default-texts';
 import { DEFAULT_CATALOGS_DIR } from '../../src/modules/i18n/localization.module';
 
 const LOCALES = ['fr', 'en'];
@@ -70,9 +72,20 @@ describe('catalogues de traduction', () => {
     for (const l of LOCALES) for (const [k, v] of catalogs[l]) if (k.startsWith('validation.')) expect({ l, k, v: v.includes('{field}') }).toEqual({ l, k, v: true });
   });
 
+  it("le catalogue de la page d'accueil couvre exactement les textes attendus par le module de documentation", () => {
+    const keys = [...catalogs.fr.keys()].filter((k) => k.startsWith('docs-portal.')).map((k) => k.slice('docs-portal.'.length)).sort();
+    expect(keys).toEqual([...PORTAL_TEXT_KEYS].sort());
+  });
+
+  it('les textes français de repli du module de documentation restent identiques au catalogue (pas de dérive)', () => {
+    const norm = (s: string) => s.replace(/’/g, "'");
+    for (const key of PORTAL_TEXT_KEYS) expect({ key, text: norm(DEFAULT_FR_TEXTS[key]) }).toEqual({ key, text: norm(catalogs.fr.get(`docs-portal.${key}`) as string) });
+  });
+
   it('les noms de champs des DTO ont un libellé', () => {
     const dto = fs.readFileSync(path.join(SRC, 'modules/iam/presentation/dto/auth.dto.ts'), 'utf8');
-    const fields = new Set([...dto.matchAll(/^\s+(\w+)[!?]?:\s/gm)].map((m) => m[1]));
+    // Propriétés déclarées (`nom!: type` ou `nom?: type`), pas les options des décorateurs (`description: '…'`).
+    const fields = new Set([...dto.matchAll(/^\s+(\w+)[!?]:\s/gm)].map((m) => m[1]));
     expect(fields.size).toBeGreaterThan(5);
     for (const f of fields) expect({ f, ok: catalogs.fr.has(`fields.${f}`) }).toEqual({ f, ok: true });
   });

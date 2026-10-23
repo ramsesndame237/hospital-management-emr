@@ -62,6 +62,8 @@ export interface SecretCipher {
 export type TokenScope = 'full' | 'setup';
 
 export interface AccessClaims {
+  /** Fin de validité du jeton (renseignée par `verify`, absente à l'émission). */
+  readonly expiresAt?: Instant;
   readonly userId: string;
   readonly username: string;
   readonly roles: readonly string[];

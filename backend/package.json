@@ -14,7 +14,8 @@
     "inventory": "node tools/inventory-endpoints.mjs && node tools/inventory-sps.mjs && node tools/inventory-entities.mjs && node tools/generate-entities.mjs && node tools/report.mjs",
     "migration:report": "node tools/report.mjs",
     "db:iam": "node tools/apply-sql.mjs migration/schema/iam.pg.sql",
-    "iam:bootstrap-admin": "node dist/cli/bootstrap-admin.js"
+    "iam:bootstrap-admin": "node dist/cli/bootstrap-admin.js",
+    "playground": "node --require ts-node/register/transpile-only tools/playground.ts"
   },
   "engines": {
     "node": ">=20"

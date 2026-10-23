@@ -54,6 +54,11 @@ services:
       # Mettre false uniquement pour un essai local en HTTP ; en production l'API refuse de démarrer avec false.
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       BREACH_CHECK_ENABLED: ${BREACH_CHECK_ENABLED:-true}
+      # Documentation interactive (/api-docs, connexion + permission api.docs:read). Fermée par défaut ; mettre true en démo.
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      I18N_ADAPTER: ${I18N_ADAPTER:-nestjs-i18n}
+      I18N_LOCALES: ${I18N_LOCALES:-fr,en}
+      I18N_DEFAULT_LOCALE: ${I18N_DEFAULT_LOCALE:-fr}
     ports:
       - "3000:3000"
 

@@ -1,5 +1,6 @@
-import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
+import { applyDecorators, createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
 import type { Request } from 'express';
+import { DocAllowsSetupScope, DocRequiresPermissions } from '../../api-docs';
 import { TokenScope } from '../domain/ports';
 import { Permission } from '../domain/value-objects/permission';
 
@@ -14,7 +15,7 @@ export const REQUIRED_PERMISSIONS = 'iam:permissions';
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
 /** Autorise un jeton à portée restreinte (`setup`) : changement de mot de passe forcé, inscription MFA. */
-export const AllowSetup = () => SetMetadata(ALLOW_SETUP, true);
+export const AllowSetup = () => applyDecorators(SetMetadata(ALLOW_SETUP, true), DocAllowsSetupScope());
 
 /** Exige toutes les permissions listées (format `ressource:action[:portée]`). Validées dès la déclaration. */
 export const RequirePermissions = (...permissions: string[]) => {
@@ -22,7 +23,8 @@ export const RequirePermissions = (...permissions: string[]) => {
     const r = Permission.create(p);
     if (!r.ok) throw new Error(`@RequirePermissions : ${r.error.message}`);
   }
-  return SetMetadata(REQUIRED_PERMISSIONS, permissions);
+  // La même déclaration contrôle l'accès ET alimente la documentation : impossible qu'elles divergent.
+  return applyDecorators(SetMetadata(REQUIRED_PERMISSIONS, permissions), DocRequiresPermissions(...permissions));
 };
 
 export interface AuthUser {

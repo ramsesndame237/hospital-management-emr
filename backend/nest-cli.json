@@ -10,6 +10,11 @@
         "include": "modules/i18n/catalogs/**/*.json",
         "outDir": "dist",
         "watchAssets": true
+      },
+      {
+        "include": "modules/api-docs/infrastructure/portal/assets/*",
+        "outDir": "dist",
+        "watchAssets": true
       }
     ]
   }

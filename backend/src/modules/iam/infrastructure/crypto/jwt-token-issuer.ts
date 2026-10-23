@@ -38,14 +38,20 @@ export class JwtTokenIssuer implements TokenIssuer {
 
   async verify(token: string): Promise<AccessClaims | null> {
     try {
-      const p = await this.jwt.verifyAsync<{ sub: string; username: string; roles: string[]; scope: TokenScope }>(token, {
+      const p = await this.jwt.verifyAsync<{ sub: string; username: string; roles: string[]; scope: TokenScope; exp?: number }>(token, {
         secret: this.options.secret,
         algorithms: ['HS256'],
         issuer: this.options.issuer,
         audience: this.options.audience,
       });
       if (!p.sub || (p.scope !== 'full' && p.scope !== 'setup')) return null;
-      return { userId: p.sub, username: p.username, roles: p.roles ?? [], scope: p.scope };
+      return {
+        userId: p.sub,
+        username: p.username,
+        roles: p.roles ?? [],
+        scope: p.scope,
+        expiresAt: p.exp ? Temporal.Instant.fromEpochMilliseconds(p.exp * 1000) : undefined,
+      };
     } catch {
       return null;
     }

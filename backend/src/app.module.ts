@@ -8,6 +8,7 @@ import { ALL_ENTITIES } from './database/entities';
 import { HealthController } from './health/health.controller';
 import { IamModule } from './modules/iam/iam.module';
 import { LocalizationModule } from './modules/i18n/localization.module';
+import { ApiDocsIntegrationModule } from './integration/api-docs.integration';
 import { PlatformModule } from './platform/platform.module';
 
 /**
@@ -50,6 +51,8 @@ export class AppModule {
     );
     // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
     if (useDb) imports.push(PlatformModule.register(), IamModule.register());
+    // Toujours présent (accès `null` sans base) : voir `ApiDocsIntegrationModule`.
+    imports.push(ApiDocsIntegrationModule.register({ identity: useDb }));
     return {
       module: AppModule,
       imports,

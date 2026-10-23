@@ -164,3 +164,48 @@ L'administrateur doit, à sa première connexion, changer son mot de passe puis 
 - **Rotation de la clé** `SECRET_ENCRYPTION_KEY` : le format `v1.` prépare la migration, l'outil reste à faire.
 - **Consultation du journal d'audit** (`audit:read`) et export pour le DPO ; purge/archivage selon la durée de conservation légale.
 - Sauvegarde et surveillance de `audit_log` (vérification périodique de `verifyChain`).
+
+## 14. Internationalisation (module `i18n`)
+
+Objectif : changer de bibliothèque d'i18n sans réécrire l'application. `@nestjs/i18n` n'est importé que dans `modules/i18n/infrastructure/nestjs-i18n/`.
+
+| Patron | Où | Rôle |
+|---|---|---|
+| Port / Adaptateur | `domain/ports.ts` → `NestI18nTranslator`, `JsonCatalogTranslator` | `Translator.translate(clé, langue, paramètres) → string \| null` ; deux adaptateurs interchangeables (choix : `I18N_ADAPTER`) |
+| Stratégie + chaîne de responsabilité | `application/locale-strategies.ts`, `LocaleResolver` | langue = `?lang=` > `X-Locale` > `Accept-Language` (poids RFC 9110) > défaut ; ajouter une source = une classe |
+| Décorateur | `FallbackTranslator` | repli « langue demandée → langue par défaut », identique pour tous les adaptateurs |
+| Façade | `Localizer` | `text`, `error(code)`, `field(nom)` ; ne lève jamais d'erreur |
+| Valeur-objet | `Locale` | BCP 47 normalisé (`fr_cm` → `fr-CM`) |
+| Contexte de requête | `AsyncLocalStorageLocaleContext` | langue disponible dans toutes les couches sans paramètre |
+
+**Les couches métier ne portent que des codes d'erreur** (`INVALID_CREDENTIALS`) et des paramètres ; c'est le filtre `LocalizedExceptionFilter`, à la frontière HTTP, qui les transforme en phrase (`errors.<CODE>` dans `catalogs/<langue>/errors.json`). La validation des entrées renvoie `{ statusCode: 400, code: 'VALIDATION_FAILED', errors: [{ field, rule, message }] }` avec le libellé du champ traduit. Le `code` ne change jamais avec la langue : les clients s'appuient dessus.
+
+Garde-fous : le test de **contrat** exécute les mêmes vérifications sur les deux adaptateurs (il a révélé que `@nestjs/i18n` sert silencieusement la langue par défaut pour une langue non supportée, ce que l'adaptateur absorbe désormais) ; le test des **catalogues** impose mêmes clés et mêmes paramètres dans toutes les langues, et fait échouer le build si un code d'erreur du code n'a pas de traduction.
+
+Ajouter une langue : créer `catalogs/<langue>/*.json`, l'ajouter à `I18N_LOCALES`. Ajouter un message : une clé dans chaque langue (le test le rappelle).
+
+## 15. Documentation de l'API (module `api-docs`)
+
+Même principe : `@nestjs/swagger` n'est importé que dans `modules/api-docs/infrastructure/swagger/`. Les contrôleurs et les DTO importent la **façade** `modules/api-docs` (`@DocGroup`, `@DocOperation`, `@DocProperty`…).
+
+- **Une seule source de vérité** : `@RequirePermissions('iam.users:manage')` contrôle l'accès *et* ajoute « Permissions requises » à la documentation ; elles ne peuvent pas diverger.
+- Chaque opération a un résumé, des réponses typées, les erreurs possibles (schéma `ErrorBodyDto`) et des exemples pré-remplis dans « Try it out ». Un test impose qu'**aucun endpoint de `/api/v1` ne soit non documenté**.
+- **Accès** : `GET /api-docs` affiche une **page d'accueil de connexion** (FR/EN, thème clair/sombre, MFA, mobile). Tout le reste sous `/api-docs/` (document JSON/YAML, scripts de l'interface) répond 401 sans session : le document décrit tout l'inventaire de l'API, il ne doit pas être public.
+- La connexion échange le jeton d'accès contre un cookie `httpOnly`, `SameSite=Strict`, limité à `/api-docs`, **revérifié à chaque requête** : compte désactivé ou permission retirée = accès fermé immédiatement. Il faut un compte en session complète avec la permission **`api.docs:read`** (donnée par défaut au seul `SYSTEM_ADMIN` ; les rôles étant des données, un établissement peut l'ajouter à d'autres).
+- Dans Swagger, le jeton est **pré-rempli** dans *Authorize* (et renouvelé), rien n'est stocké dans le navigateur ; une barre « utilisateur · Se déconnecter » est ajoutée.
+- `API_DOCS_ENABLED` : vrai hors production, **faux par défaut en production** (Docker). Sans système d'identité (base désactivée), la documentation n'est pas publiée (échec fermé).
+- `npm run playground` : démarre l'API complète en mémoire (aucun PostgreSQL ni Redis) avec un compte par profil, sur http://localhost:3100/api-docs. **Bac à sable uniquement.**
+
+## 16. Garde-fous d'architecture
+
+`test/architecture.spec.ts` fait respecter mécaniquement :
+
+1. `domain/`, `application/`, `shared-kernel/` n'importent aucun framework ni bibliothèque d'infrastructure ;
+2. le domaine ne dépend jamais de l'infrastructure ni de la présentation ;
+3. chaque bibliothèque (Swagger, i18n, argon2, otplib, ioredis, jwt, pg, typeorm, temporal-polyfill) n'est importée que par son adaptateur ;
+4. les modules ne se connaissent pas (`iam` → `audit`, `cache`, façade `api-docs` ; `i18n` et `api-docs` → rien) ; seule la racine de composition `src/integration/` les relie.
+
+Une règle qui ne vise rien est elle-même testée (« chaque bibliothèque confinée est bien utilisée par son adaptateur »).
+
+**Piège connu** : sous `NestFactory`, `app.get()` sur un fournisseur absent arrête le processus au lieu de lever une erreur rattrapable ; `Test.createTestingModule` ne le reproduit pas. D'où des fournisseurs toujours enregistrés (valeur `null`) et un test qui démarre par `NestFactory`.
+

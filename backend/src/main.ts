@@ -2,9 +2,9 @@ import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
+import { buildApiDocsOptions } from './config/api-docs.config';
 import { validateEnv } from './config/env.validation';
 import { loadLocalEnv } from './config/load-env';
 import { configurePgTypes } from './database/pg-types';
@@ -15,16 +15,12 @@ async function bootstrap() {
   configurePgTypes();
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register());
 
-  configureApp(app, { corsOrigins: env.CORS_ORIGINS });
-
-  if (env.NODE_ENV !== 'production') {
-    const doc = SwaggerModule.createDocument(app, new DocumentBuilder().setTitle('Sanjeevani API').setVersion('0.1.0').addBearerAuth().build());
-    SwaggerModule.setup('api-docs', app, doc);
-  }
+  configureApp(app, { corsOrigins: env.CORS_ORIGINS, docs: buildApiDocsOptions(env.API_DOCS_ENABLED), secureCookies: env.COOKIE_SECURE });
 
   app.enableShutdownHooks();
   await app.listen(env.PORT, '0.0.0.0');
   Logger.log(`API prête sur le port ${env.PORT}`, 'Bootstrap');
+  if (env.API_DOCS_ENABLED) Logger.log(`Documentation interactive : http://localhost:${env.PORT}/api-docs`, 'Bootstrap');
 }
 
 bootstrap().catch((e) => {
