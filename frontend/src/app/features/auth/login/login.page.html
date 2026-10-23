@@ -1,0 +1,189 @@
+<div class="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+  <!-- Panneau de présentation -->
+  <aside class="relative flex flex-col justify-between gap-10 overflow-hidden bg-[#06324a] px-6 py-8 text-white sm:px-12 sm:py-12 lg:px-16">
+    <div class="flex items-center gap-3">
+      <app-brand-mark />
+      <div class="leading-tight">
+        <p class="text-lg font-bold tracking-tight">{{ i18n.t('app.name') }}</p>
+        <p class="text-xs font-medium tracking-widest uppercase opacity-75">{{ i18n.t('app.tagline') }}</p>
+      </div>
+    </div>
+
+    <div>
+      <h1 class="max-w-xl text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl">{{ i18n.t('hero.title') }}</h1>
+      <p class="mt-4 max-w-lg text-lg opacity-90">{{ i18n.t('hero.lead') }}</p>
+      <svg class="mt-7 hidden h-14 w-full max-w-md opacity-90 lg:block" viewBox="0 0 420 56" fill="none" aria-hidden="true">
+        <path d="M0 30h120l14-22 22 44 18-34 12 12h234" stroke="#7ee8d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+
+    <ul class="grid gap-3 sm:grid-cols-2">
+      @for (f of ['f1', 'f2', 'f3', 'f4']; track f) {
+        <li class="flex gap-3 border border-white/25 p-4">
+          <svg viewBox="0 0 24 24" class="mt-0.5 size-5 shrink-0 text-teal-200" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+          <div>
+            <p class="text-sm font-semibold">{{ i18n.t('hero.' + f + 'Title') }}</p>
+            <p class="mt-0.5 text-sm opacity-80">{{ i18n.t('hero.' + f + 'Text') }}</p>
+          </div>
+        </li>
+      }
+    </ul>
+  </aside>
+
+  <!-- Formulaire -->
+  <main class="flex flex-col bg-background px-6 py-6 sm:px-12 lg:px-16">
+    <div class="flex justify-end"><app-preferences /></div>
+
+    <div class="grid flex-1 place-items-center py-8">
+      <section hlmCard class="w-full max-w-md rounded-none border border-border shadow-none ring-0" [attr.aria-labelledby]="step() === 'credentials' ? 'login-title' : 'mfa-title'">
+        @if (step() === 'credentials') {
+          <div hlmCardHeader>
+            <h2 hlmCardTitle id="login-title" class="text-2xl">{{ i18n.t('login.title') }}</h2>
+            <p hlmCardDescription>{{ i18n.t('login.lead') }}</p>
+          </div>
+
+          <div hlmCardContent>
+            @if (expired && !error()) {
+              <div hlmAlert class="mb-4" role="status">
+                <div hlmAlertDescription>{{ i18n.t('login.expired') }}</div>
+              </div>
+            }
+            @if (error(); as message) {
+              <div hlmAlert variant="destructive" class="mb-4" role="alert">
+                <div hlmAlertDescription>{{ message }}</div>
+              </div>
+            }
+
+            <form [formGroup]="credentials" (ngSubmit)="submitCredentials()" novalidate class="grid gap-4">
+              <div class="grid gap-2">
+                <label hlmLabel for="username">{{ i18n.t('login.username') }}</label>
+                <input
+                  hlmInput
+                  id="username"
+                  type="text"
+                  formControlName="username"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  autofocus
+                  maxlength="64"
+                  [placeholder]="i18n.t('login.usernamePlaceholder')"
+                  [attr.aria-invalid]="attempted() && credentials.controls.username.invalid"
+                  [attr.aria-describedby]="attempted() && credentials.controls.username.invalid ? 'username-error' : null"
+                />
+                @if (attempted() && credentials.controls.username.invalid) {
+                  <p id="username-error" class="text-sm text-destructive" role="alert">{{ i18n.t('login.errors.usernameRequired') }}</p>
+                }
+              </div>
+
+              <div class="grid gap-2">
+                <label hlmLabel for="password">{{ i18n.t('login.password') }}</label>
+                <div class="relative">
+                  <input
+                    hlmInput
+                    id="password"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    formControlName="password"
+                    autocomplete="current-password"
+                    maxlength="1024"
+                    class="pr-20"
+                    [placeholder]="i18n.t('login.passwordPlaceholder')"
+                    [attr.aria-invalid]="attempted() && credentials.controls.password.invalid"
+                    [attr.aria-describedby]="attempted() && credentials.controls.password.invalid ? 'password-error' : null"
+                  />
+                  <button
+                    type="button"
+                    class="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md px-2.5 py-1 text-xs font-semibold text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    [attr.aria-pressed]="showPassword()"
+                    (click)="showPassword.set(!showPassword())"
+                  >
+                    {{ showPassword() ? i18n.t('login.hidePassword') : i18n.t('login.showPassword') }}
+                  </button>
+                </div>
+                @if (attempted() && credentials.controls.password.invalid) {
+                  <p id="password-error" class="text-sm text-destructive" role="alert">{{ i18n.t('login.errors.passwordRequired') }}</p>
+                }
+              </div>
+
+              <button hlmBtn type="submit" size="lg" class="mt-1 w-full" [disabled]="submitting()" [attr.aria-busy]="submitting()">
+                @if (submitting()) {
+                  <span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                  {{ i18n.t('login.submitting') }}
+                } @else {
+                  {{ i18n.t('login.submit') }}
+                }
+              </button>
+            </form>
+          </div>
+
+          <div hlmCardFooter>
+            <p class="text-sm text-muted-foreground">{{ i18n.t('login.forgot') }}</p>
+          </div>
+        } @else {
+          <div hlmCardHeader>
+            <h2 hlmCardTitle id="mfa-title" class="text-2xl">{{ i18n.t('mfa.title') }}</h2>
+            <p hlmCardDescription>{{ i18n.t('mfa.lead') }}</p>
+          </div>
+
+          <div hlmCardContent>
+            @if (error(); as message) {
+              <div hlmAlert variant="destructive" class="mb-4" role="alert">
+                <div hlmAlertDescription>{{ message }}</div>
+              </div>
+            }
+
+            <form [formGroup]="secondFactor" (ngSubmit)="submitCode()" novalidate class="grid gap-4">
+              <div class="grid gap-2">
+                <label hlmLabel for="code">{{ recoveryMode() ? i18n.t('mfa.recoveryCode') : i18n.t('mfa.code') }}</label>
+                <input
+                  hlmInput
+                  #codeField
+                  id="code"
+                  type="text"
+                  formControlName="code"
+                  [attr.inputmode]="recoveryMode() ? 'text' : 'numeric'"
+                  [attr.autocomplete]="recoveryMode() ? 'off' : 'one-time-code'"
+                  [attr.maxlength]="recoveryMode() ? 16 : 7"
+                  spellcheck="false"
+                  class="h-12 text-center font-mono text-xl tracking-[0.35em]"
+                  [class.uppercase]="recoveryMode()"
+                  [placeholder]="recoveryMode() ? 'ABCDE-FGHJK' : '000 000'"
+                  [attr.aria-invalid]="attempted() && secondFactor.controls.code.invalid"
+                  [attr.aria-describedby]="attempted() && secondFactor.controls.code.invalid ? 'code-error' : null"
+                />
+                @if (attempted() && secondFactor.controls.code.invalid) {
+                  <p id="code-error" class="text-sm text-destructive" role="alert">{{ i18n.t('mfa.errors.codeRequired') }}</p>
+                }
+              </div>
+
+              <button hlmBtn type="submit" size="lg" class="w-full" [disabled]="submitting()" [attr.aria-busy]="submitting()">
+                @if (submitting()) {
+                  <span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>
+                  {{ i18n.t('login.submitting') }}
+                } @else {
+                  {{ i18n.t('mfa.verify') }}
+                }
+              </button>
+            </form>
+          </div>
+
+          <div hlmCardFooter class="flex justify-between gap-2">
+            <button type="button" hlmBtn variant="link" class="px-0" (click)="toggleRecovery()">
+              {{ recoveryMode() ? i18n.t('mfa.useApp') : i18n.t('mfa.useRecovery') }}
+            </button>
+            <button type="button" hlmBtn variant="link" class="px-0" (click)="backToCredentials()">{{ i18n.t('common.back') }}</button>
+          </div>
+        }
+      </section>
+    </div>
+
+    <p class="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+      <svg viewBox="0 0 24 24" class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="10" width="16" height="10" rx="2.5" /><path d="M8 10V7a4 4 0 018 0v3" />
+      </svg>
+      {{ i18n.t('login.footer') }}
+    </p>
+  </main>
+</div>

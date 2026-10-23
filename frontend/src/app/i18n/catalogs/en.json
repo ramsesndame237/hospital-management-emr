@@ -1,0 +1,83 @@
+{
+  "app": {
+    "name": "Sanjeevani EMR",
+    "tagline": "Hospital platform"
+  },
+  "common": {
+    "loading": "Loading…",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "signOut": "Sign out",
+    "back": "Back"
+  },
+  "hero": {
+    "title": "Care, safely delivered",
+    "lead": "Patient records, appointments, laboratory, pharmacy: the whole hospital team, in one place.",
+    "f1Title": "Access by role",
+    "f1Text": "You only see what your role allows.",
+    "f2Title": "Two-factor authentication",
+    "f2Text": "Stronger protection for health data.",
+    "f3Title": "Full traceability",
+    "f3Text": "Every access is logged, for everyone's safety.",
+    "f4Title": "French and English",
+    "f4Text": "The interface follows the language you choose."
+  },
+  "login": {
+    "title": "Staff sign-in",
+    "lead": "Sign in with your professional account to open your workspace.",
+    "username": "Username",
+    "usernamePlaceholder": "first.last",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "submit": "Sign in",
+    "submitting": "Checking…",
+    "forgot": "Forgot your password? Contact your facility's administrator.",
+    "footer": "Access restricted to authorized staff. Every sign-in is logged.",
+    "expired": "Your session has expired. Please sign in again.",
+    "errors": {
+      "usernameRequired": "Enter your username.",
+      "passwordRequired": "Enter your password.",
+      "network": "Unable to reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again in a moment."
+    }
+  },
+  "mfa": {
+    "title": "Two-step verification",
+    "lead": "Enter the 6-digit code shown by your authenticator app.",
+    "code": "Verification code",
+    "recoveryCode": "Recovery code",
+    "verify": "Verify",
+    "useRecovery": "Use a recovery code",
+    "useApp": "Use my app",
+    "errors": {
+      "codeRequired": "Enter the code."
+    }
+  },
+  "home": {
+    "welcome": "Hello, {name}",
+    "lead": "Your workspace.",
+    "profile": "My profile",
+    "email": "E-mail address",
+    "roles": "Roles",
+    "mfa": "Two-factor authentication",
+    "mfaOn": "Enabled",
+    "mfaOff": "Not enabled",
+    "permissions": "My permissions",
+    "permissionsLead": "What your profile allows you to do in the platform.",
+    "noPermissions": "No specific permission.",
+    "apiDocs": "API documentation",
+    "apiDocsLead": "Explore and test the endpoints."
+  },
+  "setup": {
+    "title": "Complete your account",
+    "lead": "Before you can use the platform, your account must be completed.",
+    "passwordStep": "Replace the temporary password with a personal one.",
+    "mfaStep": "Enroll two-factor authentication in an authenticator app.",
+    "soon": "This wizard will be available soon. In the meantime, contact your facility's administrator."
+  }
+}

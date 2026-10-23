@@ -1,0 +1,83 @@
+{
+  "app": {
+    "name": "Sanjeevani EMR",
+    "tagline": "Plateforme hospitalière"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "language": "Langue",
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "signOut": "Se déconnecter",
+    "back": "Retour"
+  },
+  "hero": {
+    "title": "Les soins, en toute sécurité",
+    "lead": "Dossier patient, rendez-vous, laboratoire, pharmacie : tout le personnel de l'établissement, au même endroit.",
+    "f1Title": "Accès selon votre profil",
+    "f1Text": "Vous ne voyez que ce que votre rôle vous autorise.",
+    "f2Title": "Double authentification",
+    "f2Text": "Une protection renforcée pour les données de santé.",
+    "f3Title": "Traçabilité complète",
+    "f3Text": "Chaque accès est journalisé, pour la sécurité de tous.",
+    "f4Title": "Français et anglais",
+    "f4Text": "L'interface suit la langue de votre choix."
+  },
+  "login": {
+    "title": "Connexion du personnel",
+    "lead": "Identifiez-vous avec votre compte professionnel pour accéder à votre espace.",
+    "username": "Identifiant",
+    "usernamePlaceholder": "prenom.nom",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Votre mot de passe",
+    "showPassword": "Afficher",
+    "hidePassword": "Masquer",
+    "submit": "Se connecter",
+    "submitting": "Vérification…",
+    "forgot": "Mot de passe oublié ? Contactez l'administrateur de votre établissement.",
+    "footer": "Accès réservé au personnel autorisé. Toutes les connexions sont journalisées.",
+    "expired": "Votre session a expiré. Veuillez vous reconnecter.",
+    "errors": {
+      "usernameRequired": "Saisissez votre identifiant.",
+      "passwordRequired": "Saisissez votre mot de passe.",
+      "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
+      "generic": "Une erreur est survenue. Réessayez dans un instant."
+    }
+  },
+  "mfa": {
+    "title": "Vérification en deux étapes",
+    "lead": "Saisissez le code à 6 chiffres affiché par votre application d'authentification.",
+    "code": "Code de vérification",
+    "recoveryCode": "Code de secours",
+    "verify": "Vérifier",
+    "useRecovery": "Utiliser un code de secours",
+    "useApp": "Utiliser mon application",
+    "errors": {
+      "codeRequired": "Saisissez le code."
+    }
+  },
+  "home": {
+    "welcome": "Bonjour, {name}",
+    "lead": "Votre espace de travail.",
+    "profile": "Mon profil",
+    "email": "Adresse e-mail",
+    "roles": "Rôles",
+    "mfa": "Double authentification",
+    "mfaOn": "Activée",
+    "mfaOff": "Non activée",
+    "permissions": "Mes autorisations",
+    "permissionsLead": "Ce que votre profil vous permet de faire dans la plateforme.",
+    "noPermissions": "Aucune autorisation particulière.",
+    "apiDocs": "Documentation de l'API",
+    "apiDocsLead": "Explorer et tester les endpoints."
+  },
+  "setup": {
+    "title": "Finalisation de votre compte",
+    "lead": "Avant d'accéder à la plateforme, votre compte doit être finalisé.",
+    "passwordStep": "Remplacer le mot de passe provisoire par un mot de passe personnel.",
+    "mfaStep": "Inscrire la double authentification dans une application d'authentification.",
+    "soon": "Cet assistant sera disponible prochainement. En attendant, contactez l'administrateur de votre établissement."
+  }
+}
