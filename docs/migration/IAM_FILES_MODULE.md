@@ -2,6 +2,12 @@
 
 Branche : `feature/iam-files-module`. Décisions du commanditaire : API propre `/api/v1`, nouvelle app Angular moderne (`frontend/`) avec ng-shadcn, profils hospitaliers standards, MFA TOTP, stockage objet **RustFS** (compatible S3), cache **Redis**.
 
+## 0. Source de vérité
+
+**Le backend .NET n'est pas la référence.** Ses choix (mots de passe réversibles en 3DES, sessions serveur, erreur métier en HTTP 200…) ne sont ni repris ni imités. Ce module se conforme aux référentiels du §2. Le code C# n'est lu que pour une chose : **reconnaître les anciens mots de passe** afin de convertir les comptes existants (§7). Le contrat d'API « historique » (`api/<Contrôleur>/<action>`, enveloppe `Status/Results`) ne s'applique pas ici : ce module expose `/api/v1`.
+
+**Temps** : toute l'application utilise `Temporal` (`Instant`, `Duration`), jamais `Date`, sauf à la frontière du pilote `pg` (`database/temporal-mapping.ts`). `shared-kernel/temporal.ts` prend le `Temporal` natif s'il existe (Node récent), sinon le polyfill `temporal-polyfill` : Node 24.22 (V8 13.6) ne l'expose pas encore sans l'option `--harmony-temporal`.
+
 ## 1. Périmètre
 
 | Sous-module | Contenu |
@@ -106,3 +112,55 @@ Angular récent (standalone, signals), Tailwind, **ng-shadcn**. Écrans : connex
 4. Files + RustFS (docker-compose)
 5. Frontend Angular + ng-shadcn
 6. Durcissement : en-têtes, limitation de débit, revue de sécurité, documentation d'exploitation
+
+## 10. État d'avancement
+
+| Lot | État |
+|---|---|
+| Noyau, value objects, agrégat `User`, cas d'usage IAM | fait |
+| Adaptateurs : Argon2id, 3DES hérité (lecture), TOTP, AES‑256‑GCM, JWT, HIBP, PostgreSQL, Redis (sessions, cache), journal d'audit chaîné | fait |
+| API `/api/v1` (auth, MFA, comptes, rôles), gardes globaux, limitation de débit, `helmet`, cookies | fait |
+| Docker (PostgreSQL + Redis + API), migrations SQL au démarrage, amorçage du premier administrateur | fait, **vérifié sur une pile réelle** |
+| Fichiers + RustFS | à faire |
+| Frontend Angular + ng‑shadcn | à faire |
+
+Tests : `npm test` — 158 tests, dont 33 de bout en bout (HTTP réel, PostgreSQL embarqué, Argon2id réel).
+
+## 11. API `/api/v1`
+
+| Route | Accès | Rôle |
+|---|---|---|
+| `POST /auth/login` | public, 10/min/IP | identifiant + mot de passe (+ `totpCode` ou `recoveryCode`). Réponse : `authenticated` (jeton d'accès, portée `full` ou `setup`) ou `mfa_required` |
+| `POST /auth/refresh` | public (cookie), 10/min/IP | rotation du cookie de rafraîchissement ; recalcule la portée |
+| `POST /auth/logout` | public (cookie) | révoque la famille de sessions |
+| `GET /auth/me` | `setup` autorisé | profil, rôles, permissions (pilote l'interface) |
+| `POST /auth/password/change` | `setup` autorisé | change le mot de passe, révoque toutes les sessions |
+| `POST /auth/mfa/enroll`, `/auth/mfa/activate` | `setup` autorisé | inscription TOTP, remise unique de 10 codes de secours |
+| `GET/POST /users`, `PUT /users/:id/roles`, `POST /users/:id/{enable,disable,unlock,reset-mfa}` | `iam.users:read` / `iam.users:manage` | administration ; interdit sur soi‑même (rôles, désactivation) |
+| `GET /roles` | `iam.roles:read` | rôles et permissions |
+
+Erreurs : `{ statusCode, code, message }` — 401 identifiants/session, 403 permission ou `SETUP_REQUIRED`, 404, 409 doublon, 422 saisie invalide (politique de mot de passe…), 429 débit.
+
+## 12. Exploitation
+
+```bash
+# 1. secrets (jamais dans le dépôt)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # SECRET_ENCRYPTION_KEY
+# 2. démarrer : le schéma IAM est appliqué (idempotent) à chaque démarrage de l'API
+docker compose up -d --build
+# 3. créer le premier administrateur (refuse s'il existe déjà un compte)
+docker compose exec -e BOOTSTRAP_ADMIN_EMAIL=dsi@hopital.example api node dist/cli/bootstrap-admin.js
+```
+
+L'administrateur doit, à sa première connexion, changer son mot de passe puis inscrire la MFA (jeton `setup` tant que ce n'est pas fait). Variables : voir `backend/.env.example`. En production l'API refuse de démarrer sans `REDIS_URL`, `SECRET_ENCRYPTION_KEY`, `JWT_SECRET` ≥ 32 caractères, ni avec `COOKIE_SECURE=false`.
+
+**Reprise des comptes .NET** : renseigner `LEGACY_PASSWORD_SALT` (sel du code historique) ; sans lui les comptes hérités ne peuvent pas se connecter. L'import des lignes `rbac_user` vers `iam_users` (colonne `legacy_rbac_user_id`, hash au format `legacy-3des$<base64>`) reste à écrire ; **valider d'abord la lecture 3DES sur un vrai mot de passe issu de la base .NET**, le test actuel ne fait que vérifier la cohérence interne.
+
+## 13. Reste à durcir (hors lot actuel)
+
+- **Rejeu d'un code TOTP** dans sa fenêtre de 30 s : à interdire (mémoriser le dernier pas accepté par compte).
+- **Limitation de débit partagée** : le compteur actuel est en mémoire ; avec plusieurs instances de l'API, passer à un stockage Redis.
+- **Mot de passe oublié** par e‑mail (jeton à usage unique) : aujourd'hui seul un administrateur peut réinitialiser (`reset-mfa`, recréation).
+- **Rotation de la clé** `SECRET_ENCRYPTION_KEY` : le format `v1.` prépare la migration, l'outil reste à faire.
+- **Consultation du journal d'audit** (`audit:read`) et export pour le DPO ; purge/archivage selon la durée de conservation légale.
+- Sauvegarde et surveillance de `audit_log` (vérification périodique de `verifyChain`).

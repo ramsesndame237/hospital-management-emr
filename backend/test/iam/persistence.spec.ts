@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { SqlExecutor } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
 import { AccessPolicy } from '../../src/modules/iam/domain/role';
 import { User } from '../../src/modules/iam/domain/user';
@@ -15,20 +14,9 @@ import { PgRoleRepository } from '../../src/modules/iam/infrastructure/persisten
 import { PgUserRepository } from '../../src/modules/iam/infrastructure/persistence/pg-user.repository';
 import { Temporal } from '../../src/shared-kernel/temporal';
 import { must } from './fakes';
+import { PgliteSql } from './pglite-sql';
 
 const DDL = fs.readFileSync(path.join(__dirname, '../../migration/schema/iam.pg.sql'), 'utf8');
-
-/** Exécuteur SQL branché sur PostgreSQL embarqué : mêmes requêtes qu'en production, vrai moteur. */
-export class PgliteSql implements SqlExecutor {
-  constructor(private readonly db: Pick<PGlite, 'query'> & Partial<Pick<PGlite, 'transaction'>>) {}
-  async query<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
-    return (await this.db.query<T>(sql, [...params])).rows;
-  }
-  transaction<R>(work: (tx: SqlExecutor) => Promise<R>): Promise<R> {
-    if (!this.db.transaction) return work(this);
-    return this.db.transaction((tx) => work(new PgliteSql(tx as never)));
-  }
-}
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const NOW = Temporal.Instant.from('2026-10-23T10:00:00.123Z');

@@ -6,6 +6,8 @@ import { EnvelopeInterceptor } from './common/envelope.interceptor';
 import { validateEnv } from './config/env.validation';
 import { ALL_ENTITIES } from './database/entities';
 import { HealthController } from './health/health.controller';
+import { IamModule } from './modules/iam/iam.module';
+import { PlatformModule } from './platform/platform.module';
 
 /**
  * Module racine. Chaque module métier migré (security, appointment, billing…) s'ajoute à `imports`.
@@ -34,6 +36,8 @@ export class AppModule {
         }),
       );
     }
+    // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
+    if (useDb) imports.push(PlatformModule.register(), IamModule.register());
     return {
       module: AppModule,
       imports,

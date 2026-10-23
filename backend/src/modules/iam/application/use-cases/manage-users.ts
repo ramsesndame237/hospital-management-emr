@@ -14,6 +14,10 @@ import { PermissionResolver } from '../permission-resolver';
 
 const NOT_FOUND = new DomainError('USER_NOT_FOUND', 'Utilisateur introuvable.');
 const DUPLICATE = new DomainError('USER_ALREADY_EXISTS', 'Un compte existe déjà avec cet identifiant ou cet e-mail.');
+const SELF_MODIFICATION = new DomainError(
+  'SELF_MODIFICATION_FORBIDDEN',
+  'Vous ne pouvez pas modifier vos propres rôles ni désactiver votre propre compte.',
+);
 const UNKNOWN_ROLE = new DomainError('ROLE_UNKNOWN', "Un des rôles demandés n'existe pas.");
 
 export interface UserView {
@@ -113,6 +117,7 @@ export class ManageUserUseCases {
   ) {}
 
   async assignRoles(actorId: string, userId: string, roleCodes: readonly string[]): Promise<Result<UserView>> {
+    if (actorId === userId) return err(SELF_MODIFICATION); // anti-escalade de privilèges et anti-verrouillage
     const roles = await parseRoles(roleCodes, this.roles);
     if (!roles.ok) return err(roles.error);
     return this.mutate(actorId, userId, 'iam.user.roles', (u) => u.assignRoles(roles.value), true, {
@@ -121,7 +126,8 @@ export class ManageUserUseCases {
   }
 
   /** Désactiver un compte coupe aussi toutes ses sessions : l'effet est immédiat. */
-  setActive(actorId: string, userId: string, active: boolean): Promise<Result<UserView>> {
+  async setActive(actorId: string, userId: string, active: boolean): Promise<Result<UserView>> {
+    if (actorId === userId) return err(SELF_MODIFICATION);
     return this.mutate(actorId, userId, active ? 'iam.user.enable' : 'iam.user.disable', (u) => (active ? u.enable() : u.disable()), !active);
   }
 
@@ -160,5 +166,18 @@ export class ManageUserUseCases {
       occurredAt: now,
     });
     return ok(toUserView(user, now));
+  }
+}
+
+export class ListUsersUseCase {
+  constructor(
+    private readonly users: UserRepository,
+    private readonly clock: Clock,
+  ) {}
+
+  async execute(offset: number, limit: number): Promise<{ items: UserView[]; total: number }> {
+    const page = await this.users.list(Math.max(0, offset), Math.min(Math.max(1, limit), 200));
+    const now = this.clock.now();
+    return { items: page.items.map((u) => toUserView(u, now)), total: page.total };
   }
 }

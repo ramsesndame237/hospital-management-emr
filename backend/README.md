@@ -7,7 +7,8 @@ Remplaçant progressif du backend ASP.NET Core / .NET Framework 4.6.1 (Windows u
 - Enveloppe de réponse `{ Status, Results, ErrorMessage }` identique à .NET (`src/common`), configuration validée, sonde `GET /api/Health`.
 - 447 entités TypeORM et le schéma PostgreSQL **générés** depuis les modèles C# (`tools/`).
 - Inventaire automatique : 1 725 actions d'API, 483 procédures stockées, 451 tables.
-- Aucun module métier migré pour l'instant (phase 1 : `security` et `core`).
+- **Module 1 — Identité & accès (`/api/v1`)** : authentification (Argon2id, MFA TOTP, sessions rotatives), rôles/permissions, journal d'audit chaîné, cache et sessions Redis. Architecture, API, exploitation : [`docs/migration/IAM_FILES_MODULE.md`](../docs/migration/IAM_FILES_MODULE.md). Premier administrateur : `npm run iam:bootstrap-admin`.
+- Les autres modules métier (compatibilité `api/<Contrôleur>/<action>`) restent à migrer.
 
 ## Démarrer
 
@@ -30,7 +31,8 @@ Les fichiers `src/database/entities/*.entities.ts` et `migration/schema/schema.p
 
 ## Conventions
 
-- Mêmes routes que .NET (`api/<Contrôleur>/<action>`), pas de préfixe global ; l'Angular existant doit fonctionner sans changement.
+- Modules historiques : mêmes routes que .NET (`api/<Contrôleur>/<action>`), pas de préfixe global. Nouveaux modules (IAM, fichiers) : `/api/v1`, le .NET n'est pas une référence.
+- Temps : `Temporal` (`src/shared-kernel/temporal.ts`), pas `Date`.
 - Propriétés des entités en PascalCase (JSON identique), colonnes PostgreSQL en snake_case.
 - Un contrôleur dont les réponses doivent être enveloppées porte `@DanpheApi()`.
 - Pas de secret dans le dépôt : tout passe par les variables d'environnement (`.env.example`).

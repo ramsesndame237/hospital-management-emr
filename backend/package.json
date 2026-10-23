@@ -12,7 +12,9 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "inventory": "node tools/inventory-endpoints.mjs && node tools/inventory-sps.mjs && node tools/inventory-entities.mjs && node tools/generate-entities.mjs && node tools/report.mjs",
-    "migration:report": "node tools/report.mjs"
+    "migration:report": "node tools/report.mjs",
+    "db:iam": "node tools/apply-sql.mjs migration/schema/iam.pg.sql",
+    "iam:bootstrap-admin": "node dist/cli/bootstrap-admin.js"
   },
   "engines": {
     "node": ">=20"

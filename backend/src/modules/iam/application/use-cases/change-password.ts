@@ -10,10 +10,11 @@ import {
 } from '../../domain/ports';
 import { PlainPassword } from '../../domain/value-objects/plain-password';
 import { UserId } from '../../domain/value-objects/user-id';
-import { INVALID_CREDENTIALS } from './login';
 import { ClientContext, SessionIssuer, TokenPair } from '../session-issuer';
 import { PermissionResolver } from '../permission-resolver';
 
+/** Distinct de INVALID_CREDENTIALS (401) : l'utilisateur est bien connecté, c'est sa saisie qui est fausse (422). */
+const CURRENT_INVALID = new DomainError('CURRENT_PASSWORD_INVALID', 'Le mot de passe actuel est incorrect.');
 const BREACHED = new DomainError('PASSWORD_BREACHED', 'Ce mot de passe figure dans une liste de mots de passe compromis. Choisissez-en un autre.');
 const SAME = new DomainError('PASSWORD_UNCHANGED', "Le nouveau mot de passe doit différer de l'ancien.");
 
@@ -42,10 +43,10 @@ export class ChangePasswordUseCase {
   ): Promise<Result<TokenPair>> {
     const id = UserId.create(userId);
     const user = id.ok ? await this.users.findById(id.value) : null;
-    if (!user) return err(INVALID_CREDENTIALS);
+    if (!user) return err(CURRENT_INVALID);
 
     const current = PlainPassword.forVerification(currentPassword);
-    if (!current.ok) return err(INVALID_CREDENTIALS);
+    if (!current.ok) return err(CURRENT_INVALID);
     const valid =
       user.passwordHash.scheme === 'legacy-3des'
         ? this.legacy.verify(user.passwordHash, current.value)
@@ -60,7 +61,7 @@ export class ChangePasswordUseCase {
         reason: 'bad-current-password',
         occurredAt: this.clock.now(),
       });
-      return err(INVALID_CREDENTIALS);
+      return err(CURRENT_INVALID);
     }
 
     const next = PlainPassword.create(newPassword, { username: user.username.value, email: user.email.value });

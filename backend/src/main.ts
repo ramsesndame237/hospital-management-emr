@@ -1,9 +1,10 @@
 import 'reflect-metadata';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 import { validateEnv } from './config/env.validation';
 import { configurePgTypes } from './database/pg-types';
 
@@ -12,11 +13,7 @@ async function bootstrap() {
   configurePgTypes();
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register());
 
-  app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
-  // Les routes reprennent exactement celles du backend .NET (« api/<Contrôleur>/<action> ») : pas de préfixe global.
-  // Corps JSON volumineux : le backend .NET autorisait de gros formulaires (RequestFormSizeLimit).
-  app.useBodyParser('json', { limit: '25mb' });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  configureApp(app, { corsOrigins: env.CORS_ORIGINS });
 
   if (env.NODE_ENV !== 'production') {
     const doc = SwaggerModule.createDocument(app, new DocumentBuilder().setTitle('Sanjeevani API').setVersion('0.1.0').addBearerAuth().build());
