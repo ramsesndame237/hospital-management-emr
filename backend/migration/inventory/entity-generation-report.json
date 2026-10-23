@@ -1,0 +1,27 @@
+{
+ "generated": 447,
+ "modules": 42,
+ "skipped": [
+  {
+   "model": "PurchaseOrderModel",
+   "table": "INV_TXN_PurchaseOrder",
+   "reason": "aucune clé primaire détectée"
+  },
+  {
+   "model": "PHRMStockMaster",
+   "table": "PHRM_MST_Stock",
+   "reason": "aucune clé primaire détectée"
+  },
+  {
+   "model": "PHRMStockBarcode",
+   "table": "PHRM_MST_StockBarcode",
+   "reason": "aucune clé primaire détectée"
+  },
+  {
+   "model": "MAP_ReturnItems_FixedAssetStock",
+   "table": "WARD_TXN_ReturnItems_FixedAssetStock",
+   "reason": "aucune clé primaire détectée"
+  }
+ ],
+ "columnWarnings": []
+}

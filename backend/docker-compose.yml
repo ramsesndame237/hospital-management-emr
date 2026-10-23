@@ -1,0 +1,39 @@
+# Environnement local / démo : PostgreSQL + API. Les secrets viennent d'un fichier .env (voir .env.example), jamais du dépôt.
+#   docker compose up --build
+# Le schéma est chargé au premier démarrage depuis migration/schema/schema.pg.sql (déduit du code C#).
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-sanjeevani}
+      POSTGRES_USER: ${DB_USER:-sanjeevani}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD est obligatoire (voir .env.example)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migration/schema/schema.pg.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sanjeevani} -d ${DB_NAME:-sanjeevani}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-sanjeevani}
+      DB_USER: ${DB_USER:-sanjeevani}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET est obligatoire (32 caractères minimum)}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
