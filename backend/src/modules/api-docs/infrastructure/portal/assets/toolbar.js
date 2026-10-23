@@ -9,18 +9,18 @@
     bar.setAttribute('aria-label', 'Session');
     bar.style.cssText =
       'position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:10px;' +
-      'padding:6px 8px 6px 14px;border-radius:999px;font:600 13px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;' +
-      'color:#e8f4f8;background:rgba(6,50,74,.94);box-shadow:0 6px 20px rgba(6,50,74,.35);border:1px solid rgba(255,255,255,.14)';
+      'padding:6px 8px 6px 14px;border-radius:2px;font:600 13px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;' +
+      'color:#e8f4f8;background:#06324a;border:1px solid rgba(255,255,255,.25)';
 
     var dot = document.createElement('span');
-    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 0 3px rgba(45,212,191,.25)';
+    dot.style.cssText = 'width:8px;height:8px;background:#2dd4bf';
     var name = document.createElement('span');
     name.textContent = me.displayName;
 
     var out = document.createElement('button');
     out.type = 'button';
     out.textContent = me.signOut;
-    out.style.cssText = 'cursor:pointer;border:0;border-radius:999px;padding:8px 14px;font:inherit;color:#06324a;background:#e8f4f8';
+    out.style.cssText = 'cursor:pointer;border:0;border-radius:2px;padding:8px 14px;font:inherit;color:#06324a;background:#e8f4f8';
     out.addEventListener('click', function () {
       out.disabled = true;
       fetch(base + '/logout', { method: 'POST', credentials: 'same-origin' })
