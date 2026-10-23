@@ -121,10 +121,11 @@ describe('AccessPolicy', () => {
 describe('LockoutPolicy', () => {
   const policy = new LockoutPolicy();
   it('ne verrouille pas avant 5 échecs, puis double le délai jusqu\'à 24 h', () => {
-    expect(policy.lockDurationMs(4)).toBe(0);
-    expect(policy.lockDurationMs(5)).toBe(15 * 60_000);
-    expect(policy.lockDurationMs(6)).toBe(30 * 60_000);
-    expect(policy.lockDurationMs(7)).toBe(60 * 60_000);
-    expect(policy.lockDurationMs(40)).toBe(24 * 3_600_000);
+    const minutes = (n: number) => policy.lockDuration(n)?.total('minutes');
+    expect(policy.lockDuration(4)).toBeNull();
+    expect(minutes(5)).toBe(15);
+    expect(minutes(6)).toBe(30);
+    expect(minutes(7)).toBe(60);
+    expect(minutes(40)).toBe(24 * 60);
   });
 });

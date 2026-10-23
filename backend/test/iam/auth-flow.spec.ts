@@ -45,7 +45,7 @@ describe('Connexion', () => {
     expect(w.audit.last('auth.login')?.outcome).toBe('DENIED');
     expect(w.audit.last('auth.login')?.reason).toBe('locked');
 
-    w.clock.advance(16 * 60_000);
+    w.clock.advance({ minutes: 16 });
     const later = await login(w).execute({ username: 'caissier', password: GOOD, ...CTX });
     expect(later.ok).toBe(true);
   });
@@ -159,7 +159,7 @@ describe('Rafraîchissement des sessions', () => {
 
   it('refuse après expiration et après désactivation du compte', async () => {
     const t = await openSession();
-    w.clock.advance(8 * 24 * 3_600_000);
+    w.clock.advance({ hours: 8 * 24 });
     expect((await refresh(w).execute(t.refreshToken, CTX)).ok).toBe(false);
 
     const w2 = buildWorld();

@@ -25,6 +25,7 @@ import { RoleCode } from '../../src/modules/iam/domain/value-objects/role-code';
 import { UserId } from '../../src/modules/iam/domain/value-objects/user-id';
 import { Username } from '../../src/modules/iam/domain/value-objects/username';
 import { Clock, IdGenerator } from '../../src/shared-kernel/ports';
+import { Instant, Temporal } from '../../src/shared-kernel/temporal';
 
 export const must = <T>(r: { ok: true; value: T } | { ok: false; error: unknown }): T => {
   if (!r.ok) throw new Error(`Résultat en échec : ${JSON.stringify(r.error)}`);
@@ -32,9 +33,9 @@ export const must = <T>(r: { ok: true; value: T } | { ok: false; error: unknown 
 };
 
 export class FixedClock implements Clock {
-  constructor(private t = new Date('2026-10-23T10:00:00Z')) {}
-  now(): Date { return new Date(this.t); }
-  advance(ms: number): void { this.t = new Date(this.t.getTime() + ms); }
+  constructor(private t: Instant = Temporal.Instant.from('2026-10-23T10:00:00Z')) {}
+  now(): Instant { return this.t; }
+  advance(duration: Parameters<Instant['add']>[0]): void { this.t = this.t.add(duration); }
 }
 
 export class SeqIds implements IdGenerator {
@@ -99,7 +100,7 @@ export class FakeBreached implements BreachedPasswordChecker {
 export class FakeTokens implements TokenIssuer {
   constructor(private readonly clock: Clock) {}
   async issue(c: AccessClaims) {
-    return { token: `at.${Buffer.from(JSON.stringify(c)).toString('base64url')}`, expiresAt: new Date(this.clock.now().getTime() + 900_000) };
+    return { token: `at.${Buffer.from(JSON.stringify(c)).toString('base64url')}`, expiresAt: this.clock.now().add({ minutes: 15 }) };
   }
   async verify(t: string) {
     return t.startsWith('at.') ? (JSON.parse(Buffer.from(t.slice(3), 'base64url').toString()) as AccessClaims) : null;
@@ -166,7 +167,7 @@ export function buildWorld() {
   const store = new InMemorySessions();
   const audit = new MemoryAudit();
   const cache = new MapCache();
-  const sessions = new SessionIssuer(new FakeTokens(clock), store, ids, clock, 7 * 24 * 3_600_000);
+  const sessions = new SessionIssuer(new FakeTokens(clock), store, ids, clock, Temporal.Duration.from({ hours: 7 * 24 }));
   const resolver = new PermissionResolver(users, roles, cache);
 
   async function addUser(opts: {

@@ -1,6 +1,7 @@
 import { AuditLog } from '../../../audit/domain/audit-log.port';
 import { sha256 } from '../../../../shared-kernel/crypto';
 import { Clock } from '../../../../shared-kernel/ports';
+import { Instant } from '../../../../shared-kernel/temporal';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { AccessPolicy } from '../../domain/role';
 import {
@@ -129,7 +130,7 @@ export class LoginUseCase {
     return false;
   }
 
-  private fail(input: LoginInput, now: Date, reason: string, user: User | null): Promise<void> {
+  private fail(input: LoginInput, now: Instant, reason: string, user: User | null): Promise<void> {
     return this.audit.record({
       action: 'auth.login',
       outcome: reason === 'locked' || reason === 'disabled' ? 'DENIED' : 'FAILURE',

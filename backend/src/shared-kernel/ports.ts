@@ -1,6 +1,8 @@
-/** Horloge injectable : rend le temps testable et évite `new Date()` dans le métier. */
+import { Instant, Temporal } from './temporal';
+
+/** Horloge injectable : rend le temps testable et évite d'appeler l'heure système depuis le métier. */
 export interface Clock {
-  now(): Date;
+  now(): Instant;
 }
 
 export interface IdGenerator {
@@ -11,7 +13,7 @@ export const CLOCK = Symbol('CLOCK');
 export const ID_GENERATOR = Symbol('ID_GENERATOR');
 
 export class SystemClock implements Clock {
-  now(): Date {
-    return new Date();
+  now(): Instant {
+    return Temporal.Now.instant();
   }
 }

@@ -1,3 +1,4 @@
+import { Instant } from '../../../shared-kernel/temporal';
 import { Role } from './role';
 import { User } from './user';
 import { Email } from './value-objects/email';
@@ -68,7 +69,7 @@ export interface AccessClaims {
 }
 
 export interface TokenIssuer {
-  issue(claims: AccessClaims): Promise<{ token: string; expiresAt: Date }>;
+  issue(claims: AccessClaims): Promise<{ token: string; expiresAt: Instant }>;
   verify(token: string): Promise<AccessClaims | null>;
 }
 
@@ -81,7 +82,7 @@ export interface RefreshSession {
   readonly userId: string;
   readonly familyId: string;
   readonly secretHash: string;
-  readonly expiresAt: Date;
+  readonly expiresAt: Instant;
   readonly scope: TokenScope;
   readonly ip: string | null;
   readonly userAgent: string | null;

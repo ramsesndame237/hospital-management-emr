@@ -1,6 +1,7 @@
 import { AuditLog } from '../../../audit/domain/audit-log.port';
 import { safeEqual, sha256 } from '../../../../shared-kernel/crypto';
 import { Clock } from '../../../../shared-kernel/ports';
+import { Temporal } from '../../../../shared-kernel/temporal';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { AccessPolicy } from '../../domain/role';
 import { RefreshSessionStore, RoleRepository, UserRepository } from '../../domain/ports';
@@ -48,7 +49,7 @@ export class RefreshSessionUseCase {
       });
       return err(SESSION_INVALID);
     }
-    if (session.expiresAt.getTime() <= now.getTime()) return err(SESSION_INVALID);
+    if (Temporal.Instant.compare(session.expiresAt, now) <= 0) return err(SESSION_INVALID);
 
     const userId = UserId.create(session.userId);
     const user = userId.ok ? await this.users.findById(userId.value) : null;

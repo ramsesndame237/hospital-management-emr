@@ -1,3 +1,5 @@
+import { Instant } from '../../../shared-kernel/temporal';
+
 export type AuditOutcome = 'SUCCESS' | 'FAILURE' | 'DENIED';
 
 /**
@@ -15,7 +17,7 @@ export interface AuditEntry {
   readonly userAgent?: string | null;
   readonly reason?: string;
   readonly metadata?: Readonly<Record<string, string | number | boolean | null>>;
-  readonly occurredAt: Date;
+  readonly occurredAt: Instant;
 }
 
 export interface AuditLog {

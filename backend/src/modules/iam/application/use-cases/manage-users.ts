@@ -1,6 +1,7 @@
 import { AuditLog } from '../../../audit/domain/audit-log.port';
 import { randomPassword } from '../../../../shared-kernel/crypto';
 import { Clock, IdGenerator } from '../../../../shared-kernel/ports';
+import { Instant } from '../../../../shared-kernel/temporal';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { PasswordHasher, RefreshSessionStore, RoleRepository, UserRepository } from '../../domain/ports';
 import { User } from '../../domain/user';
@@ -26,7 +27,7 @@ export interface UserView {
   readonly mustChangePassword: boolean;
 }
 
-export const toUserView = (u: User, now: Date): UserView => ({
+export const toUserView = (u: User, now: Instant): UserView => ({
   id: u.id.value,
   username: u.username.value,
   email: u.email.value,

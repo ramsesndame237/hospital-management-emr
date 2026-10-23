@@ -1,13 +1,14 @@
 import { randomToken, sha256 } from '../../../shared-kernel/crypto';
 import { Clock, IdGenerator } from '../../../shared-kernel/ports';
+import { Duration, Instant } from '../../../shared-kernel/temporal';
 import { RefreshSessionStore, TokenIssuer, TokenScope } from '../domain/ports';
 import { User } from '../domain/user';
 
 export interface TokenPair {
   readonly accessToken: string;
-  readonly accessExpiresAt: Date;
+  readonly accessExpiresAt: Instant;
   readonly refreshToken: string;
-  readonly refreshExpiresAt: Date;
+  readonly refreshExpiresAt: Instant;
   readonly scope: TokenScope;
 }
 
@@ -23,7 +24,7 @@ export class SessionIssuer {
     private readonly store: RefreshSessionStore,
     private readonly ids: IdGenerator,
     private readonly clock: Clock,
-    private readonly refreshTtlMs: number,
+    private readonly refreshTtl: Duration,
   ) {}
 
   async open(user: User, scope: TokenScope, ctx: ClientContext, familyId?: string): Promise<TokenPair> {
@@ -35,7 +36,7 @@ export class SessionIssuer {
     });
     const id = this.ids.next();
     const secret = randomToken();
-    const expiresAt = new Date(this.clock.now().getTime() + this.refreshTtlMs);
+    const expiresAt = this.clock.now().add(this.refreshTtl);
     await this.store.create({
       id,
       userId: user.id.value,

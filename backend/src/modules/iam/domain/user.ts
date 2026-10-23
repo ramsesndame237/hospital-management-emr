@@ -1,4 +1,5 @@
 import { AggregateRoot } from '../../../shared-kernel/domain-event';
+import { Duration, Instant, Temporal } from '../../../shared-kernel/temporal';
 import { Email } from './value-objects/email';
 import { PasswordHash } from './value-objects/password-hash';
 import { RoleCode } from './value-objects/role-code';
@@ -12,13 +13,16 @@ import { Username } from './value-objects/username';
 export class LockoutPolicy {
   constructor(
     readonly maxAttempts = 5,
-    readonly baseMs = 15 * 60_000,
-    readonly maxMs = 24 * 3_600_000,
+    readonly base: Duration = Temporal.Duration.from({ minutes: 15 }),
+    readonly max: Duration = Temporal.Duration.from({ hours: 24 }),
   ) {}
 
-  lockDurationMs(failedAttempts: number): number {
-    if (failedAttempts < this.maxAttempts) return 0;
-    return Math.min(this.baseMs * 2 ** (failedAttempts - this.maxAttempts), this.maxMs);
+  /** Durée de verrouillage après ce nombre d'échecs consécutifs, ou `null` si le seuil n'est pas atteint. */
+  lockDuration(failedAttempts: number): Duration | null {
+    if (failedAttempts < this.maxAttempts) return null;
+    const factor = 2 ** Math.min(failedAttempts - this.maxAttempts, 20); // borne l'exposant : pas de dépassement numérique
+    const ms = Math.min(this.base.total('milliseconds') * factor, this.max.total('milliseconds'));
+    return Temporal.Duration.from({ milliseconds: ms });
   }
 }
 
@@ -32,16 +36,16 @@ export interface UserState {
   roles: RoleCode[];
   status: UserStatus;
   failedAttempts: number;
-  lockedUntil: Date | null;
+  lockedUntil: Instant | null;
   mustChangePassword: boolean;
   /** Secret TOTP chiffré (le domaine ne connaît pas la clé). `null` tant que l'inscription MFA n'est pas confirmée. */
   mfaSecret: string | null;
   /** Secret en cours d'inscription, non encore confirmé par un premier code valide. */
   pendingMfaSecret: string | null;
   recoveryCodeHashes: string[];
-  passwordChangedAt: Date | null;
-  lastLoginAt: Date | null;
-  createdAt: Date;
+  passwordChangedAt: Instant | null;
+  lastLoginAt: Instant | null;
+  createdAt: Instant;
   /** Identifiant du compte dans l'ancien backend .NET (`rbac_user.user_id`), pour la reprise des données. */
   legacyRbacUserId: number | null;
 }
@@ -58,7 +62,7 @@ export class User extends AggregateRoot {
     email: Email;
     passwordHash: PasswordHash;
     roles: RoleCode[];
-    now: Date;
+    now: Instant;
     mustChangePassword?: boolean;
     legacyRbacUserId?: number | null;
   }): User {
@@ -100,31 +104,31 @@ export class User extends AggregateRoot {
   get hasMfa(): boolean { return this.s.mfaSecret !== null; }
   get mfaSecret(): string | null { return this.s.mfaSecret; }
   get pendingMfaSecret(): string | null { return this.s.pendingMfaSecret; }
-  get lockedUntil(): Date | null { return this.s.lockedUntil; }
+  get lockedUntil(): Instant | null { return this.s.lockedUntil; }
 
-  isLocked(now: Date): boolean {
-    return this.s.lockedUntil !== null && this.s.lockedUntil.getTime() > now.getTime();
+  isLocked(now: Instant): boolean {
+    return this.s.lockedUntil !== null && Temporal.Instant.compare(this.s.lockedUntil, now) > 0;
   }
 
   /** Un compte désactivé ou verrouillé ne peut pas s'authentifier. */
-  canAuthenticate(now: Date): boolean {
+  canAuthenticate(now: Instant): boolean {
     return this.isActive && !this.isLocked(now);
   }
 
-  recordFailedLogin(now: Date, policy: LockoutPolicy = new LockoutPolicy()): void {
+  recordFailedLogin(now: Instant, policy: LockoutPolicy = new LockoutPolicy()): void {
     this.s.failedAttempts += 1;
-    const ms = policy.lockDurationMs(this.s.failedAttempts);
-    this.s.lockedUntil = ms > 0 ? new Date(now.getTime() + ms) : null;
+    const duration = policy.lockDuration(this.s.failedAttempts);
+    this.s.lockedUntil = duration ? now.add(duration) : null;
   }
 
-  recordSuccessfulLogin(now: Date): void {
+  recordSuccessfulLogin(now: Instant): void {
     this.s.failedAttempts = 0;
     this.s.lockedUntil = null;
     this.s.lastLoginAt = now;
   }
 
   /** Changement volontaire de mot de passe : lève l'obligation de changement. */
-  changePassword(hash: PasswordHash, now: Date): void {
+  changePassword(hash: PasswordHash, now: Instant): void {
     this.s.passwordHash = hash;
     this.s.mustChangePassword = false;
     this.s.passwordChangedAt = now;
