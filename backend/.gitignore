@@ -3,3 +3,5 @@ dist/
 .env
 coverage/
 *.tsbuildinfo
+# le .gitignore racine exclut les verrous npm ; ici ils sont nécessaires (Dockerfile : npm ci)
+!package-lock.json
