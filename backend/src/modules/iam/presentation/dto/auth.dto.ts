@@ -8,7 +8,7 @@ export class LoginDto {
   @IsString() @MinLength(1) @MaxLength(1024)
   password!: string;
 
-  @IsOptional() @IsString() @Matches(/^\s*\d{3}\s?\d{3}\s*$/, { message: 'Le code doit comporter 6 chiffres.' })
+  @IsOptional() @IsString() @Matches(/^\s*\d{3}\s?\d{3}\s*$/, { message: 'validation.sixDigits' })
   totpCode?: string;
 
   @IsOptional() @IsString() @MaxLength(32)
@@ -24,7 +24,7 @@ export class ChangePasswordDto {
 }
 
 export class ActivateMfaDto {
-  @IsString() @Matches(/^\s*\d{3}\s?\d{3}\s*$/, { message: 'Le code doit comporter 6 chiffres.' })
+  @IsString() @Matches(/^\s*\d{3}\s?\d{3}\s*$/, { message: 'validation.sixDigits' })
   code!: string;
 }
 

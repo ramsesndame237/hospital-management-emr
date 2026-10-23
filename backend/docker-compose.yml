@@ -3,13 +3,14 @@
 # Le schéma est chargé au premier démarrage depuis migration/schema/schema.pg.sql (déduit du code C#).
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-sanjeevani}
       POSTGRES_USER: ${DB_USER:-sanjeevani}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD est obligatoire (voir .env.example)}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PostgreSQL 18+ : le répertoire de données est /var/lib/postgresql/18/docker ; le volume se monte donc sur le parent.
+      - pgdata:/var/lib/postgresql
       - ./migration/schema/schema.pg.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sanjeevani} -d ${DB_NAME:-sanjeevani}"]

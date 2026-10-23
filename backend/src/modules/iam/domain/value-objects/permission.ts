@@ -14,7 +14,7 @@ const PATTERN = /^([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*):([a-z][a-z0-9-]*)(?::(ow
 export class Permission extends ValueObject<string> {
   static create(raw: string): Result<Permission> {
     const m = PATTERN.exec((raw ?? '').trim());
-    if (!m) return err(new DomainError('PERMISSION_INVALID', `Permission invalide : « ${raw} ».`));
+    if (!m) return err(new DomainError('PERMISSION_INVALID', `Permission invalide : « ${raw} ».`, { value: String(raw) }));
     return ok(new Permission(`${m[1]}:${m[2]}:${m[3] ?? 'all'}`));
   }
 

@@ -1,0 +1,14 @@
+{
+  "username": "identifiant",
+  "password": "mot de passe",
+  "currentPassword": "mot de passe actuel",
+  "newPassword": "nouveau mot de passe",
+  "email": "adresse e-mail",
+  "roles": "rôles",
+  "code": "code",
+  "totpCode": "code de vérification",
+  "recoveryCode": "code de secours",
+  "offset": "décalage",
+  "limit": "limite",
+  "id": "identifiant"
+}

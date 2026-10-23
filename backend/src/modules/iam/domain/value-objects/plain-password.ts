@@ -27,10 +27,10 @@ export class PlainPassword {
   static create(raw: string, ctx: PasswordContext = {}): Result<PlainPassword> {
     const v = raw ?? '';
     if (v.length < PASSWORD_MIN_LENGTH) {
-      return err(new DomainError('PASSWORD_TOO_SHORT', `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères.`));
+      return err(new DomainError('PASSWORD_TOO_SHORT', `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères.`, { min: PASSWORD_MIN_LENGTH }));
     }
     if (v.length > PASSWORD_MAX_LENGTH) {
-      return err(new DomainError('PASSWORD_TOO_LONG', `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX_LENGTH} caractères.`));
+      return err(new DomainError('PASSWORD_TOO_LONG', `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX_LENGTH} caractères.`, { max: PASSWORD_MAX_LENGTH }));
     }
     const lower = v.toLowerCase();
     if (COMMON.has(lower) || /^(.)\1+$/.test(v)) {

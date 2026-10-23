@@ -1,0 +1,18 @@
+{
+  "generic": "Le champ « {field} » est invalide.",
+  "isString": "Le champ « {field} » doit être un texte.",
+  "isNotEmpty": "Le champ « {field} » est obligatoire.",
+  "isDefined": "Le champ « {field} » est obligatoire.",
+  "minLength": "Le champ « {field} » est trop court.",
+  "maxLength": "Le champ « {field} » est trop long.",
+  "isEmail": "Le champ « {field} » doit être une adresse e-mail valide.",
+  "matches": "Le champ « {field} » n'a pas le bon format.",
+  "isArray": "Le champ « {field} » doit être une liste.",
+  "arrayMinSize": "Le champ « {field} » doit contenir au moins un élément.",
+  "arrayMaxSize": "Le champ « {field} » contient trop d'éléments.",
+  "isUuid": "Le champ « {field} » doit être un identifiant valide.",
+  "isInt": "Le champ « {field} » doit être un nombre entier.",
+  "isBoolean": "Le champ « {field} » doit être vrai ou faux.",
+  "isIn": "La valeur du champ « {field} » n'est pas autorisée.",
+  "sixDigits": "Le champ « {field} » doit comporter 6 chiffres."
+}

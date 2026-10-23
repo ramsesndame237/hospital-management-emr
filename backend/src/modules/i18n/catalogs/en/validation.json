@@ -1,0 +1,18 @@
+{
+  "generic": "The \"{field}\" field is invalid.",
+  "isString": "The \"{field}\" field must be text.",
+  "isNotEmpty": "The \"{field}\" field is required.",
+  "isDefined": "The \"{field}\" field is required.",
+  "minLength": "The \"{field}\" field is too short.",
+  "maxLength": "The \"{field}\" field is too long.",
+  "isEmail": "The \"{field}\" field must be a valid e-mail address.",
+  "matches": "The \"{field}\" field has an invalid format.",
+  "isArray": "The \"{field}\" field must be a list.",
+  "arrayMinSize": "The \"{field}\" field must contain at least one item.",
+  "arrayMaxSize": "The \"{field}\" field contains too many items.",
+  "isUuid": "The \"{field}\" field must be a valid identifier.",
+  "isInt": "The \"{field}\" field must be a whole number.",
+  "isBoolean": "The \"{field}\" field must be true or false.",
+  "isIn": "The value of the \"{field}\" field is not allowed.",
+  "sixDigits": "The \"{field}\" field must be 6 digits."
+}

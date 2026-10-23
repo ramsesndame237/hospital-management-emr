@@ -11,6 +11,7 @@ import { validateEnv } from '../../src/config/env.validation';
 import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
 import { IamModule } from '../../src/modules/iam/iam.module';
+import { I18nAdapterName, LocalizationModule } from '../../src/modules/i18n/localization.module';
 import {
   PASSWORD_HASHER, PasswordHasher, SECRET_CIPHER, SecretCipher, USER_REPOSITORY, UserRepository,
 } from '../../src/modules/iam/domain/ports';
@@ -41,7 +42,7 @@ export interface TestWorld {
 }
 
 /** Application complète (mêmes modules, gardes et configuration HTTP qu'en production) sur PostgreSQL embarqué ; Redis remplacé par la mémoire. */
-export async function createTestWorld(options: { rateLimiting?: boolean } = {}): Promise<TestWorld> {
+export async function createTestWorld(options: { rateLimiting?: boolean; i18nAdapter?: I18nAdapterName } = {}): Promise<TestWorld> {
   const db = new PGlite();
   await db.exec(DDL);
   const sql = new PgliteSql(db);
@@ -61,6 +62,7 @@ export async function createTestWorld(options: { rateLimiting?: boolean } = {}):
   const moduleRef = await Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, ignoreEnvVars: true, validate: () => validateEnv(env) as never }),
+      LocalizationModule.register({ adapter: options.i18nAdapter ?? 'nestjs-i18n', locales: ['fr', 'en'], defaultLocale: 'fr' }),
       PlatformModule.register(),
       IamModule.register({ rateLimiting: options.rateLimiting ?? false }),
     ],

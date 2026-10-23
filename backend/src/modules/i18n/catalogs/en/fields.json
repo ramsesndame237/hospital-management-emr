@@ -1,0 +1,14 @@
+{
+  "username": "username",
+  "password": "password",
+  "currentPassword": "current password",
+  "newPassword": "new password",
+  "email": "e-mail address",
+  "roles": "roles",
+  "code": "code",
+  "totpCode": "verification code",
+  "recoveryCode": "recovery code",
+  "offset": "offset",
+  "limit": "limit",
+  "id": "identifier"
+}

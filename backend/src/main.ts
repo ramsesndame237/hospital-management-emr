@@ -6,9 +6,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
 import { validateEnv } from './config/env.validation';
+import { loadLocalEnv } from './config/load-env';
 import { configurePgTypes } from './database/pg-types';
 
 async function bootstrap() {
+  loadLocalEnv();
   const env = validateEnv(process.env);
   configurePgTypes();
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register());

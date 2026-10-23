@@ -13,10 +13,13 @@ const STATUS: Readonly<Record<string, HttpStatus>> = {
   MFA_NOT_STARTED: HttpStatus.CONFLICT,
 };
 
-/** Toute autre erreur de domaine est une saisie invalide : 422. */
+/**
+ * Toute autre erreur de domaine est une saisie invalide : 422. Le `message` ici est le texte de repli (français) ;
+ * c'est le filtre d'exceptions du module i18n qui le remplace par la traduction du `code`, avec les `params`.
+ */
 export function toHttp(error: DomainError): HttpException {
   return new HttpException(
-    { statusCode: STATUS[error.code] ?? HttpStatus.UNPROCESSABLE_ENTITY, code: error.code, message: error.message },
+    { statusCode: STATUS[error.code] ?? HttpStatus.UNPROCESSABLE_ENTITY, code: error.code, message: error.message, params: error.details },
     STATUS[error.code] ?? HttpStatus.UNPROCESSABLE_ENTITY,
   );
 }

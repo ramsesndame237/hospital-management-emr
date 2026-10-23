@@ -1,4 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
+import { Localizer } from './modules/i18n/application/localizer';
+import { createLocalizedValidationPipe } from './modules/i18n/presentation/localized-validation.pipe';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -15,5 +17,12 @@ export function configureApp(app: NestExpressApplication, options: { corsOrigins
   app.enableCors({ origin: options.corsOrigins, credentials: true });
   // Corps JSON volumineux : le backend .NET autorisait de gros formulaires (RequestFormSizeLimit).
   app.useBodyParser('json', { limit: '25mb' });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // Erreurs de validation dans la langue de la requête quand le module d'i18n est présent, comportement d'origine sinon.
+  let localizer: Localizer | undefined;
+  try {
+    localizer = app.get(Localizer, { strict: false });
+  } catch {
+    localizer = undefined;
+  }
+  app.useGlobalPipes(localizer ? createLocalizedValidationPipe(localizer) : new ValidationPipe({ whitelist: true, transform: true }));
 }

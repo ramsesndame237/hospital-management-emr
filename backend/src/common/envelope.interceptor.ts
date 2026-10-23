@@ -41,6 +41,9 @@ export class EnvelopeInterceptor implements NestInterceptor {
     if (err instanceof HttpException) {
       const r = err.getResponse();
       if (typeof r === 'string') return r;
+      // Nouveau format de validation { errors: [{ message }] } : on joint les messages pour que les écrans historiques les affichent.
+      const detail = (r as { errors?: { message?: string }[] }).errors;
+      if (Array.isArray(detail) && detail.length > 0) return detail.map((e) => e.message).filter(Boolean).join(' ; ');
       const m = (r as { message?: string | string[] }).message;
       return Array.isArray(m) ? m.join(' ; ') : (m ?? err.message);
     }

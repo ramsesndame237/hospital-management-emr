@@ -2,5 +2,15 @@
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
-  "compilerOptions": { "deleteOutDir": true, "tsConfigPath": "tsconfig.build.json" }
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "tsConfigPath": "tsconfig.build.json",
+    "assets": [
+      {
+        "include": "modules/i18n/catalogs/**/*.json",
+        "outDir": "dist",
+        "watchAssets": true
+      }
+    ]
+  }
 }
