@@ -60,11 +60,30 @@ export class SessionService {
     await this.router.navigate(['/login']);
   }
 
-  /** Session perdue côté serveur (refresh refusé) : on revient à la connexion en retenant la page demandée. */
-  async expire(): Promise<void> {
+  /**
+   * Session terminée sans action de l'utilisateur : refus du serveur (jeton de rafraîchissement invalide) ou inactivité.
+   * On retient la page demandée et on affiche l'écran « session expirée ». `revoke` ferme aussi la session côté serveur :
+   * indispensable pour l'inactivité, sinon le cookie de rafraîchissement, encore valable, rouvrirait la session au rechargement.
+   */
+  async expire(revoke = false): Promise<void> {
     const returnUrl = this.router.url;
+    if (revoke) {
+      try {
+        await this.gateway.logout();
+      } catch {
+        // serveur injoignable : la session locale est fermée quand même
+      }
+    }
     this.end();
-    await this.router.navigate(['/login'], { queryParams: returnUrl && returnUrl !== '/login' ? { returnUrl, reason: 'expired' } : { reason: 'expired' } });
+    const usable = returnUrl && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/session-expired');
+    await this.router.navigate(['/session-expired'], usable ? { queryParams: { returnUrl } } : {});
+  }
+
+  /** Change le mot de passe (étape de finalisation du compte). Rejette avec `ApiError` (mot de passe actuel faux, politique non respectée…). */
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ readonly setupRequired: boolean }> {
+    const token = await this.gateway.changePassword(currentPassword, newPassword);
+    await this.open(token);
+    return { setupRequired: token.scope === 'setup' };
   }
 
   private async restore(): Promise<void> {

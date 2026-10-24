@@ -1,0 +1,55 @@
+<div class="flex min-h-dvh bg-background text-foreground">
+  <!-- Panneau de confiance : écrans larges uniquement -->
+  <aside class="hidden w-[512px] shrink-0 flex-col justify-between overflow-hidden bg-brand-deep p-12 text-white lg:flex" [attr.aria-label]="i18n.t('authPanel.label')">
+    <div class="flex items-center gap-3">
+      <app-brand-emblem [onDark]="true" />
+      <p class="text-xl font-semibold">{{ appName() }}</p>
+    </div>
+
+    <div class="flex flex-col gap-8">
+      <div class="flex flex-col gap-4">
+        <p class="eyebrow text-brand-deep-foreground">{{ i18n.t('authPanel.eyebrow') }}</p>
+        <h1 class="text-4xl leading-[44px] font-semibold">{{ i18n.t('authPanel.title') }}</h1>
+        <p class="text-sm leading-[22px] text-brand-deep-foreground">{{ i18n.t('authPanel.lead') }}</p>
+      </div>
+
+      <ol class="flex flex-col gap-2">
+        @for (guarantee of guarantees; track guarantee; let i = $index) {
+          <li class="flex h-[50px] items-center gap-3 border border-brand-deep-line px-4">
+            <span class="font-mono text-xs text-brand-deep-foreground">{{ '0' + (i + 1) }}</span>
+            <span class="text-sm leading-[22px]">{{ i18n.t('authPanel.' + guarantee) }}</span>
+          </li>
+        }
+      </ol>
+
+      <!-- Ligne de vie : l'image déborde de 1 px de chaque côté pour que le tracé ne soit pas rogné -->
+      <div class="relative h-[28px] w-[416px] max-w-full shrink-0" aria-hidden="true">
+        <img src="brand/life-line.svg" alt="" class="absolute inset-x-0 -top-px block h-[30.1px] w-full max-w-none" />
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-1.5 text-xs leading-[18px] text-brand-deep-foreground">
+      <p>{{ i18n.t('authPanel.privacy') }}</p>
+      <p>{{ i18n.t('authPanel.network') }}</p>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <div class="flex min-h-20 items-center justify-between gap-5 px-6 sm:px-10">
+      <div class="flex items-center gap-3 lg:hidden">
+        <app-brand-emblem />
+        <p class="text-lg font-semibold">{{ appName() }}</p>
+      </div>
+      <app-preferences class="ml-auto" />
+    </div>
+
+    <main class="flex flex-1 flex-col items-center justify-center px-6 py-6 sm:px-12">
+      <router-outlet />
+    </main>
+
+    <footer class="flex flex-col items-center gap-2 px-6 py-6 text-center text-muted-foreground sm:px-12">
+      <p class="max-w-[560px] text-xs leading-[18px]">{{ i18n.t('authPanel.accessNotice') }}</p>
+      <p class="font-mono text-[11px] leading-4">{{ appName().toUpperCase() }} &nbsp;/&nbsp; {{ date() }}</p>
+    </footer>
+  </div>
+</div>

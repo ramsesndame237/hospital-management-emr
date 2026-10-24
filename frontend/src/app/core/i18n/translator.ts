@@ -14,4 +14,6 @@ export abstract class Translator {
   abstract setLocale(locale: string): void;
   /** Texte traduit ; la clé elle-même si elle est introuvable (on repère l'oubli sans casser l'écran). */
   abstract t(key: string, params?: TranslationParams): string;
+  /** La clé existe-t-elle ? Permet de distinguer une clé de catalogue d'un texte littéral (voir le constructeur de formulaires). */
+  abstract has(key: string): boolean;
 }

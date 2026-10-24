@@ -27,4 +27,5 @@ export class FakeAuthGateway extends AuthGateway {
   override refresh = vi.fn<() => Promise<TokenResponse>>();
   override logout = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   override me = vi.fn<() => Promise<CurrentUser>>().mockResolvedValue(user());
+  override changePassword = vi.fn<(currentPassword: string, newPassword: string) => Promise<TokenResponse>>();
 }

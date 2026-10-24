@@ -16,6 +16,8 @@ export abstract class AuthGateway {
   abstract refresh(): Promise<TokenResponse>;
   abstract logout(): Promise<void>;
   abstract me(): Promise<CurrentUser>;
+  /** Remplace le mot de passe (provisoire ou non). Les autres sessions sont révoquées ; renvoie un nouveau jeton. */
+  abstract changePassword(currentPassword: string, newPassword: string): Promise<TokenResponse>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/auth`. */
@@ -38,6 +40,10 @@ export class HttpAuthGateway extends AuthGateway {
 
   override me(): Promise<CurrentUser> {
     return this.call(this.http.get<CurrentUser>(`${this.base}/auth/me`));
+  }
+
+  override changePassword(currentPassword: string, newPassword: string): Promise<TokenResponse> {
+    return this.call(this.http.post<TokenResponse>(`${this.base}/auth/password/change`, { currentPassword, newPassword }, { withCredentials: true }));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

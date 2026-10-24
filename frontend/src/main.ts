@@ -1,6 +1,14 @@
-import { bootstrapApplication } from '@angular/platform-browser';
-import { appConfig } from './app/app.config';
-import { App } from './app/app';
+/**
+ * Temporal est natif dans les navigateurs récents ; le polyfill (lourd) n'est téléchargé que s'il manque. L'application est donc
+ * importée APRÈS ce contrôle : ses modules lisent `globalThis.Temporal` dès leur évaluation.
+ */
+if (!('Temporal' in globalThis)) {
+  const { Temporal } = await import('temporal-polyfill');
+  Object.assign(globalThis, { Temporal });
+}
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+const [{ bootstrapApplication }, { appConfig }, { App }] = await Promise.all([import('@angular/platform-browser'), import('./app/app.config'), import('./app/app')]);
+
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+
+export {};

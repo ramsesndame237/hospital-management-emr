@@ -1,49 +1,46 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { Translator } from '../core/i18n/translator';
 import { ThemeService } from '../core/theme/theme.service';
+import { Icon } from './icons/icon';
 
-/** Choix de la langue et du thème, partagé par la page de connexion et l'espace connecté. */
+/**
+ * Langue et thème, partagés par les écrans d'authentification et la barre de l'espace de travail. Rendu du design :
+ * « FR / EN » (la langue active en gras) puis le thème courant (« ☼ Clair »). `compact` n'affiche que le pictogramme du thème.
+ */
 @Component({
   selector: 'app-preferences',
-  imports: [HlmButtonImports],
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex items-center gap-2' },
+  host: { class: 'flex items-center gap-5 text-xs leading-none' },
   template: `
-    <div class="inline-flex border border-border bg-card p-0.5" role="group" [attr.aria-label]="i18n.t('common.language')">
-      @for (locale of i18n.locales; track locale) {
+    <div class="flex items-center gap-1" role="group" [attr.aria-label]="i18n.t('common.language')">
+      @for (locale of i18n.locales; track locale; let last = $last) {
         <button
           type="button"
-          class="px-3 py-1 text-xs font-semibold tracking-wide uppercase transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          [class.bg-primary]="i18n.locale() === locale"
-          [class.text-primary-foreground]="i18n.locale() === locale"
-          [class.text-muted-foreground]="i18n.locale() !== locale"
+          class="rounded-[2px] px-0.5 py-1 uppercase transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          [class]="i18n.locale() === locale ? 'font-semibold text-foreground' : 'text-muted-foreground'"
           [attr.aria-pressed]="i18n.locale() === locale"
           [attr.lang]="locale"
           (click)="i18n.setLocale(locale)"
         >
           {{ locale }}
         </button>
+        @if (!last) {
+          <span class="text-muted-foreground" aria-hidden="true">/</span>
+        }
       }
     </div>
 
     <button
-      hlmBtn
-      variant="outline"
-      size="icon"
       type="button"
+      class="flex items-center gap-1.5 rounded-[2px] py-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       [attr.aria-label]="theme.isDark() ? i18n.t('common.themeLight') : i18n.t('common.themeDark')"
-      [attr.title]="i18n.t('common.theme')"
+      [attr.title]="theme.isDark() ? i18n.t('common.themeLight') : i18n.t('common.themeDark')"
       (click)="theme.toggle()"
     >
-      @if (theme.isDark()) {
-        <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-        </svg>
-      } @else {
-        <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-        </svg>
+      <app-icon [name]="theme.isDark() ? 'moon' : 'sun'" class="text-sm" />
+      @if (!compact()) {
+        <span>{{ theme.isDark() ? i18n.t('common.themeDark') : i18n.t('common.themeLight') }}</span>
       }
     </button>
   `,
@@ -51,4 +48,6 @@ import { ThemeService } from '../core/theme/theme.service';
 export class Preferences {
   protected readonly i18n = inject(Translator);
   protected readonly theme = inject(ThemeService);
+
+  readonly compact = input(false);
 }

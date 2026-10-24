@@ -2,11 +2,17 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal } from '@angular/core';
 import en from '../../i18n/catalogs/en.json';
 import fr from '../../i18n/catalogs/fr.json';
+import frServer from '../../i18n/catalogs/fr.server.json';
+import enServer from '../../i18n/catalogs/en.server.json';
 import { TranslationParams, Translator } from './translator';
 
 type Catalog = { readonly [key: string]: string | Catalog };
 
-const CATALOGS: Readonly<Record<string, Catalog>> = { fr, en };
+/**
+ * Deux sources par langue : les textes de l'interface (`<langue>.json`) et les messages partagés avec l'API
+ * (`<langue>.server.json`, générés depuis les catalogues du backend par `npm run i18n:sync`), sous la clé `server`.
+ */
+const CATALOGS: Readonly<Record<string, Catalog>> = { fr: { ...fr, server: frServer }, en: { ...en, server: enServer } };
 const DEFAULT_LOCALE = 'fr';
 const STORAGE_KEY = 'sanjeevani.locale';
 
@@ -50,6 +56,10 @@ export class JsonTranslator extends Translator {
   override t(key: string, params?: TranslationParams): string {
     const message = lookup(CATALOGS[this.current()], key) ?? lookup(CATALOGS[DEFAULT_LOCALE], key) ?? key;
     return params ? message.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole)) : message;
+  }
+
+  override has(key: string): boolean {
+    return (lookup(CATALOGS[this.current()], key) ?? lookup(CATALOGS[DEFAULT_LOCALE], key)) !== undefined;
   }
 
   private supports(locale: string): boolean {

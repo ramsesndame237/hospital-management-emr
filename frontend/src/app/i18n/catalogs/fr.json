@@ -1,54 +1,62 @@
 {
   "app": {
-    "name": "Sanjeevani EMR",
-    "tagline": "Plateforme hospitalière"
+    "name": "Sanjeevani EMR"
   },
   "common": {
     "loading": "Chargement…",
     "language": "Langue",
-    "theme": "Thème",
     "themeLight": "Clair",
     "themeDark": "Sombre",
-    "themeSystem": "Système",
     "signOut": "Se déconnecter",
-    "back": "Retour"
+    "back": "Retour",
+    "soon": "Disponible prochainement",
+    "dateTimeAt": "{date} à {time}",
+    "step": "ÉTAPE {current} / {total}  ·  {name}"
   },
-  "hero": {
+  "authPanel": {
+    "label": "Engagements de sécurité",
+    "eyebrow": "SYSTÈME D’INFORMATION HOSPITALIER",
     "title": "Les soins, en toute sécurité",
-    "lead": "Dossier patient, rendez-vous, laboratoire, pharmacie : tout le personnel de l'établissement, au même endroit.",
-    "f1Title": "Accès selon votre profil",
-    "f1Text": "Vous ne voyez que ce que votre rôle vous autorise.",
-    "f2Title": "Double authentification",
-    "f2Text": "Une protection renforcée pour les données de santé.",
-    "f3Title": "Traçabilité complète",
-    "f3Text": "Chaque accès est journalisé, pour la sécurité de tous.",
-    "f4Title": "Français et anglais",
-    "f4Text": "L'interface suit la langue de votre choix."
+    "lead": "Un accès maîtrisé. Des données protégées. La confiance au cœur de chaque soin.",
+    "g1": "Accès par rôle",
+    "g2": "Authentification à deux facteurs",
+    "g3": "Traçabilité complète",
+    "g4": "FR / EN",
+    "privacy": "Protection des données de santé",
+    "network": "Réseau de soins Sanjeevani · Cameroun",
+    "accessNotice": "Accès réservé au personnel autorisé. Toutes les connexions sont journalisées."
+  },
+  "auth": {
+    "eyebrow": "ACCÈS PERSONNEL"
   },
   "login": {
-    "title": "Connexion du personnel",
-    "lead": "Identifiez-vous avec votre compte professionnel pour accéder à votre espace.",
+    "pageTitle": "Connexion",
+    "title": "Connexion à votre espace",
+    "lead": "Utilisez votre compte professionnel pour accéder à Sanjeevani EMR.",
     "username": "Identifiant",
     "usernamePlaceholder": "prenom.nom",
     "password": "Mot de passe",
     "passwordPlaceholder": "Votre mot de passe",
-    "showPassword": "Afficher",
-    "hidePassword": "Masquer",
     "submit": "Se connecter",
+    "retry": "Réessayer",
     "submitting": "Vérification…",
-    "forgot": "Mot de passe oublié ? Contactez l'administrateur de votre établissement.",
-    "footer": "Accès réservé au personnel autorisé. Toutes les connexions sont journalisées.",
-    "expired": "Votre session a expiré. Veuillez vous reconnecter.",
+    "forgot": "Mot de passe oublié ? Réinitialiser",
+    "forgotInfo": "Pour réinitialiser votre mot de passe, contactez l’administrateur de votre établissement.",
+    "supportCode": "Code d’assistance : {code}",
+    "help": "Besoin d’aide ? Contactez l’administrateur : {phone}.",
+    "network": {
+      "title": "La connexion réseau a été interrompue",
+      "text": "Vérifiez votre connexion Internet, puis réessayez. Aucune demande n’a pu être confirmée."
+    },
     "errors": {
       "usernameRequired": "Saisissez votre identifiant.",
       "passwordRequired": "Saisissez votre mot de passe.",
-      "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
       "generic": "Une erreur est survenue. Réessayez dans un instant."
     }
   },
   "mfa": {
     "title": "Vérification en deux étapes",
-    "lead": "Saisissez le code à 6 chiffres affiché par votre application d'authentification.",
+    "lead": "Saisissez le code à 6 chiffres affiché par votre application d’authentification.",
     "code": "Code de vérification",
     "recoveryCode": "Code de secours",
     "verify": "Vérifier",
@@ -58,26 +66,173 @@
       "codeRequired": "Saisissez le code."
     }
   },
-  "home": {
-    "welcome": "Bonjour, {name}",
-    "lead": "Votre espace de travail.",
-    "profile": "Mon profil",
-    "email": "Adresse e-mail",
-    "roles": "Rôles",
-    "mfa": "Double authentification",
-    "mfaOn": "Activée",
-    "mfaOff": "Non activée",
-    "permissions": "Mes autorisations",
-    "permissionsLead": "Ce que votre profil vous permet de faire dans la plateforme.",
-    "noPermissions": "Aucune autorisation particulière.",
-    "apiDocs": "Documentation de l'API",
-    "apiDocsLead": "Explorer et tester les endpoints."
+  "expired": {
+    "pageTitle": "Session expirée",
+    "title": "Reconnectez-vous pour continuer",
+    "lead": "La sécurité de vos patients reste notre priorité.",
+    "noticeTitle": "Votre session a expiré",
+    "noticeText": "Pour protéger les données de santé, votre session a été fermée automatiquement.",
+    "kept": "Votre page a été conservée. Après vérification de votre identité, vous reprendrez votre consultation au même endroit.",
+    "draftSaved": "✓ Brouillon enregistré · {when}",
+    "relogin": "Se reconnecter",
+    "otherAccount": "Utiliser un autre compte"
   },
   "setup": {
-    "title": "Finalisation de votre compte",
-    "lead": "Avant d'accéder à la plateforme, votre compte doit être finalisé.",
-    "passwordStep": "Remplacer le mot de passe provisoire par un mot de passe personnel.",
-    "mfaStep": "Inscrire la double authentification dans une application d'authentification.",
-    "soon": "Cet assistant sera disponible prochainement. En attendant, contactez l'administrateur de votre établissement."
+    "pageTitle": "Finalisation du compte",
+    "title": "Créez votre mot de passe",
+    "lead": "Remplacez le mot de passe temporaire transmis par votre administrateur.",
+    "steps": {
+      "password": "Mot de passe",
+      "authentication": "Authentification"
+    },
+    "currentPassword": "Mot de passe temporaire",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "continue": "Continuer vers l’authentification",
+    "saving": "Enregistrement…",
+    "errors": {
+      "mismatch": "Les deux mots de passe ne sont pas identiques."
+    },
+    "authTitle": "Activez la double authentification",
+    "authLead": "Votre mot de passe est enregistré. Il reste à protéger votre compte avec une application d’authentification.",
+    "soonTitle": "Cette étape sera disponible prochainement",
+    "soonText": "En attendant, contactez l’administrateur de votre établissement pour finaliser votre compte."
+  },
+  "inactivity": {
+    "eyebrow": "PROTECTION DES DONNÉES DE SANTÉ",
+    "title": "Êtes-vous toujours là ?",
+    "lead": "Sans activité, votre session sera automatiquement fermée. Confirmez votre présence pour continuer.",
+    "countdownLabel": "Déconnexion dans",
+    "draftTitle": "Brouillon enregistré",
+    "draftText": "Votre note clinique a été sauvegardée à {time}. Elle sera disponible à votre prochaine connexion.",
+    "stay": "Rester connecté",
+    "maskedContext": "DOSSIER PATIENT / CONSULTATION · CONTENU MASQUÉ",
+    "dataMasked": "Données masquées pendant l’interruption"
+  },
+  "form": {
+    "password": {
+      "show": "Afficher",
+      "hide": "Masquer",
+      "strength": {
+        "1": "Force faible · mot de passe insuffisant",
+        "2": "Force moyenne · à renforcer",
+        "3": "Force bonne · mot de passe correct",
+        "4": "Force élevée · mot de passe robuste"
+      },
+      "rules": {
+        "minLength": "Au moins {min} caractères",
+        "notCommon": "Différent des mots de passe courants",
+        "noIdentity": "Sans identifiant ni adresse e-mail"
+      },
+      "ruleMet": "(respectée)",
+      "ruleUnmet": "(non respectée)"
+    },
+    "errors": {
+      "min": "La valeur doit être au moins {min}.",
+      "max": "La valeur doit être au plus {max}.",
+      "equalsField": "Les deux valeurs ne sont pas identiques.",
+      "passwordPolicy": "Le mot de passe ne respecte pas la politique de sécurité."
+    }
+  },
+  "shell": {
+    "mainNav": "Navigation principale",
+    "limitedAccess": "Accès limité à votre rôle",
+    "collapseMenu": "Réduire le menu",
+    "expandMenu": "Développer le menu",
+    "openMenu": "Ouvrir le menu",
+    "search": "Rechercher…",
+    "notifications": "Notifications",
+    "help": "Aide",
+    "userMenu": "Menu utilisateur",
+    "profileLink": "Mon profil et ma sécurité",
+    "auditNotice": "Votre accès à ce dossier est journalisé."
+  },
+  "roles": {
+    "SYSTEM_ADMIN": "Administrateur système",
+    "DOCTOR": "Médecin",
+    "NURSE": "Infirmier(ère)",
+    "PHARMACIST": "Pharmacien(ne)",
+    "LAB_TECHNICIAN": "Technicien(ne) de laboratoire",
+    "RADIOLOGIST": "Radiologue",
+    "CASHIER": "Caissier(ère)",
+    "RECEPTIONIST": "Réceptionniste",
+    "ACCOUNTANT": "Comptable",
+    "DPO_AUDITOR": "DPO / Auditeur",
+    "PATIENT": "Patient"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "agenda": "Mon agenda",
+    "consultations": "Consultations",
+    "rounds": "Hospitalisation (tournées)",
+    "emergency": "Urgences",
+    "results": "Résultats",
+    "tasks": "Tâches & messages",
+    "patients": "Dossiers patients",
+    "surgery": "Bloc opératoire",
+    "maternity": "Maternité",
+    "documents": "Documents & certificats",
+    "planning": "Mon planning",
+    "reports": "Rapports",
+    "help": "Aide et support"
+  },
+  "dashboard": {
+    "title": "Mon espace de travail",
+    "subtitle": "Vue du {date} · Contexte et outils adaptés à votre rôle.",
+    "recordOpen": "Dossier ouvert",
+    "today": "Vue du jour",
+    "consultations": "Consultations du jour",
+    "results": "Résultats à revoir",
+    "documents": "Documents à signer",
+    "perimeter": "Périmètre de mon rôle",
+    "perimeterOf": {
+      "all": "Tous les patients de l’établissement",
+      "department": "Patients avec relation de soin · Mon service",
+      "own": "Mes patients uniquement"
+    },
+    "scopeText": "Les entrées de navigation et les actions suivent les droits du rôle connecté.",
+    "locked": "Verrouillé : Administration des rôles : accès non autorisé",
+    "activity": "Mon activité",
+    "noActivity": "Aucune activité prévue aujourd’hui.",
+    "visit": {
+      "followUp": "Suivi",
+      "consultation": "Consultation"
+    },
+    "status": {
+      "confirmed": "Confirmé",
+      "arrived": "Arrivée",
+      "waiting": "En attente"
+    },
+    "quick": {
+      "title": "Accès rapides",
+      "profile": "Mon profil et ma sécurité",
+      "help": "Aide et support"
+    }
+  },
+  "profile": {
+    "title": "Mon profil",
+    "subtitle": "Données professionnelles · Les rôles sont gérés par votre administrateur.",
+    "identity": "Identité professionnelle",
+    "fullName": "Nom complet",
+    "email": "E-mail professionnel",
+    "phone": "Téléphone",
+    "errors": {
+      "phone": "Saisissez un numéro valide (chiffres et espaces, « + » au début pour l’international)."
+    },
+    "photoSignature": "Photo et signature",
+    "photo": "Photo de profil",
+    "photoHint": "Importer JPG / PNG · 2 Mo maximum",
+    "signature": "Signature professionnelle",
+    "signatureHint": "Signature conservée · Remplacer après vérification",
+    "signatureLogged": "La signature des documents médicaux est journalisée.",
+    "practice": "Exercice et habilitations",
+    "establishment": "Établissement : {name}",
+    "save": "Enregistrer le profil",
+    "cancel": "Annuler",
+    "notSavedTitle": "Enregistrement pas encore disponible",
+    "notSavedText": "Votre saisie est valide, mais le service de mise à jour du profil n’est pas encore connecté : rien n’a été modifié."
+  },
+  "modules": {
+    "soon": "Ce module sera disponible prochainement."
   }
 }

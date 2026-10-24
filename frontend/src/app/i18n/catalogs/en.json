@@ -1,48 +1,56 @@
 {
   "app": {
-    "name": "Sanjeevani EMR",
-    "tagline": "Hospital platform"
+    "name": "Sanjeevani EMR"
   },
   "common": {
     "loading": "Loading…",
     "language": "Language",
-    "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "System",
     "signOut": "Sign out",
-    "back": "Back"
+    "back": "Back",
+    "soon": "Coming soon",
+    "dateTimeAt": "{date} at {time}",
+    "step": "STEP {current} / {total}  ·  {name}"
   },
-  "hero": {
+  "authPanel": {
+    "label": "Security commitments",
+    "eyebrow": "HOSPITAL INFORMATION SYSTEM",
     "title": "Care, safely delivered",
-    "lead": "Patient records, appointments, laboratory, pharmacy: the whole hospital team, in one place.",
-    "f1Title": "Access by role",
-    "f1Text": "You only see what your role allows.",
-    "f2Title": "Two-factor authentication",
-    "f2Text": "Stronger protection for health data.",
-    "f3Title": "Full traceability",
-    "f3Text": "Every access is logged, for everyone's safety.",
-    "f4Title": "French and English",
-    "f4Text": "The interface follows the language you choose."
+    "lead": "Controlled access. Protected data. Trust at the heart of every act of care.",
+    "g1": "Role-based access",
+    "g2": "Two-factor authentication",
+    "g3": "Full traceability",
+    "g4": "FR / EN",
+    "privacy": "Health data protection",
+    "network": "Sanjeevani care network · Cameroon",
+    "accessNotice": "Access restricted to authorised staff. Every sign-in is logged."
+  },
+  "auth": {
+    "eyebrow": "STAFF ACCESS"
   },
   "login": {
-    "title": "Staff sign-in",
-    "lead": "Sign in with your professional account to open your workspace.",
+    "pageTitle": "Sign in",
+    "title": "Sign in to your workspace",
+    "lead": "Use your professional account to access Sanjeevani EMR.",
     "username": "Username",
     "usernamePlaceholder": "first.last",
     "password": "Password",
     "passwordPlaceholder": "Your password",
-    "showPassword": "Show",
-    "hidePassword": "Hide",
     "submit": "Sign in",
+    "retry": "Try again",
     "submitting": "Checking…",
-    "forgot": "Forgot your password? Contact your facility's administrator.",
-    "footer": "Access restricted to authorized staff. Every sign-in is logged.",
-    "expired": "Your session has expired. Please sign in again.",
+    "forgot": "Forgot your password? Reset it",
+    "forgotInfo": "To reset your password, contact your facility’s administrator.",
+    "supportCode": "Support code: {code}",
+    "help": "Need help? Contact the administrator: {phone}.",
+    "network": {
+      "title": "The network connection was interrupted",
+      "text": "Check your Internet connection, then try again. No request could be confirmed."
+    },
     "errors": {
       "usernameRequired": "Enter your username.",
       "passwordRequired": "Enter your password.",
-      "network": "Unable to reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again in a moment."
     }
   },
@@ -58,26 +66,173 @@
       "codeRequired": "Enter the code."
     }
   },
-  "home": {
-    "welcome": "Hello, {name}",
-    "lead": "Your workspace.",
-    "profile": "My profile",
-    "email": "E-mail address",
-    "roles": "Roles",
-    "mfa": "Two-factor authentication",
-    "mfaOn": "Enabled",
-    "mfaOff": "Not enabled",
-    "permissions": "My permissions",
-    "permissionsLead": "What your profile allows you to do in the platform.",
-    "noPermissions": "No specific permission.",
-    "apiDocs": "API documentation",
-    "apiDocsLead": "Explore and test the endpoints."
+  "expired": {
+    "pageTitle": "Session expired",
+    "title": "Sign in again to continue",
+    "lead": "The safety of your patients remains our priority.",
+    "noticeTitle": "Your session has expired",
+    "noticeText": "To protect health data, your session was closed automatically.",
+    "kept": "Your page has been kept. Once your identity is verified, you will resume your consultation where you left off.",
+    "draftSaved": "✓ Draft saved · {when}",
+    "relogin": "Sign in again",
+    "otherAccount": "Use another account"
   },
   "setup": {
-    "title": "Complete your account",
-    "lead": "Before you can use the platform, your account must be completed.",
-    "passwordStep": "Replace the temporary password with a personal one.",
-    "mfaStep": "Enroll two-factor authentication in an authenticator app.",
-    "soon": "This wizard will be available soon. In the meantime, contact your facility's administrator."
+    "pageTitle": "Account setup",
+    "title": "Create your password",
+    "lead": "Replace the temporary password given to you by your administrator.",
+    "steps": {
+      "password": "Password",
+      "authentication": "Authentication"
+    },
+    "currentPassword": "Temporary password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm the new password",
+    "continue": "Continue to authentication",
+    "saving": "Saving…",
+    "errors": {
+      "mismatch": "The two passwords do not match."
+    },
+    "authTitle": "Turn on two-factor authentication",
+    "authLead": "Your password is saved. One step remains: protect your account with an authenticator app.",
+    "soonTitle": "This step will be available soon",
+    "soonText": "In the meantime, contact your facility’s administrator to finish setting up your account."
+  },
+  "inactivity": {
+    "eyebrow": "HEALTH DATA PROTECTION",
+    "title": "Are you still there?",
+    "lead": "With no activity, your session will be closed automatically. Confirm you are here to continue.",
+    "countdownLabel": "Signing out in",
+    "draftTitle": "Draft saved",
+    "draftText": "Your clinical note was saved at {time}. It will be available the next time you sign in.",
+    "stay": "Stay signed in",
+    "maskedContext": "PATIENT RECORD / CONSULTATION · CONTENT HIDDEN",
+    "dataMasked": "Data hidden during the interruption"
+  },
+  "form": {
+    "password": {
+      "show": "Show",
+      "hide": "Hide",
+      "strength": {
+        "1": "Weak strength · password too weak",
+        "2": "Fair strength · could be stronger",
+        "3": "Good strength · acceptable password",
+        "4": "High strength · strong password"
+      },
+      "rules": {
+        "minLength": "At least {min} characters",
+        "notCommon": "Different from common passwords",
+        "noIdentity": "Without username or e-mail address"
+      },
+      "ruleMet": "(met)",
+      "ruleUnmet": "(not met)"
+    },
+    "errors": {
+      "min": "The value must be at least {min}.",
+      "max": "The value must be at most {max}.",
+      "equalsField": "The two values do not match.",
+      "passwordPolicy": "The password does not meet the security policy."
+    }
+  },
+  "shell": {
+    "mainNav": "Main navigation",
+    "limitedAccess": "Access limited to your role",
+    "collapseMenu": "Collapse menu",
+    "expandMenu": "Expand menu",
+    "openMenu": "Open menu",
+    "search": "Search…",
+    "notifications": "Notifications",
+    "help": "Help",
+    "userMenu": "User menu",
+    "profileLink": "My profile and security",
+    "auditNotice": "Your access to this record is logged."
+  },
+  "roles": {
+    "SYSTEM_ADMIN": "System administrator",
+    "DOCTOR": "Doctor",
+    "NURSE": "Nurse",
+    "PHARMACIST": "Pharmacist",
+    "LAB_TECHNICIAN": "Laboratory technician",
+    "RADIOLOGIST": "Radiologist",
+    "CASHIER": "Cashier",
+    "RECEPTIONIST": "Receptionist",
+    "ACCOUNTANT": "Accountant",
+    "DPO_AUDITOR": "DPO / Auditor",
+    "PATIENT": "Patient"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "agenda": "My schedule",
+    "consultations": "Consultations",
+    "rounds": "Inpatient (rounds)",
+    "emergency": "Emergency",
+    "results": "Results",
+    "tasks": "Tasks & messages",
+    "patients": "Patient records",
+    "surgery": "Operating theatre",
+    "maternity": "Maternity",
+    "documents": "Documents & certificates",
+    "planning": "My planning",
+    "reports": "Reports",
+    "help": "Help and support"
+  },
+  "dashboard": {
+    "title": "My workspace",
+    "subtitle": "View of {date} · Context and tools tailored to your role.",
+    "recordOpen": "Record open",
+    "today": "Today at a glance",
+    "consultations": "Today’s consultations",
+    "results": "Results to review",
+    "documents": "Documents to sign",
+    "perimeter": "My role’s scope",
+    "perimeterOf": {
+      "all": "All patients of the facility",
+      "department": "Patients under my care · My department",
+      "own": "My own patients only"
+    },
+    "scopeText": "Navigation entries and actions follow the rights of the signed-in role.",
+    "locked": "Locked: Role administration: access not authorised",
+    "activity": "My activity",
+    "noActivity": "Nothing scheduled today.",
+    "visit": {
+      "followUp": "Follow-up",
+      "consultation": "Consultation"
+    },
+    "status": {
+      "confirmed": "Confirmed",
+      "arrived": "Arrived",
+      "waiting": "Waiting"
+    },
+    "quick": {
+      "title": "Quick links",
+      "profile": "My profile and security",
+      "help": "Help and support"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "subtitle": "Professional details · Roles are managed by your administrator.",
+    "identity": "Professional identity",
+    "fullName": "Full name",
+    "email": "Work e-mail",
+    "phone": "Phone",
+    "errors": {
+      "phone": "Enter a valid number (digits and spaces, leading “+” for international)."
+    },
+    "photoSignature": "Photo and signature",
+    "photo": "Profile photo",
+    "photoHint": "Upload JPG / PNG · 2 MB maximum",
+    "signature": "Professional signature",
+    "signatureHint": "Signature on file · Replace after verification",
+    "signatureLogged": "Signing medical documents is logged.",
+    "practice": "Practice and credentials",
+    "establishment": "Facility: {name}",
+    "save": "Save profile",
+    "cancel": "Cancel",
+    "notSavedTitle": "Saving is not available yet",
+    "notSavedText": "Your input is valid, but the profile update service is not connected yet: nothing was changed."
+  },
+  "modules": {
+    "soon": "This module will be available soon."
   }
 }

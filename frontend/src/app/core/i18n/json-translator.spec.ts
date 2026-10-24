@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import fr from '../../i18n/catalogs/fr.json';
 import en from '../../i18n/catalogs/en.json';
+import enServer from '../../i18n/catalogs/en.server.json';
+import frServer from '../../i18n/catalogs/fr.server.json';
 import { JsonTranslator } from './json-translator';
 import { Translator } from './translator';
 
@@ -40,8 +42,8 @@ describe('JsonTranslator', () => {
   });
 
   it('remplit les paramètres et laisse visible celui qui manque', () => {
-    expect(t.t('home.welcome', { name: 'Marie' })).toBe('Bonjour, Marie');
-    expect(t.t('home.welcome')).toBe('Bonjour, {name}');
+    expect(t.t('dashboard.subtitle', { date: '24 oct. 2026' })).toBe('Vue du 24 oct. 2026 · Contexte et outils adaptés à votre rôle.');
+    expect(t.t('dashboard.subtitle')).toContain('{date}');
   });
 
   it("renvoie la clé quand elle n'existe pas (on repère l'oubli sans casser l'écran)", () => {
@@ -67,6 +69,22 @@ describe('JsonTranslator', () => {
 describe('catalogues de traduction', () => {
   it('ont exactement les mêmes clés en français et en anglais', () => {
     expect(keysOf(en as Catalog).sort()).toEqual(keysOf(fr as Catalog).sort());
+  });
+
+  it("ont aussi les mêmes clés pour les messages partagés avec l'API (synchronisés depuis le backend)", () => {
+    expect(keysOf(enServer as Catalog).sort()).toEqual(keysOf(frServer as Catalog).sort());
+    expect(keysOf(frServer as Catalog)).toContain('validation.isNotEmpty');
+    expect(keysOf(frServer as Catalog)).toContain('errors.INVALID_CREDENTIALS');
+  });
+
+  it('exposent les messages partagés sous la clé « server » du traducteur', () => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [{ provide: Translator, useClass: JsonTranslator }] });
+    const t = TestBed.inject(Translator);
+    t.setLocale('fr');
+    expect(t.t('server.validation.isNotEmpty', { field: 'identifiant' })).toBe('Le champ « identifiant » est obligatoire.');
+    expect(t.has('server.errors.INVALID_CREDENTIALS')).toBe(true);
+    expect(t.has('server.rien')).toBe(false);
   });
 
   it('utilisent les mêmes paramètres {…} dans les deux langues', () => {
