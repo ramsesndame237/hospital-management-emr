@@ -12,5 +12,9 @@
   "limit": "limit",
   "id": "identifier",
   "name": "name",
-  "status": "status"
+  "status": "status",
+  "labels": "labels",
+  "sortOrder": "display order",
+  "search": "search",
+  "includeInactive": "inactive entries"
 }
