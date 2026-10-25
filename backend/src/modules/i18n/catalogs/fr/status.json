@@ -1,0 +1,13 @@
+{
+  "ADMIN_AUTHORIZED": "Autorisé",
+  "ADMIN_AUTHORIZATION_EXPIRED": "Autorisation caduque",
+  "ADMIN_SUSPENDED": "Suspendu",
+  "ADMIN_LICENSE_REVOKED": "Autorisation retirée",
+  "OPERATIONAL_OPEN": "Ouvert",
+  "OPERATIONAL_TEMPORARILY_CLOSED": "Fermé temporairement",
+  "OPERATIONAL_PERMANENTLY_CLOSED": "Fermé définitivement",
+  "OPERATIONAL_UNDER_CONSTRUCTION": "En projet",
+  "QUALITY_CERTIFIED": "Certifié",
+  "QUALITY_CERTIFICATION_IN_PROGRESS": "Certification en cours",
+  "QUALITY_NOT_CERTIFIED": "Non certifié"
+}
