@@ -4,6 +4,7 @@ import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angula
 import { provideSpartanHlm } from '@spartan-ng/helm/utils';
 import { routes } from './app.routes';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
+import { PasswordResetGateway, UnavailablePasswordResetGateway } from './core/auth/password-reset.gateway';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { JsonTranslator } from './core/i18n/json-translator';
 import { localeInterceptor } from './core/i18n/locale.interceptor';
@@ -21,6 +22,8 @@ export const appConfig: ApplicationConfig = {
     // Ports → adaptateurs. Changer de serveur d'identité ou de bibliothèque d'i18n = changer ces deux lignes.
     { provide: AuthGateway, useClass: HttpAuthGateway },
     { provide: Translator, useClass: JsonTranslator },
+    // Réinitialisation du mot de passe : adaptateur provisoire tant que l'API n'a pas d'endpoint (voir le fichier du port).
+    { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },
     // Données d'exemple du tableau de bord, jusqu'à la migration des modules cliniques (voir `dashboard.gateway.ts`).
     { provide: DashboardGateway, useClass: SampleDashboardGateway },

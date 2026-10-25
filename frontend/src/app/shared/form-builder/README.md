@@ -22,7 +22,7 @@ const fields: FieldSchema[] = [
 
 | Propriété | Rôle |
 |---|---|
-| `type` | `text` `email` `tel` `number` `code` `password` `textarea` `select` `radio` `checkbox` · `message` `paragraph` · `submit` `button` `link` |
+| `type` | Saisie : `text` `email` `tel` `number` `code` `otp` `password` `textarea` `select` `radio` `checkbox` · Affichage : `message` `paragraph` `codes` `secret` `qr` `disclosure` `checklist` · Actions : `submit` `button` `link` |
 | `name` | Identifiant unique : clé de la valeur (saisie) ou de l'action (bouton) |
 | `label` `placeholder` `hint` | **Clés de catalogue** (`login.username`). Un texte qui n'est pas une clé s'affiche tel quel (message déjà traduit par l'API) |
 | `validators` | `[{ type, value?, message? }]` : `required` `minLength` `maxLength` `min` `max` `pattern` `email` `equalsField` `passwordPolicy` |
@@ -37,9 +37,18 @@ Particularités : `password` affiche « Afficher/Masquer » et, avec une règle 
 (`{ type: 'passwordPolicy', value: 12, rules: ['notCommon', 'noIdentity'], identityFields: ['username'], identityValues: [email] }`).
 `submit` accepte `form: 'autre-formulaire'` pour envoyer un AUTRE formulaire (bouton placé ailleurs dans la page).
 
+Autres types : `otp` (code en cases séparées : saisie rapide, collage, correction au clavier ; `length` = 6 par défaut),
+`codes` (liste de codes sur deux colonnes, marquée « à imprimer »), `secret` (valeur à recopier avec « Copier »), `qr` (QR code calculé
+dans le navigateur, aucun service tiers), `disclosure` (section dépliable), `checklist` (points acquis). Un bouton accepte `disabled` ou
+`disabledIf` (inactif tant qu'une autre valeur du formulaire a telle valeur) ; un lien accepte `href` (nouvel onglet) ou `routerLink`.
+Un mot de passe accepte `compromised: true` (jauge en alerte : mot de passe présent dans une fuite connue).
+
 Le composant : entrées `fields` (obligatoire), `layout` (`{ class, gap }`), `data` (valeurs à appliquer), `busy`, `formId` ;
 sorties `submitted` (valeurs normalisées, formulaire valide), `invalidSubmit`, `action` (bouton/lien), `valueChange` ;
-méthodes `reset(values?)`, `focus(name)`, `applyServerErrors(errors)`, `value()`, `submit()`.
+méthodes `reset(values?)`, `focus(name)`, `applyServerErrors(errors)`, `markInvalid(name)` (cadre rouge sans texte, quand le message est
+donné ailleurs), `value()`, `submit()`. Les erreurs du serveur survivent à un simple changement de la liste de champs et disparaissent dès que
+l'utilisateur modifie le champ. De NOUVEAUX champs de saisie (étape suivante) repartent sans erreur affichée ; donnez-leur des noms distincts de
+ceux de l'étape précédente pour qu'aucune saisie ne se reporte.
 
 ## Messages d'erreur et synchronisation avec le backend
 

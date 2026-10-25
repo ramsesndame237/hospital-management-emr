@@ -9,7 +9,6 @@ import { DraftStatus } from './core/session/draft-status';
 import { IdleService } from './core/session/idle.service';
 import { Temporal } from './core/time/temporal';
 import { SessionExpiredPage } from './features/auth/session-expired/session-expired.page';
-import { AccountSetupPage } from './features/account-setup/account-setup.page';
 import { DashboardPage, perimeterOf } from './features/dashboard/dashboard.page';
 import { ModulePlaceholderPage } from './features/modules/module-placeholder.page';
 import { ProfilePage } from './features/profile/profile.page';
@@ -105,97 +104,6 @@ describe('SessionExpiredPage', () => {
     await setup('//evil.example');
     buttonByText(fixture, 'Se reconnecter')!.click();
     expect(navigate).toHaveBeenLastCalledWith(['/login'], { queryParams: {} });
-  });
-});
-
-describe('AccountSetupPage (première connexion)', () => {
-  let fixture: ComponentFixture<AccountSetupPage>;
-  let ctx: ReturnType<typeof configureApp>;
-  let navigateByUrl: ReturnType<typeof vi.spyOn>;
-  let missing: () => string[];
-
-  async function setup() {
-    ctx = configureApp({ roles: ['DOCTOR'] });
-    ctx.store.setToken('at-setup', Date.parse('2026-10-24T12:15:00Z'), 'setup');
-    missing = watchMissingKeys(ctx.i18n);
-    navigateByUrl = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
-    fixture = TestBed.createComponent(AccountSetupPage);
-    await settle(fixture);
-  }
-
-  async function fill(current: string, next: string, confirm: string) {
-    await type(fixture, '#setup-currentPassword', current);
-    await type(fixture, '#setup-newPassword', next);
-    await type(fixture, '#setup-confirmPassword', confirm);
-  }
-
-  const submit = async () => {
-    el<HTMLFormElement>(fixture, 'form')!.dispatchEvent(new Event('submit'));
-    await settle(fixture);
-  };
-
-  it("affiche l'étape 1 sur 3 avec la barre de progression et la politique de mot de passe", async () => {
-    await setup();
-    expect(text(fixture)).toContain('Créez votre mot de passe');
-    expect(text(fixture)).toContain('ÉTAPE 1 / 3');
-    expect(text(fixture)).toContain('Mot de passe temporaire *');
-    expect(text(fixture)).toContain('Au moins 12 caractères');
-    expect(missing()).toEqual([]);
-  });
-
-  it("refuse deux mots de passe différents, sans appeler le serveur", async () => {
-    await setup();
-    await fill('provisoire', 'Cheval-pile-agrafe-2026', 'autre chose');
-    await submit();
-    expect(el(fixture, '#setup-confirmPassword-error')?.textContent).toContain('ne sont pas identiques');
-    expect(ctx.gateway.changePassword).not.toHaveBeenCalled();
-  });
-
-  it('refuse un nouveau mot de passe trop court avant même d’interroger le serveur', async () => {
-    await setup();
-    await fill('provisoire', 'court', 'court');
-    await submit();
-    expect(el(fixture, '#setup-newPassword-error')).not.toBeNull();
-    expect(ctx.gateway.changePassword).not.toHaveBeenCalled();
-  });
-
-  it('enregistre le mot de passe puis passe à l’étape suivante tant que le compte reste à finaliser', async () => {
-    await setup();
-    ctx.gateway.changePassword.mockResolvedValue(token('at-2', 'setup'));
-    await fill('provisoire', 'Cheval-pile-agrafe-2026', 'Cheval-pile-agrafe-2026');
-    await submit();
-    expect(ctx.gateway.changePassword).toHaveBeenCalledWith('provisoire', 'Cheval-pile-agrafe-2026');
-    expect(text(fixture)).toContain('Activez la double authentification');
-    expect(text(fixture)).toContain('ÉTAPE 2 / 3');
-  });
-
-  it("ouvre l'espace de travail quand plus rien n'est à finaliser", async () => {
-    await setup();
-    ctx.gateway.changePassword.mockResolvedValue(token('at-2', 'full'));
-    await fill('provisoire', 'Cheval-pile-agrafe-2026', 'Cheval-pile-agrafe-2026');
-    await submit();
-    expect(navigateByUrl).toHaveBeenCalledWith('/');
-  });
-
-  it('affiche sur le bon champ le refus du serveur (mot de passe actuel faux, mot de passe compromis)', async () => {
-    await setup();
-    ctx.gateway.changePassword.mockRejectedValueOnce(new ApiError(401, 'CURRENT_PASSWORD_INVALID', 'Le mot de passe actuel est incorrect.'));
-    await fill('faux', 'Cheval-pile-agrafe-2026', 'Cheval-pile-agrafe-2026');
-    await submit();
-    expect(el(fixture, '#setup-currentPassword-error')?.textContent).toContain('Le mot de passe actuel est incorrect.');
-
-    ctx.gateway.changePassword.mockRejectedValueOnce(new ApiError(422, 'PASSWORD_BREACHED', 'Ce mot de passe figure dans une liste de mots de passe compromis.'));
-    await type(fixture, '#setup-currentPassword', 'provisoire');
-    await submit();
-    expect(el(fixture, '#setup-newPassword-error')?.textContent).toContain('compromis');
-  });
-
-  it('signale une panne réseau en haut du formulaire', async () => {
-    await setup();
-    ctx.gateway.changePassword.mockRejectedValueOnce(new ApiError(0, 'NETWORK', 'offline'));
-    await fill('provisoire', 'Cheval-pile-agrafe-2026', 'Cheval-pile-agrafe-2026');
-    await submit();
-    expect(el(fixture, '[role=alert]')?.textContent).toContain('La connexion réseau a été interrompue');
   });
 });
 

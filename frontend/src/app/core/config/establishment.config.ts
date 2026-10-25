@@ -9,6 +9,8 @@ export interface EstablishmentConfig {
   readonly network: string;
   /** Numéro de l'administrateur à joindre en cas de blocage de connexion. */
   readonly supportPhone: string;
+  /** Page d'état du service, ouverte quand le service de connexion est indisponible. */
+  readonly statusUrl: string;
 }
 
 /**
@@ -17,5 +19,5 @@ export interface EstablishmentConfig {
  */
 export const ESTABLISHMENT = new InjectionToken<EstablishmentConfig>('ESTABLISHMENT', {
   providedIn: 'root',
-  factory: () => ({ name: 'Bonapriso', city: 'Douala', shortName: 'CM', network: 'Réseau Sanjeevani', supportPhone: '+237 6 70 12 34 56' }),
+  factory: () => ({ name: 'Bonapriso', city: 'Douala', shortName: 'CM', network: 'Réseau Sanjeevani', supportPhone: '+237 6 70 12 34 56', statusUrl: '/api/Health' }),
 });

@@ -17,6 +17,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly fieldErrors: readonly FieldError[] = [],
+    /** Délai d'attente demandé par le serveur (en-tête `Retry-After`, en secondes) ; `null` s'il n'en précise pas. */
+    readonly retryAfterSeconds: number | null = null,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -24,6 +26,16 @@ export class ApiError extends Error {
 
   get isNetwork(): boolean {
     return this.code === 'NETWORK';
+  }
+
+  /** Trop de tentatives : le serveur suspend temporairement les nouvelles demandes. */
+  get isRateLimited(): boolean {
+    return this.status === 429;
+  }
+
+  /** Incident côté serveur (erreur 5xx) : ce n'est ni la faute de l'utilisateur ni une panne de son réseau. */
+  get isServerError(): boolean {
+    return this.status >= 500;
   }
 }
 
@@ -39,7 +51,8 @@ export function toApiError(error: unknown): ApiError {
     const code = typeof body?.code === 'string' ? body.code : UNKNOWN;
     const message = typeof body?.message === 'string' ? body.message : error.statusText;
     const fieldErrors = Array.isArray(body?.errors) ? (body.errors as FieldError[]).filter((e) => typeof e?.message === 'string') : [];
-    return new ApiError(error.status, code, message, fieldErrors);
+    const retryAfter = Number(error.headers?.get('Retry-After'));
+    return new ApiError(error.status, code, message, fieldErrors, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null);
   }
   return new ApiError(0, UNKNOWN, error instanceof Error ? error.message : String(error));
 }

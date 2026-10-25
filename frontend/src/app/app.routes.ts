@@ -32,6 +32,7 @@ export const routes: Routes = [
     loadComponent: () => import('./layouts/auth-layout/auth-layout').then((m) => m.AuthLayout),
     children: [
       { path: 'login', canActivate: [guestGuard], title: 'login.pageTitle', loadComponent: () => import('./features/auth/login/login.page').then((m) => m.LoginPage) },
+      { path: 'forgot-password', canActivate: [guestGuard], title: 'forgot.title', loadComponent: () => import('./features/auth/forgot-password/forgot-password.page').then((m) => m.ForgotPasswordPage) },
       { path: 'session-expired', canActivate: [guestGuard], title: 'expired.pageTitle', loadComponent: () => import('./features/auth/session-expired/session-expired.page').then((m) => m.SessionExpiredPage) },
       { path: 'account/setup', canActivate: [setupGuard], title: 'setup.pageTitle', loadComponent: () => import('./features/account-setup/account-setup.page').then((m) => m.AccountSetupPage) },
     ],

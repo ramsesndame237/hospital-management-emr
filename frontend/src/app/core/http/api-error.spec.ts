@@ -1,5 +1,20 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { ApiError, toApiError } from './api-error';
+
+describe('ApiError : dérivés', () => {
+  it('reconnaît trop de tentatives et incident serveur', () => {
+    expect(new ApiError(429, 'HTTP_429', 'x').isRateLimited).toBe(true);
+    expect(new ApiError(503, 'UNKNOWN', 'x').isServerError).toBe(true);
+    expect(new ApiError(401, 'INVALID_CREDENTIALS', 'x').isServerError).toBe(false);
+  });
+
+  it("lit le délai d'attente demandé par le serveur (Retry-After)", () => {
+    const withHeader = toApiError(new HttpErrorResponse({ status: 429, headers: new HttpHeaders({ 'Retry-After': '42' }), error: { code: 'HTTP_429', message: 'Trop' } }));
+    expect(withHeader.retryAfterSeconds).toBe(42);
+    const without = toApiError(new HttpErrorResponse({ status: 429, error: { code: 'HTTP_429', message: 'Trop' } }));
+    expect(without.retryAfterSeconds).toBeNull();
+  });
+});
 
 describe('toApiError', () => {
   it("lit la forme d'erreur de l'API { statusCode, code, message }", () => {

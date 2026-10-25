@@ -57,7 +57,7 @@ const SEGMENT_COLOR: Readonly<Record<Tone, string>> = { critical: 'bg-status-cri
           }
         </div>
         @if (p.strength > 0) {
-          <p class="text-xs leading-[18px]" [class]="toneClass()" role="status">{{ i18n.t('form.password.strength.' + p.strength) }}</p>
+          <p class="text-xs leading-[18px]" [class]="toneClass()" role="status">{{ strengthLabel(p.strength) }}</p>
         }
         <ul class="flex flex-col gap-[6px]">
           @for (rule of p.rules; track rule.id) {
@@ -99,10 +99,19 @@ export class PasswordFieldComponent extends InputRenderer<PasswordField> {
     return { rules, strength: strengthOf(password, unmet), touched: this.ctx.showError(this.control()) || password !== '' };
   });
 
-  protected readonly toneClass = computed(() => TONE_TEXT[STRENGTH_TONE[this.policy()?.strength ?? 1] ?? 'critical']);
+  /** Mot de passe présent dans une fuite connue : la jauge reste pleine mais passe en alerte, et le libellé le dit. */
+  private readonly compromised = computed(() => !!this.field().compromised);
+
+  protected readonly toneClass = computed(() => TONE_TEXT[this.compromised() ? 'warning' : (STRENGTH_TONE[this.policy()?.strength ?? 1] ?? 'critical')]);
+
+  protected strengthLabel(strength: number): string {
+    return this.compromised()
+      ? this.i18n.t('form.password.compromised', { level: this.i18n.t('form.password.level.' + strength) })
+      : this.i18n.t('form.password.strength.' + strength);
+  }
 
   protected segmentClass(segment: number): string {
     const strength = this.policy()?.strength ?? 0;
-    return segment <= strength ? SEGMENT_COLOR[STRENGTH_TONE[strength]] : 'bg-border';
+    return segment <= strength ? SEGMENT_COLOR[this.compromised() ? 'warning' : STRENGTH_TONE[strength]] : 'bg-border';
   }
 }

@@ -4,9 +4,10 @@ import { Translator } from '../../../core/i18n/translator';
 import { DraftStatus } from '../../../core/session/draft-status';
 import { DateTimeFormatter } from '../../../core/time/date-time-formatter';
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
-import { FieldSchema, FormAction } from '../../../shared/form-builder/form-schema';
+import { FormAction } from '../../../shared/form-builder/form-schema';
 import { AuthCard } from '../shared/auth-card';
 import { safeReturnUrl } from '../shared/return-url';
+import { expiredFields } from './expired.form';
 
 /**
  * Session expirée (inactivité ou refus du serveur) : on explique, on rassure sur le travail conservé et on propose de
@@ -31,15 +32,9 @@ export class SessionExpiredPage {
 
   private readonly returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
 
-  protected readonly fields = computed<FieldSchema[]>(() => {
+  protected readonly fields = computed(() => {
     const saved = this.draft.savedAt();
-    return [
-      { type: 'message', name: 'notice', tone: 'warning', title: 'expired.noticeTitle', text: 'expired.noticeText' },
-      { type: 'paragraph', name: 'kept', text: 'expired.kept', size: 'sm' },
-      ...(saved ? ([{ type: 'paragraph', name: 'draft', text: 'expired.draftSaved', params: { when: this.formatter.dateTime(saved) }, tone: 'success' }] as const) : []),
-      { type: 'button', name: 'relogin', label: 'expired.relogin', variant: 'primary' },
-      { type: 'link', name: 'otherAccount', label: 'expired.otherAccount' },
-    ];
+    return expiredFields(saved ? this.formatter.dateTime(saved) : null);
   });
 
   protected onAction(event: FormAction): void {

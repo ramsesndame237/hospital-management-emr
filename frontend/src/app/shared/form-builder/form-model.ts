@@ -67,8 +67,10 @@ export class FormModel {
   }
 
   /** Rapproche le `FormGroup` du nouveau tableau de champs : ajoute, retire, remet à jour les règles, conserve les valeurs. */
-  update(fields: readonly FieldSchema[]): void {
+  update(fields: readonly FieldSchema[]): { readonly inputsAdded: boolean } {
     this.assertUniqueNames(fields);
+    const serverErrors = this.serverErrors();
+    const before = new Set(Object.keys(this.group.controls));
     this.fields = fields;
     const inputs = fields.filter(isInputField);
     const names = new Set(inputs.map((f) => f.name));
@@ -87,7 +89,14 @@ export class FormModel {
     this.watchDependencies(inputs);
     this.applyConditions();
     for (const control of Object.values(this.group.controls)) control.updateValueAndValidity({ emitEvent: false });
+    // Un simple changement de la liste de champs (bandeau ajouté, libellé modifié) ne doit pas effacer l'erreur du serveur :
+    // elle ne disparaît que lorsque l'utilisateur modifie le champ concerné.
+    for (const [name, message] of serverErrors) {
+      const control = this.group.controls[name];
+      if (control) control.setErrors({ ...control.errors, server: message }, { emitEvent: false });
+    }
     this.group.updateValueAndValidity({ emitEvent: true });
+    return { inputsAdded: Object.keys(this.group.controls).some((name) => !before.has(name)) };
   }
 
   /** Valeur à envoyer : champs visibles et actifs seulement, normalisés. Comme un formulaire HTML, un champ désactivé n'est pas envoyé. */
@@ -143,6 +152,13 @@ export class FormModel {
 
   isVisible(field: FieldSchema, values = this.values()): boolean {
     return evaluateCondition(field.showIf, values);
+  }
+
+  private serverErrors(): [string, string][] {
+    return Object.entries(this.group.controls).flatMap(([name, control]): [string, string][] => {
+      const message = (control.errors as Record<string, unknown> | null)?.['server'];
+      return typeof message === 'string' ? [[name, message]] : [];
+    });
   }
 
   private applyConditions(): void {

@@ -104,7 +104,8 @@ export class FormBuilderComponent implements FieldContext {
     effect(() => {
       const fields = this.fields();
       untracked(() => {
-        this.model.update(fields);
+        // De nouveaux champs de saisie = un autre formulaire (étape suivante) : ses erreurs ne s'affichent qu'après SON premier envoi.
+        if (this.model.update(fields).inputsAdded && this.ready()) this.attemptedState.set(false);
         this.ready.set(true);
       });
     });
@@ -137,6 +138,11 @@ export class FormBuilderComponent implements FieldContext {
   /** Affiche sur les champs les erreurs d'une réponse `VALIDATION_FAILED` de l'API ; renvoie celles qu'aucun champ ne porte. */
   applyServerErrors(errors: readonly { readonly field: string; readonly message: string }[]): { readonly field: string; readonly message: string }[] {
     return this.model.applyServerErrors(errors);
+  }
+
+  /** Marque un champ en erreur (cadre rouge) sans afficher de texte : le message est donné ailleurs (bandeau au-dessus du formulaire). */
+  markInvalid(name: string): void {
+    this.model.applyServerErrors([{ field: name, message: '' }]);
   }
 
   submit(): void {

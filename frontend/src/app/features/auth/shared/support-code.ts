@@ -1,9 +1,10 @@
 import { Instant, Temporal } from '../../../core/time/temporal';
 
-export type SupportCodeKind = 'N01';
+/** N01 : réseau · C01 : identifiants refusés · R01 : trop de tentatives · S01 : service indisponible. */
+export type SupportCodeKind = 'N01' | 'C01' | 'R01' | 'S01';
 
 /**
- * Code d'assistance à communiquer à l'administrateur : `AUTH-N01-241026` = type d'incident (N01 : réseau) et date du jour
+ * Code d'assistance à communiquer à l'administrateur : `AUTH-N01-241026` = type d'incident (N01 : réseau, C01 : identifiants, R01 : trop de tentatives, S01 : service indisponible) et date du jour
  * (jour, mois, année sur deux chiffres). Il ne contient aucune donnée personnelle ; il sert seulement à retrouver l'incident.
  */
 export function supportCode(kind: SupportCodeKind, at: Instant): string {

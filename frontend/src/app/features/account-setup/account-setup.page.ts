@@ -1,115 +1,72 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { SessionService } from '../../core/auth/session.service';
 import { SessionStore } from '../../core/auth/session.store';
-import { ApiError, toApiError } from '../../core/http/api-error';
 import { Translator } from '../../core/i18n/translator';
-import { FormBuilderComponent } from '../../shared/form-builder/form-builder';
-import { FieldSchema, FormAction } from '../../shared/form-builder/form-schema';
-import { StepProgress } from '../../shared/step-progress';
 import { AuthCard } from '../auth/shared/auth-card';
+import { AuthenticatorStep } from './steps/authenticator-step';
+import { PasswordStep } from './steps/password-step';
+import { ReadyStep } from './steps/ready-step';
+import { RecoveryCodesStep } from './steps/recovery-codes-step';
 
-type Step = 'password' | 'authentication';
+type Step = 'password' | 'authenticator' | 'recovery' | 'ready';
 
-/** Codes d'erreur de l'API qui concernent le NOUVEAU mot de passe (les autres sont affichés en haut du formulaire). */
-const NEW_PASSWORD_ERRORS = ['PASSWORD_TOO_SHORT', 'PASSWORD_TOO_LONG', 'PASSWORD_TOO_COMMON', 'PASSWORD_CONTAINS_IDENTITY', 'PASSWORD_BREACHED', 'PASSWORD_UNCHANGED'];
+const HEADINGS: Readonly<Record<Step, { title: string; lead: string }>> = {
+  password: { title: 'setup.title', lead: 'setup.lead' },
+  authenticator: { title: 'authenticator.title', lead: 'authenticator.lead' },
+  recovery: { title: 'recoveryCodes.title', lead: 'recoveryCodes.lead' },
+  ready: { title: 'ready.title', lead: 'ready.lead' },
+};
 
 /**
- * Première connexion (session restreinte `setup`) : l'utilisateur remplace le mot de passe provisoire (étape 1 sur 3), puis
- * enregistre la double authentification (étape 2) et conserve ses codes de secours (étape 3). Le formulaire de l'étape 1 est
- * décrit en JSON : la politique de mot de passe (12 caractères, ni courant, ni dérivé de l'identité) y est une règle déclarée.
+ * Première connexion (session restreinte `setup`), en trois étapes puis l'écran « compte prêt » :
+ * 1. mot de passe personnel · 2. application d'authentification (QR code) · 3. codes de récupération.
+ * Reprise possible : si le mot de passe a déjà été remplacé (rechargement de la page), on repart de l'étape 2.
  */
 @Component({
   selector: 'app-account-setup-page',
-  imports: [AuthCard, FormBuilderComponent, StepProgress],
+  imports: [AuthCard, PasswordStep, AuthenticatorStep, RecoveryCodesStep, ReadyStep],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-auth-card [eyebrow]="i18n.t('auth.eyebrow')" [title]="i18n.t(step() === 'password' ? 'setup.title' : 'setup.authTitle')" [lead]="i18n.t(step() === 'password' ? 'setup.lead' : 'setup.authLead')" titleId="setup-title">
-      <app-step-progress [current]="step() === 'password' ? 1 : 2" [total]="3" [nameKey]="step() === 'password' ? 'setup.steps.password' : 'setup.steps.authentication'" />
-      @if (step() === 'password') {
-        <app-form-builder #passwordForm [fields]="passwordFields()" [busy]="submitting()" formId="setup" (submitted)="onSubmit($event)" />
-      } @else {
-        <app-form-builder [fields]="authenticationFields" formId="setup-auth" (action)="signOut()" />
+    <app-auth-card [eyebrow]="i18n.t('auth.eyebrow')" [title]="i18n.t(heading().title)" [lead]="i18n.t(heading().lead, { name: username() })" titleId="setup-title">
+      @switch (step()) {
+        @case ('password') {
+          <app-password-step (done)="step.set('authenticator')" />
+        }
+        @case ('authenticator') {
+          <app-authenticator-step (done)="onCodes($event)" />
+        }
+        @case ('recovery') {
+          <app-recovery-codes-step [codes]="codes()" (done)="onFinished()" />
+        }
+        @default {
+          <app-ready-step (open)="open()" />
+        }
       }
     </app-auth-card>
   `,
 })
 export class AccountSetupPage {
   protected readonly i18n = inject(Translator);
-  private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly user = inject(SessionStore).user;
 
-  protected readonly step = signal<Step>('password');
-  protected readonly submitting = signal(false);
-  private readonly banner = signal<string | null>(null);
-  private readonly passwordForm = viewChild<FormBuilderComponent>('passwordForm');
+  protected readonly step = signal<Step>(this.user()?.mustChangePassword === false ? 'authenticator' : 'password');
+  protected readonly codes = signal<readonly string[]>([]);
+  protected readonly heading = computed(() => HEADINGS[this.step()]);
+  protected readonly username = computed(() => this.user()?.username ?? '');
 
-  protected readonly passwordFields = computed<FieldSchema[]>(() => {
-    const user = this.user();
-    const banner = this.banner();
-    return [
-      ...(banner ? ([{ type: 'message', name: 'banner', tone: 'critical', title: banner }] as const) : []),
-      {
-        type: 'password',
-        name: 'currentPassword',
-        label: 'setup.currentPassword',
-        autocomplete: 'current-password',
-        autofocus: true,
-        validators: [{ type: 'required' }, { type: 'maxLength', value: 1024 }],
-      },
-      {
-        type: 'password',
-        name: 'newPassword',
-        label: 'setup.newPassword',
-        autocomplete: 'new-password',
-        validators: [
-          { type: 'required' },
-          { type: 'maxLength', value: 1024 },
-          { type: 'passwordPolicy', value: 12, rules: ['notCommon', 'noIdentity'], identityValues: [user?.username ?? '', user?.email ?? ''] },
-        ],
-      },
-      {
-        type: 'password',
-        name: 'confirmPassword',
-        label: 'setup.confirmPassword',
-        autocomplete: 'new-password',
-        validators: [{ type: 'required' }, { type: 'equalsField', field: 'newPassword', message: 'setup.errors.mismatch' }],
-      },
-      { type: 'submit', name: 'submit', label: 'setup.continue', busyLabel: 'setup.saving' },
-    ];
-  });
-
-  protected readonly authenticationFields: FieldSchema[] = [
-    { type: 'message', name: 'soon', tone: 'info', title: 'setup.soonTitle', text: 'setup.soonText' },
-    { type: 'button', name: 'signOut', label: 'common.signOut', variant: 'outline' },
-  ];
-
-  protected async onSubmit(value: Record<string, unknown>): Promise<void> {
-    this.banner.set(null);
-    this.submitting.set(true);
-    try {
-      const { setupRequired } = await this.session.changePassword(String(value['currentPassword']), String(value['newPassword']));
-      if (setupRequired) this.step.set('authentication');
-      else await this.router.navigateByUrl('/');
-    } catch (e) {
-      this.showError(toApiError(e));
-    } finally {
-      this.submitting.set(false);
-    }
+  protected onCodes(codes: readonly string[]): void {
+    this.codes.set(codes);
+    this.step.set('recovery');
   }
 
-  protected signOut(): void {
-    void this.session.logout();
+  /** Les codes ne sont plus nécessaires à l'écran : on ne les garde pas en mémoire plus longtemps. */
+  protected onFinished(): void {
+    this.codes.set([]);
+    this.step.set('ready');
   }
 
-  /** Une erreur qui vise un champ s'affiche sur ce champ ; sinon en haut du formulaire. */
-  private showError(error: ApiError): void {
-    const form = this.passwordForm();
-    if (error.isNetwork) return this.banner.set(this.i18n.t('login.network.title'));
-    if (error.code === 'CURRENT_PASSWORD_INVALID') return void form?.applyServerErrors([{ field: 'currentPassword', message: error.message }]);
-    if (NEW_PASSWORD_ERRORS.includes(error.code)) return void form?.applyServerErrors([{ field: 'newPassword', message: error.message }]);
-    const unmatched = error.fieldErrors.length ? (form?.applyServerErrors(error.fieldErrors) ?? []) : [{ field: '', message: error.message }];
-    if (unmatched.length) this.banner.set(error.status >= 500 || error.code === 'UNKNOWN' ? this.i18n.t('login.errors.generic') : unmatched[0].message);
+  protected open(): void {
+    void this.router.navigateByUrl('/');
   }
 }

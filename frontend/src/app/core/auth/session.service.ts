@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiError } from '../http/api-error';
 import { AuthGateway } from './auth.gateway';
-import { LoginCredentials, LoginOutcome, TokenResponse } from './auth.models';
+import { LoginCredentials, LoginOutcome, MfaEnrollment, TokenResponse } from './auth.models';
 import { SessionStore } from './session.store';
 
 /** Marge avant expiration : on renouvelle le jeton une minute avant qu'il ne tombe, pour qu'aucune requête n'échoue en 401. */
@@ -28,7 +28,7 @@ export class SessionService {
     const response = await this.gateway.login(credentials);
     if (response.status === 'mfa_required') return { kind: 'mfa_required' };
     await this.open(response);
-    return { kind: 'signed_in', setupRequired: response.scope === 'setup' };
+    return { kind: 'signed_in', setupRequired: response.scope === 'setup', recoveryCodesRemaining: response.recoveryCodesRemaining };
   }
 
   /**
@@ -62,8 +62,11 @@ export class SessionService {
 
   /**
    * Session terminée sans action de l'utilisateur : refus du serveur (jeton de rafraîchissement invalide) ou inactivité.
-   * On retient la page demandée et on affiche l'écran « session expirée ». `revoke` ferme aussi la session côté serveur :
-   * indispensable pour l'inactivité, sinon le cookie de rafraîchissement, encore valable, rouvrirait la session au rechargement.
+   * `revoke` ferme aussi la session côté serveur : indispensable pour l'inactivité, sinon le cookie de rafraîchissement,
+   * encore valable, rouvrirait la session au rechargement.
+   *
+   * Si l'utilisateur travaillait dans l'application, on garde l'écran en place sous un dialogue « session expirée » qui masque
+   * son contenu et retient la page à reprendre ; sinon on affiche l'écran « session expirée » pleine page.
    */
   async expire(revoke = false): Promise<void> {
     const returnUrl = this.router.url;
@@ -75,8 +78,40 @@ export class SessionService {
       }
     }
     this.end();
-    const usable = returnUrl && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/session-expired');
-    await this.router.navigate(['/session-expired'], usable ? { queryParams: { returnUrl } } : {});
+    const usable = returnUrl && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/session-expired') && !returnUrl.startsWith('/account');
+    if (usable) this.store.markExpired({ returnUrl });
+    else await this.router.navigate(['/session-expired']);
+  }
+
+  /** Quitte le dialogue « session expirée » pour la connexion, avec ou sans reprise de la page où l'on travaillait. */
+  async leaveExpired(resume: boolean): Promise<void> {
+    const returnUrl = this.store.expired()?.returnUrl;
+    this.store.dismissExpired();
+    await this.router.navigate(['/login'], { queryParams: resume && returnUrl && returnUrl !== '/' ? { returnUrl } : {} });
+  }
+
+  /** Démarre l'inscription de la double authentification (session de finalisation). Rejette avec `ApiError`. */
+  enrollMfa(): Promise<MfaEnrollment> {
+    return this.gateway.enrollMfa();
+  }
+
+  /** Confirme l'inscription avec un premier code valide ; renvoie les codes de secours (à montrer une seule fois). */
+  activateMfa(code: string): Promise<readonly string[]> {
+    return this.gateway.activateMfa(code);
+  }
+
+  /**
+   * Dernière étape de la sécurisation : le serveur recalcule la portée (`setup` → `full`) au renouvellement du jeton.
+   * `false` si la session n'a pas pu être renouvelée.
+   */
+  async finishSetup(): Promise<boolean> {
+    if (!(await this.refresh())) return false;
+    try {
+      this.store.setUser(await this.gateway.me());
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Change le mot de passe (étape de finalisation du compte). Rejette avec `ApiError` (mot de passe actuel faux, politique non respectée…). */

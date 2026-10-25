@@ -1,5 +1,5 @@
 import { AuthGateway } from '../auth.gateway';
-import { CurrentUser, LoginCredentials, LoginResponse, TokenResponse } from '../auth.models';
+import { CurrentUser, LoginCredentials, LoginResponse, MfaEnrollment, TokenResponse } from '../auth.models';
 
 /** Jeton d'accès factice expirant dans `minutes` minutes. */
 export const token = (accessToken = 'at-1', scope: 'full' | 'setup' = 'full', minutes = 15): TokenResponse => ({
@@ -27,5 +27,7 @@ export class FakeAuthGateway extends AuthGateway {
   override refresh = vi.fn<() => Promise<TokenResponse>>();
   override logout = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   override me = vi.fn<() => Promise<CurrentUser>>().mockResolvedValue(user());
+  override enrollMfa = vi.fn<() => Promise<MfaEnrollment>>();
+  override activateMfa = vi.fn<(code: string) => Promise<readonly string[]>>();
   override changePassword = vi.fn<(currentPassword: string, newPassword: string) => Promise<TokenResponse>>();
 }

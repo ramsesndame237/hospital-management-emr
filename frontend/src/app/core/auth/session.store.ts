@@ -1,6 +1,11 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CurrentUser, Scope } from './auth.models';
 
+/** Session terminée pendant l'utilisation de l'application : on retient la page où l'utilisateur travaillait. */
+export interface ExpiredSession {
+  readonly returnUrl: string;
+}
+
 /** `unknown` : session pas encore interrogée (premier chargement). `anonymous` : personne de connecté. `active` : jeton valide. */
 export type SessionStatus = 'unknown' | 'anonymous' | 'active';
 
@@ -23,6 +28,10 @@ const INITIAL: SessionState = { status: 'unknown', accessToken: null, expiresAtM
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
   private readonly state = signal<SessionState>(INITIAL);
+  private readonly expiredState = signal<ExpiredSession | null>(null);
+
+  /** Renseigné quand la session a pris fin en cours d'utilisation : l'interface affiche alors le dialogue « session expirée ». */
+  readonly expired = this.expiredState.asReadonly();
 
   readonly status = computed(() => this.state().status);
   readonly accessToken = computed(() => this.state().accessToken);
@@ -40,6 +49,14 @@ export class SessionStore {
 
   setUser(user: CurrentUser): void {
     this.state.update((s) => ({ ...s, user }));
+  }
+
+  markExpired(session: ExpiredSession): void {
+    this.expiredState.set(session);
+  }
+
+  dismissExpired(): void {
+    this.expiredState.set(null);
   }
 
   clear(): void {

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
-import { CurrentUser, LoginCredentials, LoginResponse, TokenResponse } from './auth.models';
+import { CurrentUser, LoginCredentials, LoginResponse, MfaEnrollment, TokenResponse } from './auth.models';
 
 /**
  * Port d'accès au serveur d'identité. L'application ne connaît que ce contrat : le jour où l'authentification change
@@ -18,6 +18,10 @@ export abstract class AuthGateway {
   abstract me(): Promise<CurrentUser>;
   /** Remplace le mot de passe (provisoire ou non). Les autres sessions sont révoquées ; renvoie un nouveau jeton. */
   abstract changePassword(currentPassword: string, newPassword: string): Promise<TokenResponse>;
+  /** Démarre l'inscription de la double authentification : renvoie le secret à ajouter à l'application d'authentification. */
+  abstract enrollMfa(): Promise<MfaEnrollment>;
+  /** Confirme l'inscription avec un premier code valide ; renvoie les codes de secours, affichés une seule fois. */
+  abstract activateMfa(code: string): Promise<readonly string[]>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/auth`. */
@@ -44,6 +48,15 @@ export class HttpAuthGateway extends AuthGateway {
 
   override changePassword(currentPassword: string, newPassword: string): Promise<TokenResponse> {
     return this.call(this.http.post<TokenResponse>(`${this.base}/auth/password/change`, { currentPassword, newPassword }, { withCredentials: true }));
+  }
+
+  override enrollMfa(): Promise<MfaEnrollment> {
+    return this.call(this.http.post<MfaEnrollment>(`${this.base}/auth/mfa/enroll`, null));
+  }
+
+  override async activateMfa(code: string): Promise<readonly string[]> {
+    const body = await this.call(this.http.post<{ recoveryCodes: string[] }>(`${this.base}/auth/mfa/activate`, { code }));
+    return body.recoveryCodes;
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

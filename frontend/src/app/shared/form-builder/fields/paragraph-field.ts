@@ -15,7 +15,7 @@ export class ParagraphFieldComponent extends DisplayRenderer<ParagraphField> {
 
   protected readonly text = computed(() => this.i18n.t(this.field().text, this.field().params));
   protected readonly paragraphClass = computed(() => {
-    const { tone, mono, size } = this.field();
-    return [mono ? 'font-mono' : '', size === 'sm' ? 'text-sm leading-[22px]' : 'text-xs leading-[18px]', tone ? TONE_TEXT[tone] : 'text-foreground'].join(' ');
+    const { tone, mono, size, strong } = this.field();
+    return [mono ? 'font-mono' : '', strong ? 'font-semibold' : '', size === 'sm' ? 'text-sm leading-[22px]' : 'text-xs leading-[18px]', tone ? TONE_TEXT[tone] : 'text-foreground'].join(' ');
   });
 }

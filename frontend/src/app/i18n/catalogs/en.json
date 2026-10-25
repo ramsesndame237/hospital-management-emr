@@ -11,7 +11,9 @@
     "back": "Back",
     "soon": "Coming soon",
     "dateTimeAt": "{date} at {time}",
-    "step": "STEP {current} / {total}  ·  {name}"
+    "step": "STEP {current} / {total}  ·  {name}",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "authPanel": {
     "label": "Security commitments",
@@ -41,7 +43,6 @@
     "retry": "Try again",
     "submitting": "Checking…",
     "forgot": "Forgot your password? Reset it",
-    "forgotInfo": "To reset your password, contact your facility’s administrator.",
     "supportCode": "Support code: {code}",
     "help": "Need help? Contact the administrator: {phone}.",
     "network": {
@@ -52,18 +53,44 @@
       "usernameRequired": "Enter your username.",
       "passwordRequired": "Enter your password.",
       "generic": "Something went wrong. Please try again in a moment."
+    },
+    "retryIn": "Try again in {time}",
+    "status": "Check the service status",
+    "invalid": {
+      "title": "Unable to sign in",
+      "hint": "Check your details and try again."
+    },
+    "rate": {
+      "title": "Too many attempts, try again in {time}",
+      "text": "To protect your access, new attempts are temporarily suspended.",
+      "minutes": "{n} min",
+      "seconds": "{n} s"
+    },
+    "unavailable": {
+      "title": "The sign-in service is unavailable",
+      "text": "A technical incident prevents sign-in. Please try again in a few moments."
     }
   },
   "mfa": {
-    "title": "Two-step verification",
-    "lead": "Enter the 6-digit code shown by your authenticator app.",
+    "title": "Verify your identity",
+    "lead": "Enter the 6-digit code shown in your authenticator app.",
     "code": "Verification code",
     "recoveryCode": "Recovery code",
     "verify": "Verify",
     "useRecovery": "Use a recovery code",
     "useApp": "Use my app",
     "errors": {
-      "codeRequired": "Enter the code."
+      "codeRequired": "Enter the code.",
+      "codeFormat": "The code has 6 digits."
+    },
+    "account": "Staff account · {username}",
+    "hint": "Paste the 6 digits or type them in order.",
+    "verifying": "Verifying…",
+    "backToLogin": "← Back to sign-in",
+    "clockNote": "Your device’s clock must be set to update automatically. No code will ever be asked of you by phone.",
+    "invalid": {
+      "title": "This code is incorrect or has expired",
+      "text": "Wait for the next code in your app, then try again."
     }
   },
   "expired": {
@@ -75,7 +102,8 @@
     "kept": "Your page has been kept. Once your identity is verified, you will resume your consultation where you left off.",
     "draftSaved": "✓ Draft saved · {when}",
     "relogin": "Sign in again",
-    "otherAccount": "Use another account"
+    "otherAccount": "Use another account",
+    "dialogEyebrow": "SESSION SECURITY"
   },
   "setup": {
     "pageTitle": "Account setup",
@@ -83,7 +111,8 @@
     "lead": "Replace the temporary password given to you by your administrator.",
     "steps": {
       "password": "Password",
-      "authentication": "Authentication"
+      "authenticator": "Authenticator",
+      "recovery": "Recovery codes"
     },
     "currentPassword": "Temporary password",
     "newPassword": "New password",
@@ -93,10 +122,10 @@
     "errors": {
       "mismatch": "The two passwords do not match."
     },
-    "authTitle": "Turn on two-factor authentication",
-    "authLead": "Your password is saved. One step remains: protect your account with an authenticator app.",
-    "soonTitle": "This step will be available soon",
-    "soonText": "In the meantime, contact your facility’s administrator to finish setting up your account."
+    "breached": {
+      "title": "This password has appeared in a data breach",
+      "text": "Choose a unique password that you do not use on any other service."
+    }
   },
   "inactivity": {
     "eyebrow": "HEALTH DATA PROTECTION",
@@ -125,13 +154,26 @@
         "noIdentity": "Without username or e-mail address"
       },
       "ruleMet": "(met)",
-      "ruleUnmet": "(not met)"
+      "ruleUnmet": "(not met)",
+      "compromised": "{level} strength · compromised password",
+      "level": {
+        "1": "Weak",
+        "2": "Fair",
+        "3": "Good",
+        "4": "High"
+      }
     },
     "errors": {
       "min": "The value must be at least {min}.",
       "max": "The value must be at most {max}.",
       "equalsField": "The two values do not match.",
       "passwordPolicy": "The password does not meet the security policy."
+    },
+    "otp": {
+      "digit": "Digit {index} of {total}"
+    },
+    "qr": {
+      "alt": "QR code to scan with your authenticator app"
     }
   },
   "shell": {
@@ -234,5 +276,99 @@
   },
   "modules": {
     "soon": "This module will be available soon."
+  },
+  "recovery": {
+    "title": "Use a recovery code",
+    "lead": "Can’t reach your app? Use one of the codes you saved when securing your account.",
+    "noticeTitle": "Each code can be used only once",
+    "noticeText": "The code you enter will be invalidated after verification.",
+    "code": "Recovery code",
+    "format": "Format: 5 characters, a hyphen, 5 characters.",
+    "verify": "Verify code",
+    "backToApp": "← Back to the authenticator app",
+    "noCode": "No code left? Contact your administrator to restore secure access.",
+    "errors": {
+      "required": "Enter a recovery code.",
+      "format": "The code is 5 characters, a hyphen, then 5 characters."
+    },
+    "verifiedTitle": "Identity verified",
+    "accepted": {
+      "title": "Recovery code accepted",
+      "text": "This code has been used and can no longer be used. Remember to renew your codes if you have none left."
+    },
+    "remaining": {
+      "title": "{count} codes left"
+    },
+    "continue": "Choose my work context"
+  },
+  "forgot": {
+    "title": "Forgot your password?",
+    "lead": "Enter your username or work e-mail address to request a reset link.",
+    "identifier": "Username or e-mail address",
+    "errors": {
+      "required": "Enter your username or e-mail address."
+    },
+    "privacy": {
+      "title": "Your privacy is protected",
+      "text": "If an account matches this information, a message will be sent to the address on file. The answer is the same in every case."
+    },
+    "sent": {
+      "title": "Request recorded",
+      "text": "If an account matches this information, a message has been sent to the address on file. The answer is the same in every case."
+    },
+    "unavailable": {
+      "title": "Reset by e-mail not available yet",
+      "text": "Contact your facility’s administrator to get a new password."
+    },
+    "failed": {
+      "title": "Request failed",
+      "text": "Something went wrong. Please try again in a moment."
+    },
+    "submit": "Send a reset link",
+    "sending": "Sending…",
+    "back": "← Back to sign-in"
+  },
+  "authenticator": {
+    "title": "Add an authenticator",
+    "lead": "Install Google Authenticator, Microsoft Authenticator or Aegis, then add your work account.",
+    "loading": "Preparing the pairing…",
+    "failed": "Unable to prepare the pairing",
+    "scan": {
+      "title": "1. Scan this QR code",
+      "text": "In your app, choose “Add account”, then “Scan a QR code”.",
+      "account": "Account: {username}"
+    },
+    "manual": "Or enter this key manually",
+    "confirm": "2. Confirm the pairing",
+    "submit": "Verify and continue",
+    "help": {
+      "title": "Code not recognised?",
+      "text": "Turn on automatic date and time on your phone. Wait for the next code, then try again."
+    }
+  },
+  "recoveryCodes": {
+    "title": "Keep your codes",
+    "lead": "These codes let you sign in if you lose your phone. Each code works only once.",
+    "noticeTitle": "{count} confidential single-use codes",
+    "noticeText": "Keep them away from this device, in a safe place. Never send them by e-mail.",
+    "download": "Download .txt",
+    "print": "Print",
+    "saved": "I have kept these codes in a safe place",
+    "finish": "Finish securing my account",
+    "helper": "Confirm you have kept the codes to continue.",
+    "helperSaved": "Keeping the codes is confirmed. You can continue.",
+    "copied": "Codes copied",
+    "fileTitle": "Recovery codes (single use) — keep in a safe place"
+  },
+  "ready": {
+    "title": "Your account is ready",
+    "lead": "Your professional access is now secured. Welcome, {name}.",
+    "noticeTitle": "Security setup complete",
+    "noticeText": "All three steps protecting your account have been completed.",
+    "password": "Personal password set",
+    "authenticator": "Authenticator paired",
+    "codes": "{count} recovery codes kept",
+    "open": "Go to my workspace",
+    "note": "A two-step verification will be requested before you choose your work context."
   }
 }

@@ -135,18 +135,35 @@ describe('SessionService', () => {
       expect(store.status()).toBe('anonymous');
     });
 
-    it("expire : retient la page demandée et affiche l'écran « session expirée »", async () => {
+    it("expire en cours de travail : garde l'écran sous un dialogue qui retient la page à reprendre", async () => {
       vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/patients/42');
       await service.expire();
       expect(store.status()).toBe('anonymous');
-      expect(navigate).toHaveBeenCalledWith(['/session-expired'], { queryParams: { returnUrl: '/patients/42' } });
+      expect(store.expired()).toEqual({ returnUrl: '/patients/42' });
+      expect(navigate).not.toHaveBeenCalled();
       expect(gateway.logout).not.toHaveBeenCalled(); // le serveur a déjà refusé la session : rien à révoquer
     });
 
-    it("expire sans page à reprendre quand on était déjà sur l'écran de connexion", async () => {
-      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/login?returnUrl=%2Fx');
+    it.each(['/login?returnUrl=%2Fx', '/session-expired', '/account/setup'])("expire depuis un écran d'authentification (%s) : affiche l'écran « session expirée » pleine page", async (url) => {
+      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue(url);
       await service.expire();
-      expect(navigate).toHaveBeenCalledWith(['/session-expired'], {});
+      expect(store.expired()).toBeNull();
+      expect(navigate).toHaveBeenCalledWith(['/session-expired']);
+    });
+
+    it('« Se reconnecter » ferme le dialogue et reprend la page où l’on travaillait', async () => {
+      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/patients/42');
+      await service.expire();
+      await service.leaveExpired(true);
+      expect(store.expired()).toBeNull();
+      expect(navigate).toHaveBeenLastCalledWith(['/login'], { queryParams: { returnUrl: '/patients/42' } });
+    });
+
+    it('« Utiliser un autre compte » oublie la page demandée', async () => {
+      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/patients/42');
+      await service.expire();
+      await service.leaveExpired(false);
+      expect(navigate).toHaveBeenLastCalledWith(['/login'], { queryParams: {} });
     });
 
     it("expire avec révocation (inactivité) : ferme aussi la session côté serveur, sinon le cookie la rouvrirait au rechargement", async () => {
@@ -159,7 +176,32 @@ describe('SessionService', () => {
       gateway.logout.mockRejectedValue(new ApiError(0, 'NETWORK', 'offline'));
       await service.expire(true);
       expect(store.status()).toBe('anonymous');
-      expect(navigate).toHaveBeenCalled();
+      expect(store.expired()).not.toBeNull();
+    });
+  });
+
+  describe('double authentification', () => {
+    it("démarre l'inscription et confirme avec un code : renvoie les codes de récupération", async () => {
+      gateway.enrollMfa.mockResolvedValue({ keyUri: 'otpauth://totp/x?secret=ABC', secret: 'ABC' });
+      gateway.activateMfa.mockResolvedValue(['AAAAA-BBBBB']);
+      expect(await service.enrollMfa()).toEqual({ keyUri: 'otpauth://totp/x?secret=ABC', secret: 'ABC' });
+      expect(await service.activateMfa('123456')).toEqual(['AAAAA-BBBBB']);
+      expect(gateway.activateMfa).toHaveBeenCalledWith('123456');
+    });
+
+    it('finishSetup renouvelle la session (portée recalculée par le serveur) et recharge le profil', async () => {
+      store.setToken('at-setup', Date.now() + 60_000, 'setup');
+      gateway.refresh.mockResolvedValue(token('at-full', 'full'));
+      gateway.me.mockResolvedValue(user({ scope: 'full', mfaEnabled: true }));
+      expect(await service.finishSetup()).toBe(true);
+      expect(store.isSignedIn()).toBe(true);
+      expect(store.user()?.mfaEnabled).toBe(true);
+    });
+
+    it('finishSetup renvoie false si la session ne peut pas être renouvelée', async () => {
+      store.setToken('at-setup', Date.now() + 60_000, 'setup');
+      gateway.refresh.mockRejectedValue(new ApiError(0, 'NETWORK', 'offline'));
+      expect(await service.finishSetup()).toBe(false);
     });
   });
 

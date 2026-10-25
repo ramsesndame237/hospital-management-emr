@@ -14,6 +14,8 @@ export const ICON_GLYPHS = {
   moon: '☾',
   bell: '♧',
   chevronDown: '▾',
+  caretUp: '⌃',
+  caretDown: '⌄',
   chevronLeft: '‹',
   chevronRight: '›',
   current: '▸',

@@ -17,7 +17,19 @@ export interface TokenResponse {
 
 export type LoginResponse =
   | { readonly status: 'mfa_required' }
-  | ({ readonly status: 'authenticated'; readonly mustChangePassword: boolean; readonly mfaEnrollmentRequired: boolean } & TokenResponse);
+  | ({
+      readonly status: 'authenticated';
+      readonly mustChangePassword: boolean;
+      readonly mfaEnrollmentRequired: boolean;
+      /** Codes de secours encore valables après une connexion par code de secours ; absent tant que l'API ne le renvoie pas. */
+      readonly recoveryCodesRemaining?: number;
+    } & TokenResponse);
+
+/** Secret TOTP en attente de confirmation : `keyUri` (format `otpauth://`) se transforme en QR code, `secret` se saisit à la main. */
+export interface MfaEnrollment {
+  readonly keyUri: string;
+  readonly secret: string;
+}
 
 export interface CurrentUser {
   readonly id: string;
@@ -33,4 +45,6 @@ export interface CurrentUser {
 }
 
 /** Résultat d'une tentative de connexion, vu par l'interface. */
-export type LoginOutcome = { readonly kind: 'mfa_required' } | { readonly kind: 'signed_in'; readonly setupRequired: boolean };
+export type LoginOutcome =
+  | { readonly kind: 'mfa_required' }
+  | { readonly kind: 'signed_in'; readonly setupRequired: boolean; readonly recoveryCodesRemaining?: number };

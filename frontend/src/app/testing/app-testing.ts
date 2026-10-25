@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthGateway } from '../core/auth/auth.gateway';
 import { SessionStore } from '../core/auth/session.store';
+import { CurrentUser } from '../core/auth/auth.models';
 import { FakeAuthGateway, user } from '../core/auth/testing/fake-auth-gateway';
 import { JsonTranslator } from '../core/i18n/json-translator';
 import { Translator } from '../core/i18n/translator';
@@ -17,6 +18,8 @@ export const FIXED_CLOCK: Clock = {
 };
 
 export interface AppTestOptions {
+  /** Champs du profil à remplacer (ex. `{ mustChangePassword: true }` pour un compte neuf). */
+  readonly profile?: Partial<CurrentUser>;
   readonly roles?: readonly string[];
   readonly permissions?: readonly string[];
   readonly signedIn?: boolean;
@@ -42,7 +45,7 @@ export function configureApp(options: AppTestOptions = {}): { gateway: FakeAuthG
   const store = TestBed.inject(SessionStore);
   if (options.signedIn !== false) {
     store.setToken('at-1', Date.parse('2026-10-24T12:15:00Z'), 'full');
-    store.setUser(user({ roles: [...(options.roles ?? ['DOCTOR'])], permissions: [...(options.permissions ?? ['files.clinical:read:department'])] }));
+    store.setUser(user({ roles: [...(options.roles ?? ['DOCTOR'])], permissions: [...(options.permissions ?? ['files.clinical:read:department'])], ...options.profile }));
   }
   return { gateway, store, i18n };
 }
@@ -70,4 +73,14 @@ export function watchMissingKeys(i18n: Translator): () => string[] {
     return original(key, params);
   };
   return () => [...requested].filter((key) => KEY_SHAPE.test(key) && !i18n.has(key));
+}
+
+/** Saisit un code dans les cases séparées d'un champ `otp`, un chiffre par case, comme un utilisateur. */
+export function typeOtp(fixture: ComponentFixture<unknown>, code: string): void {
+  const cells = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLInputElement>('app-otp-field input')];
+  [...code].forEach((digit, index) => {
+    cells[index].value = digit;
+    cells[index].dispatchEvent(new Event('input'));
+  });
+  fixture.detectChanges();
 }

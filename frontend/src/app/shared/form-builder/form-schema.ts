@@ -10,8 +10,8 @@
  *  - les règles de validation sont des objets `{ type, …paramètres, message? }` ; `message` (clé) remplace le texte par défaut.
  */
 
-export type InputType = 'text' | 'email' | 'tel' | 'number' | 'code' | 'password' | 'textarea' | 'select' | 'checkbox' | 'radio';
-export type DisplayType = 'message' | 'paragraph';
+export type InputType = 'text' | 'email' | 'tel' | 'number' | 'code' | 'otp' | 'password' | 'textarea' | 'select' | 'checkbox' | 'radio';
+export type DisplayType = 'message' | 'paragraph' | 'codes' | 'secret' | 'qr' | 'disclosure' | 'checklist';
 export type ActionType = 'submit' | 'button' | 'link';
 export type FieldType = InputType | DisplayType | ActionType;
 
@@ -80,8 +80,17 @@ export interface TextField extends InputBase {
   readonly inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'decimal';
 }
 
+/** Code à chiffres saisi dans des cases séparées (code de vérification à 6 chiffres) : collage, saisie rapide et correction au clavier. */
+export interface OtpField extends InputBase {
+  readonly type: 'otp';
+  /** Nombre de cases (6 par défaut). */
+  readonly length?: number;
+}
+
 export interface PasswordField extends InputBase {
   readonly type: 'password';
+  /** Le mot de passe figure dans une fuite de données connue : la jauge passe en alerte et le libellé le dit. */
+  readonly compromised?: boolean;
   /** Bouton « Afficher / Masquer » (activé par défaut). */
   readonly revealable?: boolean;
   /** Jauge de force et liste des règles quand une règle `passwordPolicy` est présente (activé par défaut). */
@@ -128,6 +137,51 @@ export interface ParagraphField extends FieldBase {
   readonly mono?: boolean;
   /** `sm` : texte courant de 14 px ; `xs` (défaut) : note de 12 px. */
   readonly size?: 'sm' | 'xs';
+  /** Texte en demi-gras (intertitre d'une étape : « 2. Confirmez l'association »). */
+  readonly strong?: boolean;
+}
+
+/** Liste de valeurs à chasse fixe sur deux colonnes (codes de récupération). Marquée « à imprimer » : seule elle sort sur papier. */
+export interface CodesField extends FieldBase {
+  readonly type: 'codes';
+  readonly values: readonly string[];
+  readonly columns?: 1 | 2;
+}
+
+/** Valeur secrète à recopier à la main (clé d'enrôlement) avec son bouton « Copier ». */
+export interface SecretField extends FieldBase {
+  readonly type: 'secret';
+  readonly label: string;
+  readonly value: string;
+  /** Groupes de 4 caractères séparés par une espace (« JBSW Y3DP EHPK 3PXP »), plus lisibles à recopier. */
+  readonly grouped?: boolean;
+  readonly copyLabel: string;
+  readonly copiedLabel: string;
+}
+
+/** QR code généré dans le navigateur (aucune donnée envoyée à un service tiers), avec ses instructions à côté. */
+export interface QrField extends FieldBase {
+  readonly type: 'qr';
+  readonly value: string;
+  readonly title: string;
+  readonly text: string;
+  readonly caption?: string;
+  readonly params?: Readonly<Record<string, string | number>>;
+}
+
+/** Récapitulatif de points acquis, chacun précédé d'une coche (« ✓ Mot de passe personnel défini »). */
+export interface ChecklistField extends FieldBase {
+  readonly type: 'checklist';
+  readonly items: readonly string[];
+  readonly params?: Readonly<Record<string, string | number>>;
+}
+
+/** Section dépliable (aide au dépannage). */
+export interface DisclosureField extends FieldBase {
+  readonly type: 'disclosure';
+  readonly title: string;
+  readonly text: string;
+  readonly open?: boolean;
 }
 
 export interface SubmitField extends FieldBase {
@@ -136,6 +190,9 @@ export interface SubmitField extends FieldBase {
   /** Texte affiché pendant l'envoi. */
   readonly busyLabel?: string;
   readonly variant?: ButtonVariant;
+  readonly disabled?: boolean;
+  /** Désactivé tant que la condition est vraie (ex. case « J'ai conservé ces codes » pas encore cochée). */
+  readonly disabledIf?: Condition;
   /** Identifiant d'un AUTRE formulaire à envoyer (attribut HTML `form`) : permet de placer le bouton hors du formulaire, dans un autre bloc de l'écran. */
   readonly form?: string;
 }
@@ -148,24 +205,34 @@ export interface ButtonField extends FieldBase {
   readonly action?: string;
   /** Pour `link` : adresse interne (routage Angular). */
   readonly routerLink?: string;
+  /** Pour `link` : adresse externe, ouverte dans un nouvel onglet (page d'état du service…). */
+  readonly href?: string;
+  readonly disabled?: boolean;
+  readonly disabledIf?: Condition;
 }
 
 export type ButtonVariant = 'primary' | 'outline' | 'link';
 
 export type FieldSchema =
   | TextField
+  | OtpField
   | PasswordField
   | TextareaField
   | ChoiceField
   | CheckboxField
   | MessageField
   | ParagraphField
+  | CodesField
+  | SecretField
+  | QrField
+  | DisclosureField
+  | ChecklistField
   | SubmitField
   | ButtonField;
 
-export type InputFieldSchema = TextField | PasswordField | TextareaField | ChoiceField | CheckboxField;
+export type InputFieldSchema = TextField | OtpField | PasswordField | TextareaField | ChoiceField | CheckboxField;
 
-const INPUT_TYPES: readonly FieldType[] = ['text', 'email', 'tel', 'number', 'code', 'password', 'textarea', 'select', 'checkbox', 'radio'];
+const INPUT_TYPES: readonly FieldType[] = ['text', 'email', 'tel', 'number', 'code', 'otp', 'password', 'textarea', 'select', 'checkbox', 'radio'];
 
 /** Vrai pour un champ qui porte une valeur (par opposition à un message, un paragraphe ou un bouton). */
 export function isInputField(field: FieldSchema): field is InputFieldSchema {
