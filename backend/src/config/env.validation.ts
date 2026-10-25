@@ -24,6 +24,8 @@ export interface Env {
   SECRET_ENCRYPTION_KEY: string;
   /** Sel de l'ancien chiffrement 3DES du backend .NET. Vide = migration des comptes hérités désactivée. */
   LEGACY_PASSWORD_SALT: string;
+  /** Fuseau horaire de l'établissement (nom IANA, p. ex. `Africa/Douala`) : il décide du jour courant (affectations, départs). */
+  TIME_ZONE: string;
   COOKIE_SECURE: boolean;
   /** Vérification des mots de passe compromis (API HIBP, k-anonymité : seuls 5 caractères du hachage SHA-1 sont envoyés). */
   BREACH_CHECK_ENABLED: boolean;
@@ -61,6 +63,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     REDIS_URL: String(raw.REDIS_URL ?? ''),
     SECRET_ENCRYPTION_KEY: String(raw.SECRET_ENCRYPTION_KEY ?? ''),
     LEGACY_PASSWORD_SALT: String(raw.LEGACY_PASSWORD_SALT ?? ''),
+    TIME_ZONE: String(raw.TIME_ZONE ?? 'UTC').trim(),
     COOKIE_SECURE: bool(raw.COOKIE_SECURE, String(raw.NODE_ENV) === 'production'),
     BREACH_CHECK_ENABLED: bool(raw.BREACH_CHECK_ENABLED, String(raw.NODE_ENV) === 'production'),
     I18N_ADAPTER: String(raw.I18N_ADAPTER ?? 'nestjs-i18n') as Env['I18N_ADAPTER'],
@@ -74,6 +77,11 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   const tag = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$/;
   if (env.I18N_LOCALES.length === 0 || !env.I18N_LOCALES.every((l) => tag.test(l))) errors.push('I18N_LOCALES : liste de langues BCP 47 séparées par des virgules (ex. fr,en)');
   else if (!env.I18N_LOCALES.some((l) => l.toLowerCase() === env.I18N_DEFAULT_LOCALE.toLowerCase())) errors.push('I18N_DEFAULT_LOCALE doit figurer dans I18N_LOCALES');
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: env.TIME_ZONE });
+  } catch {
+    errors.push('TIME_ZONE doit être un fuseau IANA valide (ex. Africa/Douala, UTC)');
+  }
   if (!Number.isInteger(env.PORT) || env.PORT <= 0) errors.push('PORT invalide');
   if (!Number.isInteger(env.DB_PORT) || env.DB_PORT <= 0) errors.push('DB_PORT invalide');
   if (env.NODE_ENV === 'production') {

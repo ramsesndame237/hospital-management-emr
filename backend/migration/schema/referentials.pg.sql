@@ -25,7 +25,8 @@ CREATE INDEX IF NOT EXISTS ix_referentials_entries_list ON referentials_entries 
 INSERT INTO referentials_catalogs (code, labels) VALUES
   ('SPECIALTY',        jsonb_build_object('fr', 'Spécialités médicales', 'en', 'Medical specialties')),
   ('MEASUREMENT_UNIT', jsonb_build_object('fr', 'Unités de mesure',      'en', 'Units of measurement')),
-  ('VISIT_REASON',     jsonb_build_object('fr', 'Motifs de consultation', 'en', 'Reasons for visit'))
+  ('VISIT_REASON',     jsonb_build_object('fr', 'Motifs de consultation', 'en', 'Reasons for visit')),
+  ('PROFESSION',       jsonb_build_object('fr', 'Professions et fonctions', 'en', 'Professions and job functions'))
 ON CONFLICT (code) DO UPDATE SET labels = EXCLUDED.labels;
 
 -- Valeurs de départ. `DO NOTHING` : une entrée modifiée ou désactivée par un administrateur n'est jamais ramenée à son état d'origine.
@@ -56,6 +57,21 @@ FROM (VALUES
   ('MEASUREMENT_UNIT', 'PERCENT', jsonb_build_object('fr', 'Pourcentage (%)',               'en', 'Percent (%)'),                90),
   ('MEASUREMENT_UNIT', 'G_DL',   jsonb_build_object('fr', 'Gramme par décilitre (g/dL)',    'en', 'Gram per decilitre (g/dL)'), 100),
   ('MEASUREMENT_UNIT', 'MMOL_L', jsonb_build_object('fr', 'Millimole par litre (mmol/L)',   'en', 'Millimole per litre (mmol/L)'), 110),
+
+  ('PROFESSION', 'DOCTOR', jsonb_build_object('fr', 'Médecin', 'en', 'Physician'), 10),
+  ('PROFESSION', 'NURSE', jsonb_build_object('fr', 'Infirmier(ère)', 'en', 'Nurse'), 20),
+  ('PROFESSION', 'MIDWIFE', jsonb_build_object('fr', 'Sage-femme', 'en', 'Midwife'), 30),
+  ('PROFESSION', 'PHARMACIST', jsonb_build_object('fr', 'Pharmacien(ne)', 'en', 'Pharmacist'), 40),
+  ('PROFESSION', 'LAB_TECHNICIAN', jsonb_build_object('fr', 'Technicien(ne) de laboratoire', 'en', 'Laboratory technician'), 50),
+  ('PROFESSION', 'RADIOGRAPHER', jsonb_build_object('fr', 'Manipulateur(trice) en imagerie médicale', 'en', 'Radiographer'), 60),
+  ('PROFESSION', 'NURSING_AIDE', jsonb_build_object('fr', 'Aide-soignant(e)', 'en', 'Nursing assistant'), 70),
+  ('PROFESSION', 'ADMINISTRATIVE_STAFF', jsonb_build_object('fr', 'Personnel administratif', 'en', 'Administrative staff'), 80),
+  ('PROFESSION', 'CASHIER', jsonb_build_object('fr', 'Caissier(ère)', 'en', 'Cashier'), 90),
+  ('PROFESSION', 'ACCOUNTANT', jsonb_build_object('fr', 'Comptable', 'en', 'Accountant'), 100),
+  ('PROFESSION', 'MAINTENANCE_TECHNICIAN', jsonb_build_object('fr', 'Technicien(ne) de maintenance', 'en', 'Maintenance technician'), 110),
+  ('PROFESSION', 'IT_STAFF', jsonb_build_object('fr', 'Informaticien(ne)', 'en', 'IT staff'), 120),
+  ('PROFESSION', 'HOUSEKEEPING', jsonb_build_object('fr', 'Agent d''entretien', 'en', 'Housekeeping staff'), 130),
+  ('PROFESSION', 'SECURITY', jsonb_build_object('fr', 'Agent de sécurité', 'en', 'Security officer'), 140),
 
   ('VISIT_REASON', 'ROUTINE_CONSULTATION', jsonb_build_object('fr', 'Consultation courante',      'en', 'Routine consultation'),   10),
   ('VISIT_REASON', 'FOLLOW_UP',            jsonb_build_object('fr', 'Suivi',                      'en', 'Follow-up'),              20),

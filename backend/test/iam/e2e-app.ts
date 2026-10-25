@@ -14,10 +14,12 @@ import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
 import { AdministrationIntegrationModule } from '../../src/integration/administration.integration';
 import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
+import { StaffIntegrationModule } from '../../src/integration/staff.integration';
 import { HealthController } from '../../src/health/health.controller';
 import { AdministrationModule } from '../../src/modules/administration/administration.module';
 import { IamModule } from '../../src/modules/iam/iam.module';
 import { ReferentialsModule } from '../../src/modules/referentials/referentials.module';
+import { StaffModule } from '../../src/modules/staff/staff.module';
 import { I18nAdapterName, LocalizationModule } from '../../src/modules/i18n/localization.module';
 import {
   PASSWORD_HASHER, PasswordHasher, SECRET_CIPHER, SecretCipher, USER_REPOSITORY, UserRepository,
@@ -34,7 +36,7 @@ import { PgliteSql } from './pglite-sql';
 import { must } from './fakes';
 
 // Même ordre qu'au démarrage du conteneur : l'administration complète les rôles système créés par l'IAM.
-const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
+const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
 
 // otplib v13 exige ≥ 16 octets ; 32 caractères base32 = 20 octets (taille standard RFC 4226).
 export const TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -86,6 +88,8 @@ export async function createTestWorld(options: {
       ReferentialsModule.register(),
       AdministrationIntegrationModule.register(),
       AdministrationModule.register(),
+      StaffIntegrationModule.register(),
+      StaffModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)

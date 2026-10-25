@@ -12,3 +12,5 @@ export const Temporal: typeof TemporalPolyfill =
 export type Instant = TemporalPolyfill.Instant;
 /** Durée sans ancrage calendaire (heures, minutes, secondes…). */
 export type Duration = TemporalPolyfill.Duration;
+/** Date calendaire sans heure ni fuseau (« 2026-10-23 ») : date de prise de poste, de départ, de naissance… */
+export type PlainDate = TemporalPolyfill.PlainDate;

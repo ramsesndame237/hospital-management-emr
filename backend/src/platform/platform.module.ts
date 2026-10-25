@@ -10,7 +10,7 @@ import { PgAuditLog } from '../modules/audit/infrastructure/pg-audit-log';
 import { CACHE } from '../modules/cache/cache.port';
 import { MemoryCache } from '../modules/cache/infrastructure/memory-cache';
 import { RedisCache } from '../modules/cache/infrastructure/redis-cache';
-import { CLOCK, ID_GENERATOR, SystemClock } from '../shared-kernel/ports';
+import { CALENDAR, CLOCK, ID_GENERATOR, SystemCalendar, SystemClock } from '../shared-kernel/ports';
 import type { SqlExecutor } from '../database/sql-executor';
 
 export const REDIS = Symbol('REDIS');
@@ -40,6 +40,11 @@ export class PlatformModule {
         { provide: CLOCK, useValue: new SystemClock() },
         { provide: ID_GENERATOR, useValue: { next: () => randomUUID() } },
         {
+          provide: CALENDAR,
+          inject: [ConfigService],
+          useFactory: (cfg: ConfigService) => new SystemCalendar(new SystemClock(), cfg.get<string>('TIME_ZONE') ?? 'UTC'),
+        },
+        {
           provide: SQL_EXECUTOR,
           inject: [DataSource],
           useFactory: (source: DataSource): SqlExecutor => new TypeOrmSqlExecutor(source),
@@ -65,7 +70,7 @@ export class PlatformModule {
         { provide: AUDIT_LOG, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgAuditLog(sql) },
         { provide: RedisLifecycle, inject: [REDIS], useFactory: (redis: Redis | null) => new RedisLifecycle(redis) },
       ],
-      exports: [CLOCK, ID_GENERATOR, SQL_EXECUTOR, REDIS, CACHE, AUDIT_LOG],
+      exports: [CLOCK, CALENDAR, ID_GENERATOR, SQL_EXECUTOR, REDIS, CACHE, AUDIT_LOG],
     };
   }
 }

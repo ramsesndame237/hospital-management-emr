@@ -1,0 +1,17 @@
+import { HttpStatus } from '@nestjs/common';
+import { domainHttp } from '../../../common/domain-http';
+
+export const { toHttp, unwrap } = domainHttp({
+  STAFF_NOT_FOUND: HttpStatus.NOT_FOUND,
+  STAFF_PROFILE_NOT_FOUND: HttpStatus.NOT_FOUND,
+  ASSIGNMENT_NOT_FOUND: HttpStatus.NOT_FOUND,
+  ASSIGNMENT_NODE_NOT_FOUND: HttpStatus.NOT_FOUND,
+  STAFF_NUMBER_ALREADY_EXISTS: HttpStatus.CONFLICT,
+  STAFF_USER_ALREADY_LINKED: HttpStatus.CONFLICT,
+  STAFF_ACCOUNT_ALREADY_LINKED: HttpStatus.CONFLICT,
+  STAFF_ALREADY_DEPARTED: HttpStatus.CONFLICT,
+  ASSIGNMENT_NODE_INACTIVE: HttpStatus.CONFLICT,
+  ASSIGNMENT_OVERLAPS: HttpStatus.CONFLICT,
+  ASSIGNMENT_PRIMARY_CONFLICT: HttpStatus.CONFLICT,
+  ASSIGNMENT_ALREADY_ENDED: HttpStatus.CONFLICT,
+});
