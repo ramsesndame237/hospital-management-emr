@@ -99,6 +99,15 @@ export interface RefreshSessionStore {
   revokeAllForUser(userId: string): Promise<void>;
 }
 
+/**
+ * Services (départements) auxquels un utilisateur est rattaché aujourd'hui. Ils dépendent de l'organisation du personnel,
+ * que l'IAM ignore : la racine de composition branche ce port sur le module Personnel. Sans lui, personne n'a de département.
+ */
+export interface DepartmentDirectory {
+  departmentsOf(userId: string): Promise<readonly string[]>;
+}
+
+export const DEPARTMENT_DIRECTORY = Symbol('DEPARTMENT_DIRECTORY');
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
 export const PASSWORD_HASHER = Symbol('PASSWORD_HASHER');

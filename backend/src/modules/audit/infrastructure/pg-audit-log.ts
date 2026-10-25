@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { SqlExecutor } from '../../../database/sql-executor';
 import { requiredInstantFromDb } from '../../../database/temporal-mapping';
 import { Temporal } from '../../../shared-kernel/temporal';
-import { AuditEntry, AuditLog } from '../domain/audit-log.port';
+import { AuditChainStatus, AuditEntry, AuditLog, AuditPage, AuditQuery, AuditReader, AuditRecord } from '../domain/audit-log.port';
 
 const GENESIS = '0'.repeat(64);
 /** Verrou consultatif : sérialise les écritures pour que la chaîne de hachage reste linéaire. */
@@ -48,7 +48,7 @@ export function computeHash(prev: string, e: Pick<Row, 'action' | 'outcome' | 'a
  * Journal d'audit en ajout seul (trigger SQL) et chaîné par hachage, façon registre : chaque entrée engage la précédente.
  * `verifyChain` permet à un auditeur de détecter toute altération, y compris par un administrateur de base de données.
  */
-export class PgAuditLog implements AuditLog {
+export class PgAuditLog implements AuditLog, AuditReader {
   constructor(private readonly sql: SqlExecutor) {}
 
   async record(entry: AuditEntry): Promise<void> {
@@ -83,8 +83,47 @@ export class PgAuditLog implements AuditLog {
     });
   }
 
+  /** Recherche paginée par curseur, des plus récentes aux plus anciennes. Tous les filtres sont paramétrés (aucune concaténation). */
+  async search(query: AuditQuery): Promise<AuditPage> {
+    const where: string[] = [];
+    const args: unknown[] = [];
+    const arg = (v: unknown) => (args.push(v), `$${args.length}`);
+    if (query.action) where.push(`action = ${arg(query.action)}`);
+    // `starts_with` plutôt que `LIKE` : le préfixe est pris tel quel, sans caractères joker à échapper.
+    if (query.actionPrefix) where.push(`starts_with(action, ${arg(query.actionPrefix)})`);
+    if (query.actorId) where.push(`actor_id = ${arg(query.actorId)}`);
+    if (query.resourceType) where.push(`resource_type = ${arg(query.resourceType)}`);
+    if (query.resourceId) where.push(`resource_id = ${arg(query.resourceId)}`);
+    if (query.outcome) where.push(`outcome = ${arg(query.outcome)}`);
+    if (query.from) where.push(`occurred_at >= ${arg(query.from.toString())}::timestamptz`);
+    if (query.to) where.push(`occurred_at <= ${arg(query.to.toString())}::timestamptz`);
+    if (query.before) where.push(`id < ${arg(query.before)}::bigint`);
+    const rows = await this.sql.query<Row>(
+      `SELECT * FROM audit_log ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT ${arg(query.limit + 1)}`,
+      args,
+    );
+    const page = rows.slice(0, query.limit);
+    const toRecord = (r: Row): AuditRecord => ({
+      id: String(r.id),
+      occurredAt: requiredInstantFromDb(r.occurred_at),
+      action: r.action,
+      outcome: r.outcome as AuditRecord['outcome'],
+      actorId: r.actor_id,
+      actorUsername: r.actor_username,
+      resourceType: r.resource_type,
+      resourceId: r.resource_id,
+      ip: r.ip,
+      userAgent: r.user_agent,
+      reason: r.reason,
+      metadata: (r.metadata ?? null) as AuditRecord['metadata'],
+      prevHash: r.prev_hash,
+      hash: r.hash,
+    });
+    return { items: page.map(toRecord), nextBefore: rows.length > query.limit ? String(page[page.length - 1].id) : null };
+  }
+
   /** Revérifie toute la chaîne. Renvoie l'identifiant de la première ligne altérée, ou `null` si tout est intact. */
-  async verifyChain(): Promise<{ valid: boolean; brokenAtId: string | null; checked: number }> {
+  async verifyChain(): Promise<AuditChainStatus> {
     const rows = await this.sql.query<Row>('SELECT * FROM audit_log ORDER BY id');
     let prev = GENESIS;
     for (const r of rows) {

@@ -5,7 +5,7 @@ import { Redis } from 'ioredis';
 import { DataSource } from 'typeorm';
 import { SQL_EXECUTOR } from '../database/sql-executor';
 import { TypeOrmSqlExecutor } from '../database/typeorm-sql-executor';
-import { AUDIT_LOG } from '../modules/audit/domain/audit-log.port';
+import { AUDIT_LOG, AUDIT_READER } from '../modules/audit/domain/audit-log.port';
 import { PgAuditLog } from '../modules/audit/infrastructure/pg-audit-log';
 import { CACHE } from '../modules/cache/cache.port';
 import { MemoryCache } from '../modules/cache/infrastructure/memory-cache';
@@ -68,9 +68,10 @@ export class PlatformModule {
           useFactory: (redis: Redis | null) => (redis ? new RedisCache(redis) : new MemoryCache()),
         },
         { provide: AUDIT_LOG, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgAuditLog(sql) },
+        { provide: AUDIT_READER, useExisting: AUDIT_LOG },
         { provide: RedisLifecycle, inject: [REDIS], useFactory: (redis: Redis | null) => new RedisLifecycle(redis) },
       ],
-      exports: [CLOCK, CALENDAR, ID_GENERATOR, SQL_EXECUTOR, REDIS, CACHE, AUDIT_LOG],
+      exports: [CLOCK, CALENDAR, ID_GENERATOR, SQL_EXECUTOR, REDIS, CACHE, AUDIT_LOG, AUDIT_READER],
     };
   }
 }

@@ -1,6 +1,6 @@
 import { DynamicModule, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, DiscoveryModule } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
@@ -11,6 +11,7 @@ import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/por
 import { Temporal } from '../../shared-kernel/temporal';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
 import { CACHE, CachePort } from '../cache/cache.port';
+import { AccessDecider } from './application/access-decider';
 import { PermissionResolver } from './application/permission-resolver';
 import { SessionIssuer } from './application/session-issuer';
 import { ChangePasswordUseCase } from './application/use-cases/change-password';
@@ -20,8 +21,9 @@ import { LogoutUseCase } from './application/use-cases/logout';
 import { CreateUserUseCase, ListUsersUseCase, ManageUserUseCases } from './application/use-cases/manage-users';
 import { ActivateMfaUseCase, BeginMfaEnrollmentUseCase } from './application/use-cases/mfa';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session';
+import { GetUserAccessUseCase } from './application/use-cases/user-access';
 import {
-  BREACHED_PASSWORD_CHECKER, BreachedPasswordChecker, LEGACY_PASSWORD_VERIFIER, LegacyPasswordVerifier, PASSWORD_HASHER,
+  BREACHED_PASSWORD_CHECKER, BreachedPasswordChecker, DEPARTMENT_DIRECTORY, DepartmentDirectory, LEGACY_PASSWORD_VERIFIER, LegacyPasswordVerifier, PASSWORD_HASHER,
   PasswordHasher, REFRESH_SESSION_STORE, RefreshSessionStore, ROLE_REPOSITORY, RoleRepository, SECRET_CIPHER, SecretCipher,
   TOKEN_ISSUER, TOTP_SERVICE, TokenIssuer, TotpService, USER_REPOSITORY, UserRepository,
 } from './domain/ports';
@@ -37,6 +39,7 @@ import { MemoryRefreshSessionStore } from './infrastructure/sessions/memory-refr
 import { RedisRefreshSessionStore } from './infrastructure/sessions/redis-refresh-session-store';
 import { AuthController } from './presentation/auth.controller';
 import { AuthGuard } from './presentation/guards/auth.guard';
+import { PermissionCatalog } from './presentation/permission-catalog';
 import { PermissionsGuard } from './presentation/guards/permissions.guard';
 import { RefreshCookie } from './presentation/refresh-cookie';
 import { UsersController } from './presentation/users.controller';
@@ -54,7 +57,7 @@ export class IamModule {
       module: IamModule,
       // Global : la racine de composition (`src/integration`) en consomme les services sans réimporter (ni dupliquer) le module.
       global: true,
-      imports: rateLimiting ? [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])] : [],
+      imports: [DiscoveryModule, ...(rateLimiting ? [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])] : [])],
       controllers: [AuthController, UsersController],
       providers: [
         // --- adaptateurs ---
@@ -117,6 +120,14 @@ export class IamModule {
           useFactory: (u: UserRepository, r: RoleRepository, c: CachePort) => new PermissionResolver(u, r, c),
         },
 
+        {
+          // Annuaire des services facultatif : fourni par la racine de composition quand le module Personnel est présent.
+          provide: AccessDecider,
+          inject: [PermissionResolver, { token: DEPARTMENT_DIRECTORY, optional: true }],
+          useFactory: (r: PermissionResolver, d: DepartmentDirectory | undefined) => new AccessDecider(r, d ?? null),
+        },
+        PermissionCatalog,
+
         // --- cas d'usage ---
         {
           provide: LoginUseCase,
@@ -166,6 +177,12 @@ export class IamModule {
           useFactory: (u: UserRepository, r: RoleRepository, h: PasswordHasher, ids: IdGenerator, a: AuditLog, c: Clock) => new CreateUserUseCase(u, r, h, ids, a, c),
         },
         {
+          provide: GetUserAccessUseCase,
+          inject: [USER_REPOSITORY, ROLE_REPOSITORY, PermissionResolver, AccessDecider, { token: DEPARTMENT_DIRECTORY, optional: true }],
+          useFactory: (u: UserRepository, r: RoleRepository, res: PermissionResolver, d: AccessDecider, dir: DepartmentDirectory | undefined) =>
+            new GetUserAccessUseCase(u, r, res, d, dir ?? null),
+        },
+        {
           provide: ManageUserUseCases,
           inject: [USER_REPOSITORY, ROLE_REPOSITORY, REFRESH_SESSION_STORE, PermissionResolver, AUDIT_LOG, CLOCK],
           useFactory: (u: UserRepository, r: RoleRepository, st: RefreshSessionStore, res: PermissionResolver, a: AuditLog, c: Clock) => new ManageUserUseCases(u, r, st, res, a, c),
@@ -176,7 +193,7 @@ export class IamModule {
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: PermissionsGuard },
       ],
-      exports: [PermissionResolver, USER_REPOSITORY, ROLE_REPOSITORY, TOKEN_ISSUER],
+      exports: [PermissionResolver, AccessDecider, USER_REPOSITORY, ROLE_REPOSITORY, TOKEN_ISSUER],
     };
   }
 }

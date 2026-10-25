@@ -85,6 +85,7 @@
   "ASSIGNMENT_OUTSIDE_EMPLOYMENT": "La période d'affectation sort de la période d'emploi de la personne (embauche, départ).",
   "ASSIGNMENT_OVERLAPS": "La personne a déjà une affectation à ce service ou à cette unité sur une partie de cette période.",
   "ASSIGNMENT_PRIMARY_CONFLICT": "La personne a déjà une affectation principale sur cette période : retirez-lui ce statut ou terminez-la d'abord.",
+  "AUDIT_FILTER_INVALID": "Filtre « {field} » invalide.",
   "FORBIDDEN": "Vous n'avez pas le droit d'effectuer cette action.",
   "VALIDATION_FAILED": "Les données envoyées sont invalides.",
   "HTTP_400": "Requête invalide.",

@@ -13,10 +13,12 @@ import { validateEnv } from '../../src/config/env.validation';
 import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
 import { AdministrationIntegrationModule } from '../../src/integration/administration.integration';
+import { AuthorizationIntegrationModule } from '../../src/integration/authorization.integration';
 import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
 import { StaffIntegrationModule } from '../../src/integration/staff.integration';
 import { HealthController } from '../../src/health/health.controller';
 import { AdministrationModule } from '../../src/modules/administration/administration.module';
+import { AuditModule } from '../../src/modules/audit/audit.module';
 import { IamModule } from '../../src/modules/iam/iam.module';
 import { ReferentialsModule } from '../../src/modules/referentials/referentials.module';
 import { StaffModule } from '../../src/modules/staff/staff.module';
@@ -90,6 +92,8 @@ export async function createTestWorld(options: {
       AdministrationModule.register(),
       StaffIntegrationModule.register(),
       StaffModule.register(),
+      AuthorizationIntegrationModule.register(),
+      AuditModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)
