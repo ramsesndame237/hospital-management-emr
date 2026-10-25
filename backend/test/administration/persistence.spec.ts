@@ -50,7 +50,7 @@ describe('schéma administration sur PostgreSQL', () => {
     const roles = new Map((await new PgRoleRepository(sql).findAll()).map((r) => [r.code.value, r.permissions.map((p) => p.value)]));
     expect(roles.get('DPO_AUDITOR')).toEqual(expect.arrayContaining(['administration.organization:read:all', 'administration.facilities:read:all']));
     expect(roles.get('DPO_AUDITOR')).not.toContain('administration.facilities:manage:all');
-    for (const code of ['DOCTOR', 'NURSE', 'CASHIER', 'PATIENT']) expect(roles.get(code)!.some((p) => p.startsWith('administration.'))).toBe(false);
+    for (const code of ['DOCTOR', 'NURSE', 'CASHIER', 'PATIENT']) expect(roles.get(code)!.some((p) => /^administration.(organization|facilities):/.test(p))).toBe(false);
   });
 
   describe('organisation', () => {

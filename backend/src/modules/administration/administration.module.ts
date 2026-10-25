@@ -4,10 +4,15 @@ import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/por
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
 import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, RegisterFacilityUseCase } from './application/use-cases/facilities';
 import { GetOrganizationUseCase, SetupOrganizationUseCase } from './application/use-cases/organization';
-import { FACILITY_REPOSITORY, FacilityRepository, ORGANIZATION_REPOSITORY, OrganizationRepository } from './domain/ports';
+import { GetStructureNodeUseCase, GetStructureTreeUseCase, ManageStructureUseCases } from './application/use-cases/structure';
+import {
+  FACILITY_REPOSITORY, FacilityRepository, ORGANIZATION_REPOSITORY, OrganizationRepository, SPECIALTY_DIRECTORY, SpecialtyDirectory, STRUCTURE_REPOSITORY, StructureRepository,
+} from './domain/ports';
 import { PgFacilityRepository } from './infrastructure/persistence/pg-facility.repository';
 import { PgOrganizationRepository } from './infrastructure/persistence/pg-organization.repository';
+import { PgStructureRepository } from './infrastructure/persistence/pg-structure.repository';
 import { AdministrationController } from './presentation/administration.controller';
+import { StructureController } from './presentation/structure.controller';
 
 /**
  * Module Administration : organisation et établissements. Comme pour l'IAM, c'est ici, et seulement ici, que les ports
@@ -19,11 +24,12 @@ export class AdministrationModule {
   static register(): DynamicModule {
     return {
       module: AdministrationModule,
-      controllers: [AdministrationController],
+      controllers: [AdministrationController, StructureController],
       providers: [
         // --- adaptateurs ---
         { provide: ORGANIZATION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgOrganizationRepository(sql) },
         { provide: FACILITY_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgFacilityRepository(sql) },
+        { provide: STRUCTURE_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgStructureRepository(sql) },
 
         // --- cas d'usage ---
         { provide: GetOrganizationUseCase, inject: [ORGANIZATION_REPOSITORY], useFactory: (o: OrganizationRepository) => new GetOrganizationUseCase(o) },
@@ -43,6 +49,17 @@ export class AdministrationModule {
           provide: ManageFacilityUseCases,
           inject: [FACILITY_REPOSITORY, AUDIT_LOG, CLOCK],
           useFactory: (f: FacilityRepository, a: AuditLog, c: Clock) => new ManageFacilityUseCases(f, a, c),
+        },
+        { provide: GetStructureNodeUseCase, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new GetStructureNodeUseCase(s) },
+        {
+          provide: GetStructureTreeUseCase,
+          inject: [FACILITY_REPOSITORY, STRUCTURE_REPOSITORY],
+          useFactory: (f: FacilityRepository, s: StructureRepository) => new GetStructureTreeUseCase(f, s),
+        },
+        {
+          provide: ManageStructureUseCases,
+          inject: [FACILITY_REPOSITORY, STRUCTURE_REPOSITORY, SPECIALTY_DIRECTORY, ID_GENERATOR, AUDIT_LOG, CLOCK],
+          useFactory: (f: FacilityRepository, s: StructureRepository, sp: SpecialtyDirectory, ids: IdGenerator, a: AuditLog, c: Clock) => new ManageStructureUseCases(f, s, sp, ids, a, c),
         },
       ],
     };

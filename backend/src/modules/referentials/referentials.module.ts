@@ -17,6 +17,8 @@ export class ReferentialsModule {
   static register(): DynamicModule {
     return {
       module: ReferentialsModule,
+      // Global : la racine de composition (`src/integration`) en consomme les dépôts sans réimporter (ni dupliquer) le module.
+      global: true,
       controllers: [ReferentialsController],
       providers: [
         { provide: CATALOG_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgCatalogRepository(sql) },
@@ -34,6 +36,7 @@ export class ReferentialsModule {
           useFactory: (c: CatalogRepository, e: EntryRepository, ids: IdGenerator, a: AuditLog, clock: Clock) => new ManageEntriesUseCases(c, e, ids, a, clock),
         },
       ],
+      exports: [CATALOG_REPOSITORY, ENTRY_REPOSITORY],
     };
   }
 }

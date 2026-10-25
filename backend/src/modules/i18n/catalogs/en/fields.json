@@ -16,5 +16,9 @@
   "labels": "labels",
   "sortOrder": "display order",
   "search": "search",
-  "includeInactive": "inactive entries"
+  "includeInactive": "inactive entries",
+  "serviceType": "service type",
+  "specialtyCode": "specialty",
+  "floor": "floor",
+  "facilityId": "facility"
 }

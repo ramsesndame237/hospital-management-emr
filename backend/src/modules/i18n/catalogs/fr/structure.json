@@ -1,0 +1,10 @@
+{
+  "SERVICE": "Service",
+  "UNIT": "Unité",
+  "ROOM": "Salle",
+  "BED": "Lit",
+  "CLINICAL": "Soins",
+  "MEDICO_TECHNICAL": "Médico-technique",
+  "ADMINISTRATIVE": "Administratif",
+  "SUPPORT": "Support et logistique"
+}

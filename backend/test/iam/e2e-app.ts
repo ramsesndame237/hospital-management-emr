@@ -12,6 +12,7 @@ import { buildApiDocsOptions } from '../../src/config/api-docs.config';
 import { validateEnv } from '../../src/config/env.validation';
 import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
+import { AdministrationIntegrationModule } from '../../src/integration/administration.integration';
 import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
 import { HealthController } from '../../src/health/health.controller';
 import { AdministrationModule } from '../../src/modules/administration/administration.module';
@@ -82,8 +83,9 @@ export async function createTestWorld(options: {
       PlatformModule.register(),
       ApiDocsIntegrationModule.register(),
       IamModule.register({ rateLimiting: options.rateLimiting ?? false }),
-      AdministrationModule.register(),
       ReferentialsModule.register(),
+      AdministrationIntegrationModule.register(),
+      AdministrationModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)
