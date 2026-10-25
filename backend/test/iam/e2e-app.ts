@@ -14,6 +14,7 @@ import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
 import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
 import { HealthController } from '../../src/health/health.controller';
+import { AdministrationModule } from '../../src/modules/administration/administration.module';
 import { IamModule } from '../../src/modules/iam/iam.module';
 import { I18nAdapterName, LocalizationModule } from '../../src/modules/i18n/localization.module';
 import {
@@ -30,7 +31,8 @@ import { Temporal } from '../../src/shared-kernel/temporal';
 import { PgliteSql } from './pglite-sql';
 import { must } from './fakes';
 
-const DDL = fs.readFileSync(path.join(__dirname, '../../migration/schema/iam.pg.sql'), 'utf8');
+// Même ordre qu'au démarrage du conteneur : l'administration complète les rôles système créés par l'IAM.
+const DDL = ['iam.pg.sql', 'administration.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
 
 // otplib v13 exige ≥ 16 octets ; 32 caractères base32 = 20 octets (taille standard RFC 4226).
 export const TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -79,6 +81,7 @@ export async function createTestWorld(options: {
       PlatformModule.register(),
       ApiDocsIntegrationModule.register(),
       IamModule.register({ rateLimiting: options.rateLimiting ?? false }),
+      AdministrationModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)

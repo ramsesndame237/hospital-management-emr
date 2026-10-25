@@ -23,6 +23,10 @@ export class Facility {
         return this.name;
     }
 
+    getCode():FacilityCode{
+        return this.code;
+    }
+
     updateName(name:FacilityName):void{
         this.name = name
     }

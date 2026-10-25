@@ -10,5 +10,7 @@
   "recoveryCode": "code de secours",
   "offset": "décalage",
   "limit": "limite",
-  "id": "identifiant"
+  "id": "identifiant",
+  "name": "nom",
+  "status": "statut"
 }

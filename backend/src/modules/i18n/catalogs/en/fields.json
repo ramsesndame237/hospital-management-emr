@@ -10,5 +10,7 @@
   "recoveryCode": "recovery code",
   "offset": "offset",
   "limit": "limit",
-  "id": "identifier"
+  "id": "identifier",
+  "name": "name",
+  "status": "status"
 }

@@ -58,9 +58,9 @@ describe('architecture : règle de dépendance', () => {
 
 describe('architecture : indépendance des modules', () => {
   /** Qui peut dépendre de qui. Tout le reste est interdit : les modules ne se connaissent pas, la racine de composition les relie. */
-  const ALLOWED: Record<string, string[]> = { iam: ['audit', 'cache', 'api-docs'], i18n: [], 'api-docs': [], audit: [], cache: [] };
+  const ALLOWED: Record<string, string[]> = { iam: ['audit', 'cache', 'api-docs'], administration: ['audit', 'api-docs', 'iam'], i18n: [], 'api-docs': [], audit: [], cache: [] };
 
-  it("chaque module ne dépend que des modules qu'il déclare (iam → audit, cache, façade api-docs ; les autres : aucun)", () => {
+  it("chaque module ne dépend que des modules qu'il déclare (iam → audit, cache, façade api-docs ; administration → audit, api-docs, décorateurs iam ; les autres : aucun)", () => {
     const bad = violations((i) => {
       const target = resolve(i);
       const own = /^modules\/([^/]+)\//.exec(i.file)?.[1];
@@ -127,5 +127,20 @@ describe('architecture : une bibliothèque = un adaptateur', () => {
         return !!target && target.startsWith('modules/i18n/') && !i.file.startsWith('modules/i18n/') && !allowedTargets.test(target);
       }),
     ).toEqual([]);
+  });
+});
+
+describe('architecture : le module administration', () => {
+  it("n'emprunte à l'IAM que ses décorateurs de présentation (permissions, utilisateur courant)", () => {
+    expect(
+      violations((i) => {
+        const target = resolve(i);
+        return i.file.startsWith('modules/administration/') && !!target && target.startsWith('modules/iam/') && target !== 'modules/iam/presentation/decorators';
+      }),
+    ).toEqual([]);
+  });
+
+  it("n'utilise l'IAM que dans sa couche de présentation", () => {
+    expect(violations((i) => i.file.startsWith('modules/administration/') && !i.file.includes('/presentation/') && /modules\/iam/.test(resolve(i) ?? ''))).toEqual([]);
   });
 });
