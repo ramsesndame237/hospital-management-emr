@@ -7,6 +7,7 @@ import { AdministrationGateway, HttpAdministrationGateway } from './core/adminis
 import { ApprovalGateway, HttpApprovalGateway } from './core/billing/approval.gateway';
 import { BillingGateway, HttpBillingGateway } from './core/billing/billing.gateway';
 import { CashSessionGateway, HttpCashSessionGateway } from './core/billing/cash-session.gateway';
+import { HttpLabGateway, LabGateway } from './core/lab/lab.gateway';
 import { HttpPatientSearchGateway, PatientSearchGateway } from './core/patients/patient-search.gateway';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
 import { HttpIdentityAdminGateway, IdentityAdminGateway } from './core/iam/identity-admin.gateway';
@@ -34,6 +35,7 @@ export const appConfig: ApplicationConfig = {
     { provide: BillingGateway, useClass: HttpBillingGateway },
     { provide: CashSessionGateway, useClass: HttpCashSessionGateway },
     { provide: ApprovalGateway, useClass: HttpApprovalGateway },
+    { provide: LabGateway, useClass: HttpLabGateway },
     { provide: PatientSearchGateway, useClass: HttpPatientSearchGateway },
     // Réinitialisation du mot de passe : adaptateur provisoire tant que l'API n'a pas d'endpoint (voir le fichier du port).
     { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
