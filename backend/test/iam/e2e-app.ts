@@ -20,6 +20,7 @@ import { HealthController } from '../../src/health/health.controller';
 import { AdministrationModule } from '../../src/modules/administration/administration.module';
 import { AuditModule } from '../../src/modules/audit/audit.module';
 import { IamModule } from '../../src/modules/iam/iam.module';
+import { PatientsModule } from '../../src/modules/patients/patients.module';
 import { ReferentialsModule } from '../../src/modules/referentials/referentials.module';
 import { StaffModule } from '../../src/modules/staff/staff.module';
 import { I18nAdapterName, LocalizationModule } from '../../src/modules/i18n/localization.module';
@@ -38,7 +39,7 @@ import { PgliteSql } from './pglite-sql';
 import { must } from './fakes';
 
 // Même ordre qu'au démarrage du conteneur : l'administration complète les rôles système créés par l'IAM.
-const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
+const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql', 'patients.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
 
 // otplib v13 exige ≥ 16 octets ; 32 caractères base32 = 20 octets (taille standard RFC 4226).
 export const TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -94,6 +95,7 @@ export async function createTestWorld(options: {
       StaffModule.register(),
       AuthorizationIntegrationModule.register(),
       AuditModule.register(),
+      PatientsModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)
