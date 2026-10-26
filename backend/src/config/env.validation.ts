@@ -26,6 +26,8 @@ export interface Env {
   LEGACY_PASSWORD_SALT: string;
   /** Fuseau horaire de l'établissement (nom IANA, p. ex. `Africa/Douala`) : il décide du jour courant (affectations, départs). */
   TIME_ZONE: string;
+  /** Devise de l'installation (code ISO 4217, p. ex. `XAF` pour le franc CFA) : les montants de la facturation sont des entiers dans sa plus petite unité. */
+  BILLING_CURRENCY: string;
   COOKIE_SECURE: boolean;
   /** Vérification des mots de passe compromis (API HIBP, k-anonymité : seuls 5 caractères du hachage SHA-1 sont envoyés). */
   BREACH_CHECK_ENABLED: boolean;
@@ -64,6 +66,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     SECRET_ENCRYPTION_KEY: String(raw.SECRET_ENCRYPTION_KEY ?? ''),
     LEGACY_PASSWORD_SALT: String(raw.LEGACY_PASSWORD_SALT ?? ''),
     TIME_ZONE: String(raw.TIME_ZONE ?? 'UTC').trim(),
+    BILLING_CURRENCY: String(raw.BILLING_CURRENCY ?? 'XAF').trim().toUpperCase(),
     COOKIE_SECURE: bool(raw.COOKIE_SECURE, String(raw.NODE_ENV) === 'production'),
     BREACH_CHECK_ENABLED: bool(raw.BREACH_CHECK_ENABLED, String(raw.NODE_ENV) === 'production'),
     I18N_ADAPTER: String(raw.I18N_ADAPTER ?? 'nestjs-i18n') as Env['I18N_ADAPTER'],
@@ -82,6 +85,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   } catch {
     errors.push('TIME_ZONE doit être un fuseau IANA valide (ex. Africa/Douala, UTC)');
   }
+  if (!/^[A-Z]{3}$/.test(env.BILLING_CURRENCY)) errors.push('BILLING_CURRENCY doit être un code de devise ISO 4217 (ex. XAF, EUR)');
   if (!Number.isInteger(env.PORT) || env.PORT <= 0) errors.push('PORT invalide');
   if (!Number.isInteger(env.DB_PORT) || env.DB_PORT <= 0) errors.push('DB_PORT invalide');
   if (env.NODE_ENV === 'production') {
