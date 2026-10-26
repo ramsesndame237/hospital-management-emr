@@ -16,5 +16,9 @@
   "labels": "libellés",
   "sortOrder": "ordre d'affichage",
   "search": "recherche",
-  "includeInactive": "entrées désactivées"
+  "includeInactive": "entrées désactivées",
+  "serviceType": "type de service",
+  "specialtyCode": "spécialité",
+  "floor": "étage",
+  "facilityId": "établissement"
 }

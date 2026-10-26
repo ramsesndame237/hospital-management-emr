@@ -10,6 +10,7 @@ import { AdministrationModule } from './modules/administration/administration.mo
 import { IamModule } from './modules/iam/iam.module';
 import { LocalizationModule } from './modules/i18n/localization.module';
 import { ReferentialsModule } from './modules/referentials/referentials.module';
+import { AdministrationIntegrationModule } from './integration/administration.integration';
 import { ApiDocsIntegrationModule } from './integration/api-docs.integration';
 import { PlatformModule } from './platform/platform.module';
 
@@ -52,7 +53,7 @@ export class AppModule {
       }),
     );
     // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
-    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), AdministrationModule.register(), ReferentialsModule.register());
+    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), ReferentialsModule.register(), AdministrationIntegrationModule.register(), AdministrationModule.register());
     // Toujours présent (accès `null` sans base) : voir `ApiDocsIntegrationModule`.
     imports.push(ApiDocsIntegrationModule.register({ identity: useDb }));
     return {
