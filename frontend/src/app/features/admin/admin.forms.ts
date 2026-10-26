@@ -11,10 +11,8 @@ export const DISRUPTIVE_STATUSES: readonly FacilityStatus[] = [
 
 const statusOptions = (): OptionSpec[] => FACILITY_STATUSES.map((status) => ({ value: status, label: `server.status.${status}` }));
 
-/** Bandeau d'échec affiché au-dessus d'un formulaire ; le texte est déjà dans la langue de l'interface (message de l'API). */
-export function failureNotice(message: string | null): FieldSchema[] {
-  return message ? [{ type: 'message', name: 'notice', tone: 'critical', title: message, role: 'alert' }] : [];
-}
+export { failureNotice } from '../../shared/failure-message';
+import { failureNotice } from '../../shared/failure-message';
 
 /** Nom de l'organisation. Sans organisation, l'écran sert à la créer : le libellé du bouton le dit. */
 export function organizationFields(o: { readonly name: string; readonly exists: boolean; readonly notice: string | null }): FieldSchema[] {

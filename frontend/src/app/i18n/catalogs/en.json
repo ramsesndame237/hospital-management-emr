@@ -223,7 +223,11 @@
     "adminSites": "Sites",
     "adminStructure": "Site structure",
     "adminUsers": "Users",
-    "adminRoles": "Roles"
+    "adminRoles": "Roles",
+    "billing": "Billing",
+    "billingInvoices": "Invoices",
+    "billingNew": "New invoice",
+    "billingCatalog": "Price catalog"
   },
   "admin": {
     "actions": "Actions",
@@ -592,5 +596,209 @@
     "codes": "{count} recovery codes kept",
     "open": "Go to my workspace",
     "note": "A two-step verification will be requested before you choose your work context."
+  },
+  "billing": {
+    "actions": "Actions",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saving": "Saving…",
+    "searching": "Searching…",
+    "previous": "Previous",
+    "next": "Next",
+    "range": "{from} to {to} of {total}",
+    "auditNote": "This action is recorded in the audit log with your identity.",
+    "status": {
+      "DRAFT": "Draft",
+      "ISSUED": "Issued",
+      "PARTIALLY_PAID": "Partially paid",
+      "PAID": "Paid",
+      "CANCELLED": "Cancelled"
+    },
+    "mode": {
+      "CASH": "Cash",
+      "CARD": "Card",
+      "MOBILE_MONEY": "Mobile money",
+      "CHEQUE": "Cheque",
+      "BANK_TRANSFER": "Bank transfer"
+    },
+    "category": {
+      "CONSULTATION": "Consultation",
+      "LABORATORY": "Laboratory",
+      "RADIOLOGY": "Radiology",
+      "PHARMACY": "Pharmacy",
+      "PROCEDURE": "Procedure",
+      "HOSPITALIZATION": "Hospitalization",
+      "OTHER": "Other"
+    },
+    "amount": {
+      "required": "Enter an amount.",
+      "invalid": "Invalid amount: enter digits (e.g. 5000)."
+    },
+    "reason": {
+      "required": "A reason is required."
+    },
+    "filter": {
+      "number": "Invoice number",
+      "numberPlaceholder": "FAC-0000123",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "apply": "Filter"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "lead": "Patient invoices: what is due, what has been collected, what remains to be paid.",
+      "new": "New invoice",
+      "number": "Number",
+      "patient": "Patient",
+      "status": "Status",
+      "total": "Total",
+      "balance": "Balance",
+      "date": "Created",
+      "open": "Open",
+      "openOf": "Open invoice {number}",
+      "empty": "No invoice matches.",
+      "pagination": "Invoices pagination"
+    },
+    "new": {
+      "title": "New invoice",
+      "lead": "Find the patient, then add the items to bill.",
+      "query": "Patient",
+      "queryHint": "Record number (PAT-0000123) or first and last name (at least 2 letters per word).",
+      "queryPlaceholder": "Mbarga Elisabeth",
+      "queryRequired": "Enter a record number or a name.",
+      "queryTooShort": "Enter at least 2 characters.",
+      "search": "Search",
+      "results": "Patients found",
+      "patient": "Patient",
+      "birth": "Born",
+      "age": "{age} years old",
+      "deceased": "Deceased",
+      "choose": "Bill",
+      "chooseOf": "Bill {name}",
+      "none": "No record matches.",
+      "refine": "{shown} records shown out of {total}: refine the search to narrow it down.",
+      "back": "Back to invoices"
+    },
+    "detail": {
+      "back": "Back to invoices",
+      "issuedOn": "Issued on {date}",
+      "addLine": "Add an item",
+      "discount": "Discount",
+      "issue": "Issue the invoice",
+      "collect": "Collect payment",
+      "cancel": "Cancel the invoice",
+      "reload": "Reload the invoice",
+      "lines": "Billed items",
+      "item": "Item",
+      "unitPrice": "Unit price",
+      "quantity": "Qty",
+      "lineTotal": "Total",
+      "noLines": "No item yet: add some to be able to issue the invoice.",
+      "remove": "Remove",
+      "removeOf": "Remove {name}",
+      "subtotal": "Subtotal",
+      "discountOf": "Discount ({reason})",
+      "total": "Total due",
+      "paid": "Already collected",
+      "balance": "Balance",
+      "payments": "Payments",
+      "noPayments": "No payment.",
+      "receipt": "Receipt",
+      "mode": "Mode",
+      "amount": "Amount",
+      "when": "Date",
+      "reprint": "Reprint",
+      "reprintOf": "Reprint receipt {number}",
+      "cancelledTitle": "Invoice cancelled"
+    },
+    "lines": {
+      "title": "Add an item",
+      "search": "Search an item",
+      "searchPlaceholder": "Consultation, ultrasound…",
+      "quantity": "Quantity",
+      "quantityInvalid": "The quantity is an integer from 1 to 9999.",
+      "searchSubmit": "Search",
+      "add": "Add",
+      "addOf": "Add {name}",
+      "added": "“{name}” added to the invoice.",
+      "none": "No item matches."
+    },
+    "discount": {
+      "title": "Discount",
+      "amount": "Discount amount",
+      "amountHint": "On the whole invoice; it cannot exceed the total.",
+      "reason": "Reason for the discount",
+      "reasonHint": "Required (e.g. hospital staff).",
+      "apply": "Apply the discount",
+      "remove": "Remove the discount",
+      "removed": "Discount removed.",
+      "applied": "Discount applied."
+    },
+    "issue": {
+      "title": "Issue the invoice",
+      "warningTitle": "The invoice will be locked",
+      "warningText": "Once issued, its items and discount can no longer be changed: it can then be paid.",
+      "submit": "Issue the invoice",
+      "keep": "Keep preparing it",
+      "done": "Invoice {number} issued."
+    },
+    "cancelInvoice": {
+      "title": "Cancel the invoice",
+      "warningTitle": "This invoice will be cancelled",
+      "warningText": "A cancelled invoice is locked and no longer due. An invoice that has been paid cannot be cancelled: it must be refunded.",
+      "submit": "Cancel the invoice",
+      "reason": "Reason for the cancellation",
+      "keep": "Keep the invoice",
+      "done": "Invoice {number} cancelled."
+    },
+    "collect": {
+      "title": "Collect payment",
+      "mode": "Payment mode",
+      "amount": "Amount collected",
+      "amountHint": "The balance by default; enter less for a partial payment.",
+      "tendered": "Cash handed over (optional)",
+      "tenderedHint": "To work out the change.",
+      "reference": "Reference (optional)",
+      "referenceHint": "Mobile, cheque or transfer number.",
+      "referenceInvalid": "Letters, digits, spaces, \".\", \"/\" or \"-\" only.",
+      "submit": "Collect",
+      "tooMuch": "The amount exceeds the balance ({balance}).",
+      "remaining": "{left} will remain to be paid after this payment.",
+      "tenderedLow": "The amount handed over is lower than the amount collected ({amount}).",
+      "change": "Change to give back: {change}"
+    },
+    "reprint": {
+      "title": "A copy, not an original",
+      "text": "The reprinted receipt is marked “DUPLICATE”. The reprint is recorded in the audit log with its reason.",
+      "reason": "Reason for the reprint",
+      "submit": "Reprint the receipt",
+      "panelTitle": "Reprint receipt {number}"
+    },
+    "receipt": {
+      "title": "Payment receipt",
+      "copyTitle": "Receipt (copy)",
+      "duplicate": "Duplicate",
+      "invoice": "Invoice",
+      "patient": "Patient",
+      "mode": "Mode",
+      "date": "Date",
+      "amount": "Amount collected",
+      "change": "Change given",
+      "balance": "Balance",
+      "print": "Print the receipt"
+    },
+    "catalog": {
+      "title": "Price catalog",
+      "lead": "Billable items and their price. Prices are changed from the administration side.",
+      "search": "Search",
+      "searchPlaceholder": "Code or name",
+      "category": "Category",
+      "allCategories": "All categories",
+      "code": "Code",
+      "name": "Name",
+      "price": "Price",
+      "empty": "No item matches.",
+      "pagination": "Catalog pagination"
+    }
   }
 }

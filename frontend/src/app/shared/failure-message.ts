@@ -1,6 +1,7 @@
-import { ApiError, toApiError } from '../../core/http/api-error';
-import { Translator } from '../../core/i18n/translator';
-import { FormBuilderComponent } from '../../shared/form-builder/form-builder';
+import { ApiError, toApiError } from '../core/http/api-error';
+import { Translator } from '../core/i18n/translator';
+import { FormBuilderComponent } from './form-builder/form-builder';
+import { FieldSchema } from './form-builder/form-schema';
 
 /**
  * Texte à afficher en bandeau pour un échec d'API. Les erreurs de champ sont posées sur les champs du formulaire (s'il y en a un) ;
@@ -15,4 +16,9 @@ export function failureMessage(error: unknown, i18n: Translator, form?: FormBuil
     return left.length > 0 ? left[0].message : null;
   }
   return api.message;
+}
+
+/** Bandeau d'échec affiché au-dessus d'un formulaire ; le texte est déjà dans la langue de l'interface (message de l'API). */
+export function failureNotice(message: string | null): FieldSchema[] {
+  return message ? [{ type: 'message', name: 'notice', tone: 'critical', title: message, role: 'alert' }] : [];
 }

@@ -39,6 +39,16 @@ export const NAVIGATION: readonly NavItem[] = [
       { id: 'admin-roles', labelKey: 'nav.adminRoles', icon: 'shield', route: '/admin/roles', permission: 'iam.roles:read' },
     ],
   },
+  {
+    id: 'billing',
+    labelKey: 'nav.billing',
+    icon: 'invoice',
+    children: [
+      { id: 'billing-invoices', labelKey: 'nav.billingInvoices', icon: 'invoice', route: '/billing/invoices', permission: 'billing.invoices:read' },
+      { id: 'billing-new', labelKey: 'nav.billingNew', icon: 'add', route: '/billing/invoices/new', permission: 'billing.invoices:write' },
+      { id: 'billing-catalog', labelKey: 'nav.billingCatalog', icon: 'consultations', route: '/billing/catalog', permission: 'billing.catalog:read' },
+    ],
+  },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/modules/agenda', roles: DOCTOR },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/modules/consultations', roles: DOCTOR },
   { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },
