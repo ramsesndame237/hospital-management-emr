@@ -4,7 +4,9 @@ import { CONTAINERS, SECTIONS, SPECIMEN_TYPES } from './tests.dto';
 
 const PRIORITIES = ['ROUTINE', 'URGENT', 'STAT'];
 const SOURCES = ['OPD', 'IPD', 'ER', 'EXTERNAL'];
-const STATUSES = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'CANCELLED'];
+const STATUSES = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'IN_ANALYSIS', 'RESULTED', 'VERIFIED', 'RELEASED', 'CANCELLED'];
+const RESULT_STATUSES = ['IN_PROGRESS', 'ENTERED', 'RETURNED', 'VERIFIED', 'RELEASED'];
+const FLAGS = ['NORMAL', 'LOW', 'HIGH', 'CRITICAL_LOW', 'CRITICAL_HIGH'];
 const SPECIMEN_STATUSES = ['PENDING_COLLECTION', 'COLLECTED', 'RECEIVED', 'REJECTED'];
 const REJECTIONS = ['HEMOLYSED', 'INSUFFICIENT_VOLUME', 'WRONG_CONTAINER', 'CLOTTED', 'MISLABELLED', 'UNLABELLED', 'LEAKING', 'CONTAMINATED', 'EXPIRED_CONTAINER', 'OTHER'];
 
@@ -145,6 +147,114 @@ export class SpecimenDto {
   events!: readonly SpecimenEventDto[];
 }
 
+export class ResultVersionDto {
+  @DocProperty({ description: 'Numéro de version (1 à la première saisie, puis une de plus à chaque correction ou amendement).', example: 1 })
+  version!: number;
+
+  @DocProperty({ description: 'Valeur (nombre normalisé, texte ou valeur choisie).', example: '9.4' })
+  value!: string;
+
+  @DocProperty({ description: 'Position par rapport aux valeurs de référence du patient ; absente si aucune tranche ne s\'applique.', example: 'LOW', enum: FLAGS, nullable: true })
+  flag!: string | null;
+
+  @DocProperty({ description: 'Unité.', example: 'g/dL', nullable: true })
+  unit!: string | null;
+
+  @DocProperty({ description: 'Limite basse appliquée.', example: 11.5, nullable: true })
+  refLow!: number | null;
+
+  @DocProperty({ description: 'Limite haute appliquée.', example: 15.5, nullable: true })
+  refHigh!: number | null;
+
+  @DocProperty({ description: 'Seuil critique bas appliqué.', example: 7, nullable: true })
+  criticalLow!: number | null;
+
+  @DocProperty({ description: 'Seuil critique haut appliqué.', example: 20, nullable: true })
+  criticalHigh!: number | null;
+
+  @DocProperty({ description: 'Dernier résultat publié du même patient pour cette analyse, au moment de la saisie.', example: 12.8, nullable: true })
+  previousValue!: number | null;
+
+  @DocProperty({ description: 'Variation de plus de 30 % par rapport au résultat précédent (delta check).', example: false })
+  deltaAlert!: boolean;
+
+  @DocProperty({ description: 'Auteur de la saisie.', type: UserSummaryDto, nullable: true })
+  enteredBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Saisi le (ISO 8601, UTC).', example: '2026-11-02T10:00:00Z', format: 'date-time' })
+  enteredAt!: string;
+
+  @DocProperty({ description: 'Commentaire du technicien.', example: null, nullable: true })
+  comment!: string | null;
+
+  @DocProperty({ description: "Motif de l'amendement (version amendée d'un résultat publié).", example: null, nullable: true })
+  amendmentReason!: string | null;
+}
+
+export class CriticalNotificationDto {
+  @DocProperty({ description: 'Version du résultat concernée.', example: 1 })
+  version!: number;
+
+  @DocProperty({ description: 'Personne prévenue.', example: 'Dr Curie' })
+  notifiedName!: string;
+
+  @DocProperty({ description: 'Fonction de la personne prévenue.', example: 'Médecin de garde' })
+  notifiedRole!: string;
+
+  @DocProperty({ description: 'Moyen : `PHONE`, `IN_PERSON` ou `SECURE_MESSAGE`.', example: 'PHONE' })
+  method!: string;
+
+  @DocProperty({ description: "Quand (ISO 8601, UTC).", example: '2026-11-02T10:05:00Z', format: 'date-time' })
+  at!: string;
+
+  @DocProperty({ description: 'Qui a appelé.', type: UserSummaryDto, nullable: true })
+  by!: UserSummaryDto | null;
+}
+
+export class ResultDto {
+  @DocProperty({
+    description: "`ENTERED` (attend sa validation), `RETURNED` (renvoyé à son auteur), `VERIFIED` (validé), `RELEASED` (publié). Un prescripteur lit `IN_PROGRESS` tant qu'aucune version n'est publiée : jamais de valeur non publiée.",
+    example: 'ENTERED', enum: RESULT_STATUSES,
+  })
+  status!: string;
+
+  @DocProperty({ description: 'Version courante.', example: 1, nullable: true })
+  currentVersion!: number | null;
+
+  @DocProperty({ description: 'Dernière version publiée.', example: null, nullable: true })
+  releasedVersion!: number | null;
+
+  @DocProperty({ description: 'Versions : toutes pour le laboratoire, la seule version publiée pour un prescripteur.', type: ResultVersionDto, itemType: ResultVersionDto })
+  versions!: readonly ResultVersionDto[];
+
+  @DocProperty({ description: 'Motif du renvoi.', example: null, nullable: true })
+  returnReason!: string | null;
+
+  @DocProperty({ description: 'Qui a validé.', type: UserSummaryDto, nullable: true })
+  verifiedBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Validé le.', example: null, format: 'date-time', nullable: true })
+  verifiedAt!: string | null;
+
+  @DocProperty({ description: 'Qui a publié.', type: UserSummaryDto, nullable: true })
+  releasedBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Publié le.', example: null, format: 'date-time', nullable: true })
+  releasedAt!: string | null;
+
+  @DocProperty({ description: "Valeur critique : l'appel du clinicien conditionne la publication.", example: false })
+  criticalRequired!: boolean;
+
+  @DocProperty({ description: "L'appel du clinicien est documenté pour la version courante.", example: false })
+  criticalNotified!: boolean;
+
+  @DocProperty({ description: 'Appels documentés (laboratoire seulement).', type: CriticalNotificationDto, itemType: CriticalNotificationDto })
+  notifications!: readonly CriticalNotificationDto[];
+
+  @DocProperty({ description: "Une version amendée attend sa validation ; la version publiée reste celle que voit le prescripteur.", example: false })
+  amendmentPending!: boolean;
+}
+
 export class OrderedTestDto {
   @DocProperty({ description: "Identifiant de l'analyse.", example: '5b0f2b8e-2f5d-4a8c-8f0e-7d9c1a3b4e60', format: 'uuid' })
   testId!: string;
@@ -160,6 +270,21 @@ export class OrderedTestDto {
 
   @DocProperty({ description: "Échantillon qui porte cette analyse.", example: '8a7b6c5d-4e3f-4a2b-9c1d-0e9f8a7b6c5d', format: 'uuid' })
   specimenId!: string;
+
+  @DocProperty({ description: 'Type de résultat attendu : `NUMERIC`, `TEXT` ou `CHOICE`.', example: 'NUMERIC' })
+  resultType!: string;
+
+  @DocProperty({ description: 'Unité (analyse numérique).', example: 'g/dL', nullable: true })
+  unit!: string | null;
+
+  @DocProperty({ description: 'Décimales affichées.', example: 1 })
+  decimals!: number;
+
+  @DocProperty({ description: 'Valeurs admises (analyse à choix).', example: [], itemType: 'string' })
+  choices!: readonly string[];
+
+  @DocProperty({ description: 'Résultat, une fois saisi.', type: ResultDto, nullable: true })
+  result!: ResultDto | null;
 }
 
 export class RequisitionDto {

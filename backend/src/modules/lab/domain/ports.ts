@@ -50,6 +50,12 @@ export interface RequisitionFilter {
   readonly orderedBy?: string;
 }
 
+export interface PreviousResult {
+  readonly value: number;
+  readonly releasedAt: Instant;
+  readonly requisitionNumber: string;
+}
+
 export interface RequisitionRepository {
   nextNumber(): Promise<RequisitionNumber>;
   /** Réserve `count` codes-barres consécutifs. */
@@ -58,6 +64,8 @@ export interface RequisitionRepository {
   findBySpecimen(id: SpecimenId): Promise<Requisition | null>;
   findByBarcode(barcode: SpecimenBarcode): Promise<Requisition | null>;
   insert(requisition: Requisition): Promise<void>;
+  /** Dernier résultat numérique publié de ce patient pour cette analyse, dans une autre demande (delta check). */
+  previousReleased(patientId: PatientRef, testId: TestId, except: RequisitionId): Promise<PreviousResult | null>;
   /**
    * Modifie une demande sous verrou (prélèvement, réception, rejet, annulation) : deux techniciens qui agissent en même temps se mettent en
    * file, et le second voit ce que le premier a fait. `mutate` applique la règle du domaine ; rien n'est écrit si elle refuse. `null` : demande introuvable.

@@ -4,6 +4,7 @@ import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/por
 import { SERVICE_ACCESS, ServiceAccess } from '../../shared-kernel/service-access';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
 import { CatalogDependencies, CreateTestUseCase, GetTestUseCase, ListTestsUseCase, ManageTestUseCases } from './application/use-cases/catalog';
+import { ResultUseCases } from './application/use-cases/results';
 import {
   CancelRequisitionUseCase, FindBySpecimenUseCase, GetRequisitionUseCase, ListRequisitionsUseCase, OrderRequisitionUseCase, RequisitionDependencies, SpecimenUseCases,
 } from './application/use-cases/requisitions';
@@ -13,6 +14,7 @@ import {
 import { PgRequisitionRepository } from './infrastructure/persistence/pg-requisition.repository';
 import { PgTestRepository } from './infrastructure/persistence/pg-test.repository';
 import { LabRequisitionsController } from './presentation/requisitions.controller';
+import { LabResultsController } from './presentation/results.controller';
 import { LabTestsController } from './presentation/tests.controller';
 
 const CATALOG_DEPENDENCIES = Symbol('LAB_CATALOG_DEPENDENCIES');
@@ -27,7 +29,7 @@ export class LabModule {
   static register(): DynamicModule {
     return {
       module: LabModule,
-      controllers: [LabTestsController, LabRequisitionsController],
+      controllers: [LabTestsController, LabRequisitionsController, LabResultsController],
       providers: [
         { provide: TEST_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgTestRepository(sql) },
         { provide: REQUISITION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgRequisitionRepository(sql) },
@@ -52,6 +54,7 @@ export class LabModule {
         { provide: ListRequisitionsUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new ListRequisitionsUseCase(d) },
         { provide: CancelRequisitionUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new CancelRequisitionUseCase(d) },
         { provide: FindBySpecimenUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new FindBySpecimenUseCase(d) },
+        { provide: ResultUseCases, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new ResultUseCases(d) },
         { provide: SpecimenUseCases, inject: [REQUISITION_DEPENDENCIES, ID_GENERATOR], useFactory: (d: RequisitionDependencies, ids: IdGenerator) => new SpecimenUseCases(d, ids) },
       ],
     };
