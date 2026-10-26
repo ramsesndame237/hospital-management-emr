@@ -164,3 +164,60 @@ UPDATE iam_roles
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.sessions:read:all']) AS p ORDER BY p)
  WHERE code = 'SYSTEM_ADMIN';
+
+-- Circuit d'approbation : une remise au-delà du seuil, ou l'annulation d'une facture émise, passe par une demande motivée qu'un responsable
+-- (jamais le demandeur) accepte ou refuse. Une demande décidée ne se modifie plus et rien ne se supprime ; une facture n'a qu'une demande en cours.
+CREATE TABLE IF NOT EXISTS billing_approvals (
+  id               uuid PRIMARY KEY,
+  invoice_id       uuid NOT NULL REFERENCES billing_invoices (id),
+  kind             text NOT NULL CHECK (kind IN ('DISCOUNT', 'CANCEL')),
+  status           text NOT NULL CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'WITHDRAWN')),
+  -- montant de la remise demandée (vide pour une annulation)
+  amount           bigint CHECK (amount IS NULL OR amount > 0),
+  reason           text NOT NULL CHECK (length(reason) BETWEEN 1 AND 200),
+  -- version de la facture au moment de la demande : si elle a bougé depuis, la demande est périmée et ne peut plus être acceptée
+  invoice_version  integer NOT NULL,
+  requested_by     uuid NOT NULL,
+  requested_at     timestamptz NOT NULL,
+  decided_by       uuid,
+  decided_at       timestamptz,
+  decision_comment text CHECK (decision_comment IS NULL OR length(decision_comment) BETWEEN 1 AND 200),
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  CHECK ((kind = 'DISCOUNT') = (amount IS NOT NULL)),
+  -- en attente : ni décideur ni date ; décidée, retirée : les deux
+  CHECK ((status = 'PENDING') = (decided_at IS NULL)),
+  CHECK ((status = 'PENDING') = (decided_by IS NULL)),
+  -- un refus s'explique ; personne ne décide de sa propre demande (seul le retrait la concerne)
+  CHECK (status <> 'REJECTED' OR decision_comment IS NOT NULL),
+  CHECK (status NOT IN ('APPROVED', 'REJECTED') OR decided_by <> requested_by),
+  CHECK (status <> 'WITHDRAWN' OR decided_by = requested_by)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_billing_approvals_pending ON billing_approvals (invoice_id) WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS ix_billing_approvals_invoice ON billing_approvals (invoice_id, requested_at DESC);
+CREATE INDEX IF NOT EXISTS ix_billing_approvals_status ON billing_approvals (status, requested_at);
+CREATE INDEX IF NOT EXISTS ix_billing_approvals_requester ON billing_approvals (requested_by, requested_at DESC);
+
+CREATE OR REPLACE FUNCTION billing_approvals_guard() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND OLD.status = 'PENDING' THEN
+    RETURN NEW;
+  END IF;
+  RAISE EXCEPTION 'Une demande d''approbation ne se supprime pas ; une fois décidée, elle ne se modifie plus.' USING ERRCODE = 'restrict_violation';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_billing_approvals_guard ON billing_approvals;
+CREATE TRIGGER trg_billing_approvals_guard BEFORE UPDATE OR DELETE ON billing_approvals
+  FOR EACH ROW EXECUTE FUNCTION billing_approvals_guard();
+DROP TRIGGER IF EXISTS trg_billing_approvals_no_truncate ON billing_approvals;
+CREATE TRIGGER trg_billing_approvals_no_truncate BEFORE TRUNCATE ON billing_approvals
+  FOR EACH STATEMENT EXECUTE FUNCTION billing_approvals_guard();
+
+-- Droits : la caisse demande et suit ses demandes ; la comptabilité et l'administrateur système (arbitrage) lisent toutes les demandes et les décident.
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.approvals:request', 'billing.approvals:read:own']) AS p ORDER BY p)
+ WHERE code = 'CASHIER';
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.approvals:read:all', 'billing.approvals:decide']) AS p ORDER BY p)
+ WHERE code IN ('ACCOUNTANT', 'SYSTEM_ADMIN');

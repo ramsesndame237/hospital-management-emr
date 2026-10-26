@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { DocProperty } from '../../../api-docs';
+import { ApprovalSummaryDto } from './approvals.dto';
 
 const CATEGORIES = ['CONSULTATION', 'LABORATORY', 'RADIOLOGY', 'PHARMACY', 'PROCEDURE', 'HOSPITALIZATION', 'OTHER'];
 const STATUSES = ['DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'];
@@ -258,6 +259,12 @@ export class InvoiceDto {
 
   @DocProperty({ description: 'Encaissements, du plus ancien au plus récent.', type: PaymentDto, itemType: PaymentDto })
   payments!: readonly PaymentDto[];
+
+  @DocProperty({ description: "Demandes d'approbation de cette facture (remise au-delà du seuil, annulation), la plus récente en premier.", type: ApprovalSummaryDto, itemType: ApprovalSummaryDto })
+  approvals!: readonly ApprovalSummaryDto[];
+
+  @DocProperty({ description: "Remise (en % du sous-total) au-delà de laquelle un responsable doit l'approuver : en deçà, la remise s'applique directement.", example: 10 })
+  discountApprovalPercent!: number;
 }
 
 export class InvoiceSummaryDto {
