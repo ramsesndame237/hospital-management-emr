@@ -58,7 +58,7 @@ describe('architecture : règle de dépendance', () => {
 
 describe('architecture : indépendance des modules', () => {
   /** Qui peut dépendre de qui. Tout le reste est interdit : les modules ne se connaissent pas, la racine de composition les relie. */
-  const ALLOWED: Record<string, string[]> = { iam: ['audit', 'cache', 'api-docs'], administration: ['audit', 'api-docs', 'iam'], referentials: ['audit', 'api-docs', 'iam'], staff: ['audit', 'api-docs', 'iam'], patients: ['audit', 'api-docs', 'iam'], appointments: ['audit', 'api-docs', 'iam'], admissions: ['audit', 'api-docs', 'iam'], billing: ['audit', 'api-docs', 'iam'], i18n: [], 'api-docs': [], audit: ['api-docs', 'iam'], cache: [] };
+  const ALLOWED: Record<string, string[]> = { iam: ['audit', 'cache', 'api-docs'], administration: ['audit', 'api-docs', 'iam'], referentials: ['audit', 'api-docs', 'iam'], staff: ['audit', 'api-docs', 'iam'], patients: ['audit', 'api-docs', 'iam'], appointments: ['audit', 'api-docs', 'iam'], admissions: ['audit', 'api-docs', 'iam'], billing: ['audit', 'api-docs', 'iam'], lab: ['audit', 'api-docs', 'iam'], i18n: [], 'api-docs': [], audit: ['api-docs', 'iam'], cache: [] };
 
   it("chaque module ne dépend que des modules qu'il déclare (iam → audit, cache, façade api-docs ; administration → audit, api-docs, décorateurs iam ; les autres : aucun)", () => {
     const bad = violations((i) => {
