@@ -65,16 +65,16 @@ describe('menu de navigation', () => {
 });
 
 describe('menu de la caisse', () => {
-  const granted = ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect', 'billing.catalog:read'];
+  const granted = ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect', 'billing.catalog:read', 'billing.sessions:operate', 'billing.sessions:read:own'];
 
   it('range factures, nouvelle facture et catalogue dans le groupe « Facturation »', () => {
     const menu = visibleNavigation(NAVIGATION, ['CASHIER'], granted);
     expect(menu.map((i) => i.id)).toEqual(['dashboard', 'billing']);
-    expect(menu[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-new', 'billing-catalog']);
+    expect(menu[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-new', 'billing-session', 'billing-sessions', 'billing-catalog']);
   });
 
   it("adapte le groupe aux droits : la comptabilité lit sans créer, l'accueil ne voit que le catalogue", () => {
-    expect(visibleNavigation(NAVIGATION, ['ACCOUNTANT'], ['billing.invoices:read', 'billing.catalog:read'])[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-catalog']);
+    expect(visibleNavigation(NAVIGATION, ['ACCOUNTANT'], ['billing.invoices:read', 'billing.catalog:read', 'billing.sessions:read:all'])[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-sessions', 'billing-catalog']);
     expect(visibleNavigation(NAVIGATION, ['RECEPTIONIST'], ['billing.catalog:read'])[1].children?.map((i) => i.id)).toEqual(['billing-catalog']);
   });
 

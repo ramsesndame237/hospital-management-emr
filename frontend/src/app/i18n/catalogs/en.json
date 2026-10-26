@@ -227,7 +227,9 @@
     "billing": "Billing",
     "billingInvoices": "Invoices",
     "billingNew": "New invoice",
-    "billingCatalog": "Price catalog"
+    "billingCatalog": "Price catalog",
+    "billingSession": "My cash drawer",
+    "billingSessions": "Cash sessions"
   },
   "admin": {
     "actions": "Actions",
@@ -709,7 +711,9 @@
       "when": "Date",
       "reprint": "Reprint",
       "reprintOf": "Reprint receipt {number}",
-      "cancelledTitle": "Invoice cancelled"
+      "cancelledTitle": "Invoice cancelled",
+      "openCash": "Open my cash drawer",
+      "noCash": "You have no open cash drawer: open it to be able to collect payments."
     },
     "lines": {
       "title": "Add an item",
@@ -799,6 +803,85 @@
       "price": "Price",
       "empty": "No item matches.",
       "pagination": "Catalog pagination"
+    },
+    "session": {
+      "title": "My cash drawer",
+      "lead": "Open your drawer by counting your float, collect payments, then close it by counting what you hold.",
+      "openTitle": "Open my cash drawer",
+      "openAnother": "Open a new cash drawer",
+      "openLead": "Without an open drawer no payment can be collected. Count the notes and coins of your float.",
+      "counter": "Cash counter",
+      "counterHint": "A counter has only one open drawer at a time.",
+      "counterPlaceholder": "OPD cash 1",
+      "counterRequired": "Enter the cash counter.",
+      "floatLegend": "Float: number of notes and coins",
+      "open": "Open the drawer",
+      "opened": "Drawer {number} opened.",
+      "previewFloat": "Float: {amount}",
+      "close": "Close the drawer",
+      "closeTitle": "Close the drawer",
+      "closeLegend": "Count the cash you hold",
+      "reason": "Explanation of the variance",
+      "reasonHint": "Required if the drawer does not balance.",
+      "reasonRequired": "The drawer does not balance: explain the variance.",
+      "quantityInvalid": "Enter a whole positive quantity.",
+      "previewCounted": "Counted: {counted} · expected: {expected}",
+      "previewBalanced": "The drawer balances.",
+      "previewMissing": "{amount} is missing.",
+      "previewExtra": "{amount} too much.",
+      "previewReview": "The variance exceeds {limit}: a supervisor will have to co-sign the closing.",
+      "closedTitle": "Drawer closed",
+      "closedText": "Your drawer is closed. Print the handover sheet to hand over with the cash.",
+      "awaitingTitle": "Closing awaiting co-signature",
+      "awaitingText": "The variance exceeds the limit: a supervisor must validate the closing. You can open another drawer.",
+      "print": "Print the handover sheet",
+      "openDetail": "View details",
+      "openedAt": "Opened on {date}",
+      "closedAt": "closed on {date}",
+      "float": "Float",
+      "taken": "Collected",
+      "payments": "Payments",
+      "expected": "Expected cash",
+      "byMode": "Collected by payment mode",
+      "reconciliation": "Cash reconciliation",
+      "counted": "Counted cash",
+      "variance": "Variance",
+      "varianceReason": "Explanation",
+      "cosignedBy": "Co-signed by {name} on {date}",
+      "awaitingCosign": "Awaiting a supervisor's co-signature (variance above {limit}).",
+      "paymentList": "Session payments",
+      "status": {
+        "OPEN": "Open",
+        "AWAITING_REVIEW": "To validate",
+        "CLOSED": "Closed"
+      }
+    },
+    "sessions": {
+      "title": "Cash sessions",
+      "lead": "Open and closed drawers, with each one's variance. A supervisor validates closings whose variance exceeds the limit.",
+      "number": "Session",
+      "cashier": "Cashier",
+      "status": "Status",
+      "opened": "Opened",
+      "taken": "Collected",
+      "allStatuses": "All statuses",
+      "openOf": "Open session {number}",
+      "empty": "No session.",
+      "pagination": "Sessions pagination"
+    },
+    "sessionDetail": {
+      "back": "Back to sessions",
+      "title": "Cash session"
+    },
+    "cosign": {
+      "open": "Co-sign",
+      "panelTitle": "Co-sign the closing",
+      "title": "You are validating a cash variance",
+      "text": "The variance exceeds the limit. Co-sign only after checking with the cashier; you cannot validate your own drawer.",
+      "comment": "Comment (optional)",
+      "commentHint": "What you checked.",
+      "submit": "Co-sign the closing",
+      "done": "Session {number} co-signed."
     }
   }
 }
