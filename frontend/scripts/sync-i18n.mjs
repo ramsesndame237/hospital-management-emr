@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Synchronise les messages « partagés » avec le backend : validation (`validation.json`), noms de champs (`fields.json`)
- * et erreurs métier (`errors.json`). Le backend est la source de vérité de ces phrases ; le frontend les embarque pour que
+ * Synchronise les messages « partagés » avec le backend : validation (`validation.json`), noms de champs (`fields.json`),
+ * erreurs métier (`errors.json`), statuts d'établissement (`status.json`) et niveaux de la structure (`structure.json`).
+ * Le backend est la source de vérité de ces phrases ; le frontend les embarque pour que
  * le même contrôle (« champ obligatoire », « mot de passe trop court »…) dise exactement la même chose des deux côtés, y
  * compris hors ligne. Les textes propres à l'interface (libellés, titres) restent dans `src/app/i18n/catalogs/<langue>.json`.
  *
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = resolve(root, '..', 'backend', 'src', 'modules', 'i18n', 'catalogs');
 const target = resolve(root, 'src', 'app', 'i18n', 'catalogs');
-const SHARED = ['validation', 'fields', 'errors'];
+const SHARED = ['validation', 'fields', 'errors', 'status', 'structure'];
 const check = process.argv.includes('--check');
 
 if (!existsSync(source)) {

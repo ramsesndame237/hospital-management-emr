@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { ApiError } from './core/http/api-error';
 import { token } from './core/auth/testing/fake-auth-gateway';
 import { SessionService } from './core/auth/session.service';
+import { homeGuard } from './core/navigation/home.guard';
 import { visibleNavigation, NAVIGATION } from './core/navigation/navigation';
 import { DraftStatus } from './core/session/draft-status';
 import { IdleService } from './core/session/idle.service';
@@ -39,6 +40,32 @@ describe('menu de navigation', () => {
     const items = [{ id: 'x', labelKey: 'nav.reports', icon: 'dashboard' as const, route: '/x', permission: 'files:read:all' }];
     expect(visibleNavigation(items, [], ['files:read:own'])).toEqual([]);
     expect(visibleNavigation(items, [], ['files:read:all'])).toHaveLength(1);
+  });
+
+  it("montre à l'administrateur système l'organisation, les sites et la structure, à condition d'en avoir le droit", () => {
+    const granted = ['administration.organization:read', 'administration.facilities:read', 'administration.structure:read'];
+    expect(visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], granted).map((i) => i.id)).toEqual(['dashboard', 'admin-organization', 'admin-sites', 'admin-structure']);
+    expect(visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], ['administration.facilities:read']).map((i) => i.id)).toEqual(['dashboard', 'admin-sites']);
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], granted).some((i) => i.id.startsWith('admin-'))).toBe(false);
+  });
+});
+
+describe("accueil de l'administrateur système", () => {
+  const home = () => TestBed.runInInjectionContext(() => homeGuard({} as never, {} as never));
+
+  it("l'envoie sur l'écran Organisation, faute de patients à suivre", () => {
+    configureApp({ roles: ['SYSTEM_ADMIN'], permissions: ['administration.organization:read'] });
+    expect(String(home())).toBe('/admin/organization');
+  });
+
+  it('laisse le tableau de bord à qui cumule un rôle clinique', () => {
+    configureApp({ roles: ['SYSTEM_ADMIN', 'DOCTOR'], permissions: ['administration.organization:read'] });
+    expect(home()).toBe(true);
+  });
+
+  it("laisse le tableau de bord à qui n'a pas le droit de lire l'organisation", () => {
+    configureApp({ roles: ['SYSTEM_ADMIN'], permissions: [] });
+    expect(home()).toBe(true);
   });
 });
 

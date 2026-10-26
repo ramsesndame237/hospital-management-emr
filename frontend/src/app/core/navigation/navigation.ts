@@ -16,10 +16,14 @@ export interface NavItem {
 }
 
 const DOCTOR = ['DOCTOR'] as const;
+const SYSTEM_ADMIN = ['SYSTEM_ADMIN'] as const;
 
-/** Menu du médecin (design SHELL-01). Les menus des autres profils s'ajouteront ici, une entrée à la fois. */
+/** Menus du médecin (design SHELL-01) et de l'administrateur système (« Organisation »). Les autres profils s'ajouteront ici, une entrée à la fois. */
 export const NAVIGATION: readonly NavItem[] = [
   { id: 'dashboard', labelKey: 'nav.dashboard', icon: 'dashboard', route: '/' },
+  { id: 'admin-organization', labelKey: 'nav.adminOrganization', icon: 'organization', route: '/admin/organization', roles: SYSTEM_ADMIN, permission: 'administration.organization:read' },
+  { id: 'admin-sites', labelKey: 'nav.adminSites', icon: 'site', route: '/admin/sites', roles: SYSTEM_ADMIN, permission: 'administration.facilities:read' },
+  { id: 'admin-structure', labelKey: 'nav.adminStructure', icon: 'ward', route: '/admin/structure', roles: SYSTEM_ADMIN, permission: 'administration.structure:read' },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/modules/agenda', roles: DOCTOR },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/modules/consultations', roles: DOCTOR },
   { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },

@@ -3,6 +3,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideSpartanHlm } from '@spartan-ng/helm/utils';
 import { routes } from './app.routes';
+import { AdministrationGateway, HttpAdministrationGateway } from './core/administration/administration.gateway';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
 import { PasswordResetGateway, UnavailablePasswordResetGateway } from './core/auth/password-reset.gateway';
 import { authInterceptor } from './core/auth/auth.interceptor';
@@ -22,6 +23,7 @@ export const appConfig: ApplicationConfig = {
     // Ports → adaptateurs. Changer de serveur d'identité ou de bibliothèque d'i18n = changer ces deux lignes.
     { provide: AuthGateway, useClass: HttpAuthGateway },
     { provide: Translator, useClass: JsonTranslator },
+    { provide: AdministrationGateway, useClass: HttpAdministrationGateway },
     // Réinitialisation du mot de passe : adaptateur provisoire tant que l'API n'a pas d'endpoint (voir le fichier du port).
     { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },

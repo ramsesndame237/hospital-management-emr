@@ -24,6 +24,9 @@ export const ICON_GLYPHS = {
   consultations: '▦',
   ward: '▥',
   emergency: '◇',
+  organization: '▣',
+  site: '◫',
+  add: '+',
 } as const;
 
 export type IconName = keyof typeof ICON_GLYPHS;

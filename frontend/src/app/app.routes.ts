@@ -1,5 +1,6 @@
 import { ActivatedRouteSnapshot, Routes } from '@angular/router';
-import { authGuard, guestGuard, setupGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, permissionGuard, setupGuard } from './core/auth/auth.guards';
+import { homeGuard } from './core/navigation/home.guard';
 import { findNavItem } from './core/navigation/navigation';
 
 /** Titre (clé de catalogue) de l'écran provisoire d'un module : celui de son entrée de menu. */
@@ -22,7 +23,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layouts/shell-layout/shell-layout').then((m) => m.ShellLayout),
     children: [
-      { path: '', pathMatch: 'full', title: 'nav.dashboard', loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage) },
+      { path: '', pathMatch: 'full', canActivate: [homeGuard], title: 'nav.dashboard', loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage) },
+      // Administration de l'installation (administrateur système) : organisation, sites, structure des sites.
+      { path: 'admin/organization', canActivate: [permissionGuard('administration.organization:read')], title: 'nav.adminOrganization', loadComponent: () => import('./features/admin/organization/organization.page').then((m) => m.OrganizationPage) },
+      { path: 'admin/sites', canActivate: [permissionGuard('administration.facilities:read')], title: 'nav.adminSites', loadComponent: () => import('./features/admin/sites/sites.page').then((m) => m.SitesPage) },
+      { path: 'admin/structure', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },
+      { path: 'admin/structure/:facilityId', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },
       { path: 'profile', title: 'profile.title', loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage) },
       { path: 'modules/:module', title: moduleTitle, loadComponent: () => import('./features/modules/module-placeholder.page').then((m) => m.ModulePlaceholderPage) },
     ],
