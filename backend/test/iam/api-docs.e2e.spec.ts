@@ -47,7 +47,7 @@ describe('documentation interactive de l\'API (OpenAPI)', () => {
 
   it('documente TOUS les endpoints de la nouvelle API (résumé, groupe, réponse de succès)', () => {
     const v1 = ops().filter((o) => o.path.startsWith('/api/v1/'));
-    expect(v1.length).toBe(15); // 7 d'authentification + 8 d'administration
+    expect(v1.length).toBe(22); // 7 d'authentification + 8 d'administration des comptes + 7 d'organisation et d'établissements
     for (const { path, method, op } of v1) {
       expect({ path, method, summary: !!op.summary?.trim() }).toEqual({ path, method, summary: true });
       expect({ path, method, tags: (op.tags ?? []).length }).toEqual({ path, method, tags: 1 });
@@ -110,7 +110,7 @@ describe('documentation interactive de l\'API (OpenAPI)', () => {
   });
 
   it('organise les groupes dans l\'ordre voulu, avec leur description', () => {
-    expect(doc.tags.map((t) => t.name)).toEqual(['Authentification', 'Utilisateurs et rôles', 'Système']);
+    expect(doc.tags.map((t) => t.name)).toEqual(['Authentification', 'Utilisateurs et rôles', 'Organisation et établissements', 'Système']);
     expect(doc.tags[0].description).toContain('Parcours type');
   });
 
