@@ -32,5 +32,17 @@
   "endDate": "end date",
   "nodeId": "service or unit",
   "primary": "primary assignment",
-  "userId": "account"
+  "userId": "account",
+  "permission": "permission",
+  "departmentId": "department",
+  "ownerId": "owner",
+  "action": "action",
+  "actionPrefix": "action prefix",
+  "actorId": "actor",
+  "resourceType": "resource type",
+  "resourceId": "resource",
+  "outcome": "outcome",
+  "from": "period start",
+  "to": "period end",
+  "before": "cursor"
 }

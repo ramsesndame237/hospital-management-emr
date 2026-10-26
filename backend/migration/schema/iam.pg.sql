@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS ix_audit_log_actor ON audit_log (actor_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS ix_audit_log_resource ON audit_log (resource_type, resource_id);
 CREATE INDEX IF NOT EXISTS ix_audit_log_action ON audit_log (action, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS ix_audit_log_time ON audit_log (occurred_at DESC);
 
 CREATE OR REPLACE FUNCTION audit_log_immutable() RETURNS trigger AS $$
 BEGIN
@@ -76,7 +77,7 @@ CREATE TRIGGER trg_audit_log_no_truncate BEFORE TRUNCATE ON audit_log
 -- Rôles système. Les permissions suivent le moindre privilège ; l'administrateur système n'a AUCUN accès clinique
 -- (séparation des tâches). D'autres modules ajouteront leurs permissions à ces rôles dans leurs propres migrations.
 INSERT INTO iam_roles (code, name, requires_mfa, is_system, permissions) VALUES
-  ('SYSTEM_ADMIN',   'Administrateur système',     true,  true, ARRAY['iam.users:read','iam.users:manage','iam.roles:read','api.docs:read','folders:manage','files:read','files:upload','files:delete']),
+  ('SYSTEM_ADMIN',   'Administrateur système',     true,  true, ARRAY['iam.users:read','iam.users:manage','iam.roles:read','audit:read','api.docs:read','folders:manage','files:read','files:upload','files:delete']),
   ('DOCTOR',         'Médecin',                    true,  true, ARRAY['files:read:department','files:upload','folders:manage:own','files.clinical:read:department','files.clinical:upload','files.clinical:break-glass']),
   ('NURSE',          'Infirmier(ère)',             true,  true, ARRAY['files:read:department','files:upload','folders:manage:own','files.clinical:read:department','files.clinical:upload']),
   ('PHARMACIST',     'Pharmacien(ne)',             true,  true, ARRAY['files:read:department','files:upload','folders:manage:own','files.clinical:read:department']),

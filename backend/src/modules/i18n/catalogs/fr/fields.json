@@ -32,5 +32,17 @@
   "endDate": "date de fin",
   "nodeId": "service ou unité",
   "primary": "affectation principale",
-  "userId": "compte"
+  "userId": "compte",
+  "permission": "permission",
+  "departmentId": "service",
+  "ownerId": "titulaire",
+  "action": "action",
+  "actionPrefix": "début d'action",
+  "actorId": "acteur",
+  "resourceType": "type de ressource",
+  "resourceId": "ressource",
+  "outcome": "résultat",
+  "from": "début de période",
+  "to": "fin de période",
+  "before": "curseur"
 }

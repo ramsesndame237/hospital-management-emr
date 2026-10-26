@@ -23,6 +23,8 @@ export class StaffModule {
   static register(): DynamicModule {
     return {
       module: StaffModule,
+      // Global : la racine de composition (`src/integration`) en consomme les dépôts sans réimporter (ni dupliquer) le module.
+      global: true,
       controllers: [StaffController, AssignmentsController],
       providers: [
         { provide: STAFF_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgStaffRepository(sql) },
@@ -63,6 +65,7 @@ export class StaffModule {
             new ManageAssignmentsUseCases(s, a, d, ids, audit, clock, cal),
         },
       ],
+      exports: [STAFF_REPOSITORY, ASSIGNMENT_REPOSITORY],
     };
   }
 }

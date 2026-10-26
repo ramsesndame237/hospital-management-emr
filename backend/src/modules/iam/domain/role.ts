@@ -1,4 +1,4 @@
-import { Permission } from './value-objects/permission';
+import { Permission, Scope, SCOPES } from './value-objects/permission';
 import { RoleCode } from './value-objects/role-code';
 
 /** Rôle : un nom, un ensemble de permissions et l'exigence (ou non) d'une authentification à deux facteurs. */
@@ -23,6 +23,15 @@ export const AccessPolicy = {
 
   can(granted: readonly Permission[], required: Permission): boolean {
     return granted.some((p) => p.implies(required));
+  },
+
+  /**
+   * Portées accordées explicitement pour cette action, de la plus étroite à la plus large. Une permission « all » n'est pas
+   * développée en « department » et « own » : c'est à l'appelant de raisonner à partir de la plus large.
+   */
+  scopesOf(granted: readonly Permission[], resource: string, action: string): Scope[] {
+    const found = new Set(granted.filter((p) => p.resource === resource && p.action === action).map((p) => p.scope));
+    return SCOPES.filter((s) => found.has(s));
   },
 
   requiresMfa(roles: readonly Role[]): boolean {

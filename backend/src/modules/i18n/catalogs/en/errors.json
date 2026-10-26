@@ -85,6 +85,7 @@
   "ASSIGNMENT_OUTSIDE_EMPLOYMENT": "The assignment period falls outside the person's employment period (hiring, departure).",
   "ASSIGNMENT_OVERLAPS": "The person already has an assignment to this service or unit during part of this period.",
   "ASSIGNMENT_PRIMARY_CONFLICT": "The person already has a primary assignment during this period: remove its primary status or end it first.",
+  "AUDIT_FILTER_INVALID": "Invalid \"{field}\" filter.",
   "FORBIDDEN": "You are not allowed to perform this action.",
   "VALIDATION_FAILED": "The submitted data is invalid.",
   "HTTP_400": "Invalid request.",

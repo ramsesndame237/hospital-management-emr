@@ -2,12 +2,15 @@ import { Body, Controller, DefaultValuePipe, Get, HttpCode, Inject, Param, Parse
 import { DocGroup, DocOperation } from '../../api-docs';
 import type { DocParam } from '../../api-docs';
 import { CreateUserUseCase, ListUsersUseCase, ManageUserUseCases } from '../application/use-cases/manage-users';
+import { GetUserAccessUseCase } from '../application/use-cases/user-access';
 import { ROLE_REPOSITORY } from '../domain/ports';
 import type { RoleRepository } from '../domain/ports';
 import { CurrentUser, RequirePermissions } from './decorators';
 import type { AuthUser } from './decorators';
+import { AccessDecisionDto, PermissionCatalogEntryDto, UserAccessDto } from './dto/access.dto';
 import { AssignRolesDto, CreateUserDto } from './dto/auth.dto';
 import { CreatedUserDto, RoleDto, UserDto, UserPageDto } from './dto/responses.dto';
+import { PermissionCatalog } from './permission-catalog';
 import { unwrap } from './http-errors';
 
 const ID: DocParam = { name: 'id', description: 'Identifiant du compte.', example: '5d81b4cd-ecd1-47f4-9185-d6c4be1e1c73', format: 'uuid' };
@@ -29,6 +32,8 @@ export class UsersController {
     private readonly listUsers: ListUsersUseCase,
     private readonly createUser: CreateUserUseCase,
     private readonly manage: ManageUserUseCases,
+    private readonly access: GetUserAccessUseCase,
+    private readonly catalog: PermissionCatalog,
     @Inject(ROLE_REPOSITORY) private readonly roles: RoleRepository,
   ) {}
 
@@ -132,5 +137,54 @@ export class UsersController {
   async listRoles(): Promise<RoleDto[]> {
     const roles = await this.roles.findAll();
     return roles.map((r) => ({ code: r.code.value, name: r.name, requiresMfa: r.requiresMfa, isSystem: r.isSystem, permissions: r.permissions.map((p) => p.value) }));
+  }
+
+  @DocOperation({
+    summary: "Droits effectifs d'un compte",
+    description: "Ce que le compte peut faire **aujourd'hui** : rôles, permissions (avec portée) et services de rattachement. À consulter pour répondre à « qui pouvait quoi ? ».",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Droits effectifs.', type: UserAccessDto }],
+    errors: [400, 404],
+    params: [ID],
+  })
+  @RequirePermissions('iam.users:read') @Get('users/:id/access')
+  async userAccess(@Param('id', ParseUUIDPipe) id: string): Promise<UserAccessDto> {
+    return unwrap(await this.access.execute(id));
+  }
+
+  @DocOperation({
+    summary: "Expliquer une décision d'accès",
+    description:
+      "Calcule, sans rien exécuter, si le compte pourrait faire l'action `permission` (`ressource:action`) sur une ressource donnée, et pourquoi. `departmentId` et `ownerId` décrivent la ressource ; une information absente ne donne jamais accès. Même calcul que celui des modules métier.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'La décision et sa raison.', type: AccessDecisionDto }],
+    errors: [400, 404, 422],
+    params: [ID],
+    query: [
+      { name: 'permission', description: 'Action testée, sans portée.', example: 'files.clinical:read' },
+      { name: 'departmentId', description: 'Service auquel appartient la ressource.', example: '9b1c0a5e-34d2-4b8e-a8c1-52f3b7a1d001', format: 'uuid' },
+      { name: 'ownerId', description: 'Titulaire de la ressource (identifiant de compte).', example: '5d81b4cd-ecd1-47f4-9185-d6c4be1e1c73', format: 'uuid' },
+    ],
+  })
+  @RequirePermissions('iam.users:read') @Get('users/:id/access/explain')
+  async explainAccess(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('permission') permission: string,
+    @Query('departmentId') departmentId?: string,
+    @Query('ownerId') ownerId?: string,
+  ): Promise<AccessDecisionDto> {
+    return unwrap(await this.access.explain(id, permission, { departmentId, ownerId }));
+  }
+
+  @DocOperation({
+    summary: "Inventaire des permissions de l'API",
+    description:
+      "Toutes les permissions, relevées sur les routes elles-mêmes puis croisées avec les rôles : où chacune est exigée, et qui l'accorde. Une permission accordée mais exigée par aucune route est probablement obsolète (ou en avance sur son module).",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Les permissions, par ordre alphabétique.', type: PermissionCatalogEntryDto, isArray: true }],
+  })
+  @RequirePermissions('iam.roles:read') @Get('permissions')
+  permissions(): Promise<PermissionCatalogEntryDto[]> {
+    return this.catalog.list() as Promise<PermissionCatalogEntryDto[]>;
   }
 }
