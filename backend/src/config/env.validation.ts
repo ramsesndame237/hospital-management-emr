@@ -27,6 +27,14 @@ export interface Env {
   COOKIE_SECURE: boolean;
   /** Vérification des mots de passe compromis (API HIBP, k-anonymité : seuls 5 caractères du hachage SHA-1 sont envoyés). */
   BREACH_CHECK_ENABLED: boolean;
+  /** Bibliothèque d'i18n derrière le port `Translator` : `nestjs-i18n` (@nestjs/i18n) ou `json` (sans bibliothèque). */
+  I18N_ADAPTER: 'nestjs-i18n' | 'json';
+  I18N_LOCALES: string[];
+  I18N_DEFAULT_LOCALE: string;
+  /** Dossier des catalogues ; vide = ceux livrés avec le code. */
+  I18N_CATALOGS_DIR: string;
+  /** Documentation interactive de l'API (`/api-docs`). Désactivée par défaut en production. */
+  API_DOCS_ENABLED: boolean;
 }
 
 const bool = (v: unknown, d: boolean) => (v === undefined || v === '' ? d : ['1', 'true', 'yes'].includes(String(v).toLowerCase()));
@@ -55,8 +63,17 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     LEGACY_PASSWORD_SALT: String(raw.LEGACY_PASSWORD_SALT ?? ''),
     COOKIE_SECURE: bool(raw.COOKIE_SECURE, String(raw.NODE_ENV) === 'production'),
     BREACH_CHECK_ENABLED: bool(raw.BREACH_CHECK_ENABLED, String(raw.NODE_ENV) === 'production'),
+    I18N_ADAPTER: String(raw.I18N_ADAPTER ?? 'nestjs-i18n') as Env['I18N_ADAPTER'],
+    I18N_LOCALES: String(raw.I18N_LOCALES ?? 'fr,en').split(',').map((s) => s.trim()).filter(Boolean),
+    I18N_DEFAULT_LOCALE: String(raw.I18N_DEFAULT_LOCALE ?? 'fr').trim(),
+    I18N_CATALOGS_DIR: String(raw.I18N_CATALOGS_DIR ?? ''),
+    API_DOCS_ENABLED: bool(raw.API_DOCS_ENABLED, String(raw.NODE_ENV ?? 'development') !== 'production'),
   };
   const errors: string[] = [];
+  if (!['nestjs-i18n', 'json'].includes(env.I18N_ADAPTER)) errors.push("I18N_ADAPTER doit valoir 'nestjs-i18n' ou 'json'");
+  const tag = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$/;
+  if (env.I18N_LOCALES.length === 0 || !env.I18N_LOCALES.every((l) => tag.test(l))) errors.push('I18N_LOCALES : liste de langues BCP 47 séparées par des virgules (ex. fr,en)');
+  else if (!env.I18N_LOCALES.some((l) => l.toLowerCase() === env.I18N_DEFAULT_LOCALE.toLowerCase())) errors.push('I18N_DEFAULT_LOCALE doit figurer dans I18N_LOCALES');
   if (!Number.isInteger(env.PORT) || env.PORT <= 0) errors.push('PORT invalide');
   if (!Number.isInteger(env.DB_PORT) || env.DB_PORT <= 0) errors.push('DB_PORT invalide');
   if (env.NODE_ENV === 'production') {
@@ -67,7 +84,10 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     if (!env.COOKIE_SECURE) errors.push('COOKIE_SECURE=false est interdit en production');
   }
   if (env.SECRET_ENCRYPTION_KEY && Buffer.from(env.SECRET_ENCRYPTION_KEY, 'base64').length !== 32) {
-    errors.push('SECRET_ENCRYPTION_KEY doit être 32 octets encodés en base64');
+    errors.push(
+      `SECRET_ENCRYPTION_KEY doit être 32 octets encodés en base64 (reçu : ${Buffer.from(env.SECRET_ENCRYPTION_KEY, 'base64').length} octets). ` +
+        `Générer : node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`,
+    );
   }
   if (env.NODE_ENV === 'production' && !env.SECRET_ENCRYPTION_KEY) errors.push('SECRET_ENCRYPTION_KEY est obligatoire en production');
   if (!(env.ACCESS_TOKEN_MINUTES > 0 && env.ACCESS_TOKEN_MINUTES <= 60)) errors.push('ACCESS_TOKEN_MINUTES doit être entre 1 et 60');

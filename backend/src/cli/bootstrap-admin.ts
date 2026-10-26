@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
+import { loadLocalEnv } from '../config/load-env';
 import { configurePgTypes } from '../database/pg-types';
 import { SQL_EXECUTOR, SqlExecutor } from '../database/sql-executor';
 import { CreateUserUseCase } from '../modules/iam/application/use-cases/manage-users';
@@ -17,6 +18,7 @@ async function main(): Promise<void> {
   const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
   if (!email) throw new Error('BOOTSTRAP_ADMIN_EMAIL est obligatoire.');
 
+  loadLocalEnv();
   configurePgTypes();
   const app = await NestFactory.createApplicationContext(AppModule.register(), { logger: ['error', 'warn'] });
   try {

@@ -125,7 +125,11 @@ describe('JwtTokenIssuer', () => {
 
   it('émet un jeton vérifiable et expirant dans 15 minutes', async () => {
     const { token, expiresAt } = await issuer.issue(claims);
-    expect(await issuer.verify(token)).toEqual(claims);
+    const verified = await issuer.verify(token);
+    expect(verified).toMatchObject(claims);
+    // `verify` renvoie aussi la fin de validité (utilisée pour borner la durée du cookie de documentation).
+    expect(verified?.expiresAt?.epochMilliseconds).toBeGreaterThan(Date.now() + 14 * 60_000);
+    expect(verified?.expiresAt?.epochMilliseconds).toBeLessThanOrEqual(Date.now() + 15 * 60_000 + 1000);
     const minutes = expiresAt.epochMilliseconds / 60_000 - Date.now() / 60_000;
     expect(minutes).toBeGreaterThan(14);
     expect(minutes).toBeLessThanOrEqual(15);

@@ -4,9 +4,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
-import type { Redis } from 'ioredis';
 import { SQL_EXECUTOR, SqlExecutor } from '../../database/sql-executor';
 import { REDIS } from '../../platform/platform.module';
+import type { RedisClient } from '../../platform/platform.module';
 import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/ports';
 import { Temporal } from '../../shared-kernel/temporal';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
@@ -52,6 +52,8 @@ export class IamModule {
     const rateLimiting = options.rateLimiting ?? true;
     return {
       module: IamModule,
+      // Global : la racine de composition (`src/integration`) en consomme les services sans réimporter (ni dupliquer) le module.
+      global: true,
       imports: rateLimiting ? [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }])] : [],
       controllers: [AuthController, UsersController],
       providers: [
@@ -98,7 +100,7 @@ export class IamModule {
         {
           provide: REFRESH_SESSION_STORE,
           inject: [REDIS],
-          useFactory: (redis: Redis | null) => (redis ? new RedisRefreshSessionStore(redis) : new MemoryRefreshSessionStore()),
+          useFactory: (redis: RedisClient | null) => (redis ? new RedisRefreshSessionStore(redis) : new MemoryRefreshSessionStore()),
         },
         { provide: RefreshCookie, inject: [ConfigService], useFactory: (cfg: ConfigService) => new RefreshCookie(cfg.get<boolean>('COOKIE_SECURE') ?? true) },
 

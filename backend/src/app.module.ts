@@ -7,6 +7,8 @@ import { validateEnv } from './config/env.validation';
 import { ALL_ENTITIES } from './database/entities';
 import { HealthController } from './health/health.controller';
 import { IamModule } from './modules/iam/iam.module';
+import { LocalizationModule } from './modules/i18n/localization.module';
+import { ApiDocsIntegrationModule } from './integration/api-docs.integration';
 import { PlatformModule } from './platform/platform.module';
 
 /**
@@ -16,7 +18,7 @@ import { PlatformModule } from './platform/platform.module';
 @Module({})
 export class AppModule {
   static register(options: { database?: boolean } = {}): DynamicModule {
-    const imports: DynamicModule['imports'] = [ConfigModule.forRoot({ isGlobal: true, validate: validateEnv })];
+    const imports: DynamicModule['imports'] = [ConfigModule.forRoot({ isGlobal: true, validate: validateEnv, ignoreEnvFile: process.env.NODE_ENV === 'test' })];
     const useDb = options.database ?? process.env.DB_ENABLED !== 'false';
     if (useDb) {
       imports.push(
@@ -36,8 +38,21 @@ export class AppModule {
         }),
       );
     }
+    // Internationalisation : transversale (messages d'erreur, validation), donc toujours présente, base ou non.
+    const env = validateEnv(process.env);
+    imports.push(
+      LocalizationModule.register({
+        adapter: env.I18N_ADAPTER,
+        locales: env.I18N_LOCALES,
+        defaultLocale: env.I18N_DEFAULT_LOCALE,
+        catalogsDir: env.I18N_CATALOGS_DIR || undefined,
+        watch: env.NODE_ENV === 'development',
+      }),
+    );
     // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
     if (useDb) imports.push(PlatformModule.register(), IamModule.register());
+    // Toujours présent (accès `null` sans base) : voir `ApiDocsIntegrationModule`.
+    imports.push(ApiDocsIntegrationModule.register({ identity: useDb }));
     return {
       module: AppModule,
       imports,

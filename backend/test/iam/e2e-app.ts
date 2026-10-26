@@ -7,10 +7,15 @@ import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { PGlite } from '@electric-sql/pglite';
 import { configureApp } from '../../src/app.setup';
+import type { ApiDocsOptions } from '../../src/modules/api-docs';
+import { buildApiDocsOptions } from '../../src/config/api-docs.config';
 import { validateEnv } from '../../src/config/env.validation';
 import { SQL_EXECUTOR } from '../../src/database/sql-executor';
 import { PgAuditLog } from '../../src/modules/audit/infrastructure/pg-audit-log';
+import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
+import { HealthController } from '../../src/health/health.controller';
 import { IamModule } from '../../src/modules/iam/iam.module';
+import { I18nAdapterName, LocalizationModule } from '../../src/modules/i18n/localization.module';
 import {
   PASSWORD_HASHER, PasswordHasher, SECRET_CIPHER, SecretCipher, USER_REPOSITORY, UserRepository,
 } from '../../src/modules/iam/domain/ports';
@@ -41,7 +46,15 @@ export interface TestWorld {
 }
 
 /** Application complète (mêmes modules, gardes et configuration HTTP qu'en production) sur PostgreSQL embarqué ; Redis remplacé par la mémoire. */
-export async function createTestWorld(options: { rateLimiting?: boolean } = {}): Promise<TestWorld> {
+export async function createTestWorld(options: {
+    rateLimiting?: boolean;
+    i18nAdapter?: I18nAdapterName;
+    docs?: boolean;
+    /** Surcharge des options de documentation (p. ex. `{ requireLogin: false }`). */
+    docsOptions?: Partial<ApiDocsOptions>;
+    secureCookies?: boolean;
+    beforeInit?: (app: NestExpressApplication) => void;
+  } = {}): Promise<TestWorld> {
   const db = new PGlite();
   await db.exec(DDL);
   const sql = new PgliteSql(db);
@@ -59,9 +72,12 @@ export async function createTestWorld(options: { rateLimiting?: boolean } = {}):
   };
 
   const moduleRef = await Test.createTestingModule({
+    controllers: [HealthController],
     imports: [
       ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, ignoreEnvVars: true, validate: () => validateEnv(env) as never }),
+      LocalizationModule.register({ adapter: options.i18nAdapter ?? 'nestjs-i18n', locales: ['fr', 'en'], defaultLocale: 'fr' }),
       PlatformModule.register(),
+      ApiDocsIntegrationModule.register(),
       IamModule.register({ rateLimiting: options.rateLimiting ?? false }),
     ],
   })
@@ -70,7 +86,8 @@ export async function createTestWorld(options: { rateLimiting?: boolean } = {}):
     .compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>();
-  configureApp(app as NestExpressApplication, { corsOrigins: ['http://localhost:4200'] });
+  configureApp(app as NestExpressApplication, { corsOrigins: ['http://localhost:4200'], docs: options.docs ? { ...buildApiDocsOptions(true), ...options.docsOptions } : undefined, secureCookies: options.secureCookies ?? false });
+  options.beforeInit?.(app as NestExpressApplication);
   await app.init();
 
   const users = app.get<UserRepository>(USER_REPOSITORY);

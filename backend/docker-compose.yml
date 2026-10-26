@@ -3,13 +3,14 @@
 # Le schéma est chargé au premier démarrage depuis migration/schema/schema.pg.sql (déduit du code C#).
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-sanjeevani}
       POSTGRES_USER: ${DB_USER:-sanjeevani}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD est obligatoire (voir .env.example)}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PostgreSQL 18+ : le répertoire de données est /var/lib/postgresql/18/docker ; le volume se monte donc sur le parent.
+      - pgdata:/var/lib/postgresql
       - ./migration/schema/schema.pg.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sanjeevani} -d ${DB_NAME:-sanjeevani}"]
@@ -53,6 +54,11 @@ services:
       # Mettre false uniquement pour un essai local en HTTP ; en production l'API refuse de démarrer avec false.
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       BREACH_CHECK_ENABLED: ${BREACH_CHECK_ENABLED:-true}
+      # Documentation interactive (/api-docs, connexion + permission api.docs:read). Fermée par défaut ; mettre true en démo.
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      I18N_ADAPTER: ${I18N_ADAPTER:-nestjs-i18n}
+      I18N_LOCALES: ${I18N_LOCALES:-fr,en}
+      I18N_DEFAULT_LOCALE: ${I18N_DEFAULT_LOCALE:-fr}
     ports:
       - "3000:3000"
 

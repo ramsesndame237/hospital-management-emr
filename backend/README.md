@@ -10,6 +10,13 @@ Remplaçant progressif du backend ASP.NET Core / .NET Framework 4.6.1 (Windows u
 - **Module 1 — Identité & accès (`/api/v1`)** : authentification (Argon2id, MFA TOTP, sessions rotatives), rôles/permissions, journal d'audit chaîné, cache et sessions Redis. Architecture, API, exploitation : [`docs/migration/IAM_FILES_MODULE.md`](../docs/migration/IAM_FILES_MODULE.md). Premier administrateur : `npm run iam:bootstrap-admin`.
 - Les autres modules métier (compatibilité `api/<Contrôleur>/<action>`) restent à migrer.
 
+## Essayer sans rien installer
+
+```bash
+npm run playground      # API complète en mémoire + compte de démonstration par profil
+# puis http://localhost:3100/api-docs   (connexion : system_admin + code de /dev/totp, ou cashier)
+```
+
 ## Démarrer
 
 ```bash
