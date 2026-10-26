@@ -1,3 +1,5 @@
+import type { ApprovalSummary } from './approval.models';
+
 /** Statuts d'une facture : le code est stable, l'interface le traduit (`billing.status.<CODE>`). */
 export const INVOICE_STATUSES = ['DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
@@ -58,6 +60,10 @@ export interface Invoice {
   readonly cancellationReason: string | null;
   readonly issuedAt: string | null;
   readonly payments: readonly Payment[];
+  /** Demandes d'approbation de la facture (remise, annulation), la plus récente en premier. */
+  readonly approvals: readonly ApprovalSummary[];
+  /** Remise (en % du sous-total) au-delà de laquelle un responsable doit l'approuver : en deçà, elle s'applique directement. */
+  readonly discountApprovalPercent: number;
 }
 
 /** Une facture dans une liste : ses totaux, sans ses lignes. */

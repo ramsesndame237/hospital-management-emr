@@ -229,7 +229,8 @@
     "billingNew": "Nouvelle facture",
     "billingCatalog": "Catalogue des tarifs",
     "billingSession": "Ma caisse",
-    "billingSessions": "Sessions de caisse"
+    "billingSessions": "Sessions de caisse",
+    "billingApprovals": "Approbations"
   },
   "admin": {
     "actions": "Actions",
@@ -713,7 +714,8 @@
       "reprintOf": "Réimprimer le reçu {number}",
       "cancelledTitle": "Facture annulée",
       "openCash": "Ouvrir ma caisse",
-      "noCash": "Vous n’avez pas de caisse ouverte : ouvrez votre caisse pour pouvoir encaisser."
+      "noCash": "Vous n’avez pas de caisse ouverte : ouvrez votre caisse pour pouvoir encaisser.",
+      "requestCancel": "Demander l’annulation"
     },
     "lines": {
       "title": "Ajouter un acte",
@@ -736,7 +738,9 @@
       "apply": "Appliquer la remise",
       "remove": "Retirer la remise",
       "removed": "Remise retirée.",
-      "applied": "Remise appliquée."
+      "applied": "Remise appliquée.",
+      "needsApproval": "Cette remise dépasse {percent} % de la facture ({limit}) : elle sera envoyée à un responsable, qui l’acceptera ou la refusera.",
+      "sendRequest": "Envoyer pour approbation"
     },
     "issue": {
       "title": "Émettre la facture",
@@ -882,6 +886,76 @@
       "commentHint": "Ce que vous avez vérifié.",
       "submit": "Contre-signer la clôture",
       "done": "Session {number} contre-signée."
+    },
+    "approval": {
+      "title": "Approbations",
+      "lead": "Une remise au-delà du seuil ou l’annulation d’une facture émise passe par l’accord d’un responsable. Les demandes en attente sont en tête.",
+      "leadOwn": "Vos demandes d’accord et leur suite. Un responsable accepte ou refuse chacune ; vous pouvez retirer celle qui attend encore.",
+      "kind": {
+        "DISCOUNT": "Remise",
+        "CANCEL": "Annulation"
+      },
+      "status": {
+        "PENDING": "En attente",
+        "APPROVED": "Acceptée",
+        "REJECTED": "Refusée",
+        "WITHDRAWN": "Retirée"
+      },
+      "filterStatus": "Statut",
+      "filterKind": "Type",
+      "allStatuses": "Tous les statuts",
+      "allKinds": "Tous les types",
+      "invoice": "Facture",
+      "request": "Demande",
+      "requestedBy": "Demandeur",
+      "requestedAt": "Envoyée le",
+      "decision": "Décision",
+      "discountText": "Remise de {amount} sur {subtotal}",
+      "cancelText": "Annulation de la facture ({total})",
+      "reasonOf": "Motif : {reason}",
+      "decidedBy": "{name}, le {date}",
+      "openOf": "Ouvrir la facture {number}",
+      "empty": "Aucune demande.",
+      "pagination": "Pagination des demandes",
+      "outdated": "La facture a changé depuis cette demande : elle ne peut plus être acceptée, seulement refusée ou retirée.",
+      "approve": "Accepter",
+      "reject": "Refuser",
+      "withdraw": "Retirer",
+      "approveOf": "Accepter la demande sur {number}",
+      "rejectOf": "Refuser la demande sur {number}",
+      "withdrawOf": "Retirer la demande sur {number}",
+      "approvePanel": "Accepter la demande",
+      "rejectPanel": "Refuser la demande",
+      "approveTitle": "Vous autorisez cette opération",
+      "approveText": "La remise ou l’annulation est appliquée à la facture tout de suite. Vous ne pouvez pas décider de votre propre demande.",
+      "rejectTitle": "La demande sera refusée",
+      "rejectText": "La facture reste telle quelle. Le demandeur lira votre explication.",
+      "approveComment": "Commentaire (facultatif)",
+      "rejectComment": "Motif du refus",
+      "approveSubmit": "Accepter la demande",
+      "rejectSubmit": "Refuser la demande",
+      "keep": "Laisser en attente",
+      "approved": "Demande acceptée.",
+      "rejected": "Demande refusée.",
+      "withdrawn": "Demande retirée.",
+      "sent": "Demande envoyée à un responsable."
+    },
+    "approvalNotice": {
+      "DISCOUNT": "Remise de {amount} en attente de l’accord d’un responsable. Tant qu’elle n’est pas décidée, la facture ne peut plus être modifiée.",
+      "CANCEL": "Annulation en attente de l’accord d’un responsable. Tant qu’elle n’est pas décidée, la facture ne peut plus être modifiée.",
+      "by": "Demande de {name}, envoyée le {date}.",
+      "outdated": "La facture a changé depuis cette demande : un responsable ne pourra que la refuser.",
+      "withdraw": "Retirer ma demande",
+      "history": "Demandes d’approbation",
+      "rejectedBy": "Refusée par {name} : {comment}"
+    },
+    "cancelRequest": {
+      "title": "Demander l’annulation",
+      "warningTitle": "Un responsable doit donner son accord",
+      "warningText": "Une facture émise ne s’annule pas seule. Votre demande part à un responsable ; la facture ne peut plus être modifiée en attendant sa décision.",
+      "submit": "Envoyer la demande",
+      "reason": "Motif de l’annulation",
+      "keep": "Garder la facture"
     }
   }
 }

@@ -2,6 +2,8 @@ import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { ApprovalGateway } from '../../../core/billing/approval.gateway';
+import { ApprovalSummary, discountNeedsApproval, isPending } from '../../../core/billing/approval.models';
 import { BillingGateway } from '../../../core/billing/billing.gateway';
 import { CashSessionGateway } from '../../../core/billing/cash-session.gateway';
 import { BillableItem, CollectedPayment, Invoice, InvoiceLine, Page, Payment, Receipt, isCancellable, isDraft, isPayable } from '../../../core/billing/billing.models';
@@ -18,6 +20,7 @@ import { FieldSchema, FormAction } from '../../../shared/form-builder/form-schem
 import { StatusTag } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { collectFields, confirmFields, discountFields, itemSearchFields, reprintFields } from '../billing.forms';
+import { approvalTag } from '../approval-status';
 import { invoiceTag } from '../invoice-status';
 
 const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50';
@@ -88,7 +91,7 @@ interface PanelView {
           </div>
 
           <div class="flex flex-wrap gap-3">
-            @if (canWrite() && draft()) {
+            @if (canWrite() && draft() && !awaiting()) {
               <button hlmBtn type="button" variant="outline" [class]="primary" (click)="open({ kind: 'addLine' })">{{ i18n.t('billing.detail.addLine') }}</button>
               <button hlmBtn type="button" variant="outline" [class]="primary" (click)="open({ kind: 'discount' })">{{ i18n.t('billing.detail.discount') }}</button>
               <button hlmBtn type="button" [class]="primary" [disabled]="inv.lines.length === 0" (click)="open({ kind: 'issue' })">{{ i18n.t('billing.detail.issue') }}</button>
@@ -100,14 +103,30 @@ interface PanelView {
                 <button hlmBtn type="button" [class]="primary" (click)="open({ kind: 'collect' })">{{ i18n.t('billing.detail.collect') }}</button>
               }
             }
-            @if (canWrite() && cancellable()) {
-              <button hlmBtn type="button" variant="outline" [class]="primary" (click)="open({ kind: 'cancel' })">{{ i18n.t('billing.detail.cancel') }}</button>
+            @if (canCancel() && !awaiting()) {
+              <button hlmBtn type="button" variant="outline" [class]="primary" (click)="open({ kind: 'cancel' })">{{ i18n.t(draft() ? 'billing.detail.cancel' : 'billing.detail.requestCancel') }}</button>
             }
           </div>
         </header>
 
         @if (canCollect() && payable() && cashOpen() === false) {
           <p class="border-l-4 border-status-warning bg-card p-3 text-sm leading-6" role="status">{{ i18n.t('billing.detail.noCash') }}</p>
+        }
+
+        @if (awaiting(); as wait) {
+          <section class="flex flex-wrap items-start justify-between gap-3 border-l-4 border-status-warning bg-card p-3 text-sm leading-6" role="status" aria-labelledby="approval-pending">
+            <div class="flex flex-col">
+              <p id="approval-pending" class="font-medium">{{ i18n.t('billing.approvalNotice.' + wait.kind, { amount: money(wait.amount ?? 0) }) }}</p>
+              <p class="text-muted-foreground">{{ i18n.t('billing.approvalNotice.by', { name: wait.requestedBy?.username ?? '', date: when(wait.requestedAt) }) }}</p>
+              <p class="text-muted-foreground">{{ i18n.t('billing.approval.reasonOf', { reason: wait.reason }) }}</p>
+              @if (wait.outdated) {
+                <p class="text-status-warning">{{ i18n.t('billing.approvalNotice.outdated') }}</p>
+              }
+            </div>
+            @if (canRequest() && wait.requestedBy?.id === user()?.id) {
+              <button type="button" [class]="link" [disabled]="busy()" (click)="withdraw(wait)">{{ i18n.t('billing.approvalNotice.withdraw') }}</button>
+            }
+          </section>
         }
 
         @if (actionError()) {
@@ -147,7 +166,7 @@ interface PanelView {
                         <td class="px-4 py-3 text-right font-mono">{{ l.quantity }}</td>
                         <td class="px-4 py-3 text-right font-mono">{{ money(l.total) }}</td>
                         <td class="px-4 py-3 text-right">
-                          @if (canWrite() && draft()) {
+                          @if (canWrite() && draft() && !awaiting()) {
                             <button type="button" [class]="link" [attr.aria-label]="i18n.t('billing.detail.removeOf', { name: l.itemName })" (click)="removeLine(l)">{{ i18n.t('billing.detail.remove') }}</button>
                           }
                         </td>
@@ -212,6 +231,28 @@ interface PanelView {
                 </div>
               }
             </section>
+
+            @if (inv.approvals.length > 0) {
+              <section class="border border-border bg-card">
+                <h2 class="border-b border-border px-4 py-3 text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('billing.approvalNotice.history') }}</h2>
+                <ul class="flex flex-col">
+                  @for (a of inv.approvals; track a.id) {
+                    <li class="flex flex-col gap-1 border-b border-border px-4 py-3 text-sm leading-6 last:border-b-0">
+                      <span class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium">{{ i18n.t('billing.approval.kind.' + a.kind) }}@if (a.amount !== null) { · {{ money(a.amount) }}}</span>
+                        <app-status-tag [text]="approvalLabel(a)" [tone]="approvalToneOf(a)" />
+                      </span>
+                      <span class="text-muted-foreground">{{ i18n.t('billing.approval.reasonOf', { reason: a.reason }) }} · {{ a.requestedBy?.username }}, {{ when(a.requestedAt) }}</span>
+                      @if (a.status === 'REJECTED') {
+                        <span>{{ i18n.t('billing.approvalNotice.rejectedBy', { name: a.decidedBy?.username ?? '', comment: a.decisionComment ?? '' }) }}</span>
+                      } @else if (a.status === 'APPROVED' && a.decisionComment) {
+                        <span class="text-muted-foreground">{{ a.decidedBy?.username }} : {{ a.decisionComment }}</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           </div>
 
           @for (current of panelRows(); track current.key) {
@@ -236,6 +277,10 @@ interface PanelView {
                       }
                     </ul>
                   }
+                }
+
+                @if (panel()?.kind === 'discount' && discountOverLimit()) {
+                  <p class="border-l-4 border-status-warning bg-card p-3 text-sm leading-6" role="status">{{ i18n.t('billing.discount.needsApproval', { percent: inv.discountApprovalPercent, limit: money(limitOf(inv)) }) }}</p>
                 }
 
                 @if (panel()?.kind === 'collect' && collectPreview(); as preview) {
@@ -275,11 +320,12 @@ export class InvoiceDetailPage {
   protected readonly i18n = inject(Translator);
   private readonly gateway = inject(BillingGateway);
   private readonly sessions = inject(CashSessionGateway);
+  private readonly approvals = inject(ApprovalGateway);
   private readonly formatter = inject(MoneyFormatter);
   private readonly dates = inject(DateTimeFormatter);
   private readonly toast = inject(ToastService);
   private readonly document = inject(DOCUMENT);
-  private readonly user = inject(SessionStore).user;
+  protected readonly user = inject(SessionStore).user;
   private readonly form = viewChild<FormBuilderComponent>('form');
 
   /** Identifiant de la facture, lu dans l'adresse (`/billing/invoices/:id`). */
@@ -301,12 +347,25 @@ export class InvoiceDetailPage {
   private readonly notice = signal<string | null>(null);
   private readonly quantity = signal(1);
   private readonly collectValues = signal<Record<string, unknown>>({});
+  private readonly discountValues = signal<Record<string, unknown>>({});
 
   protected readonly canWrite = computed(() => hasPermission(this.user()?.permissions ?? [], 'billing.invoices:write'));
   protected readonly canCollect = computed(() => hasPermission(this.user()?.permissions ?? [], 'billing.payments:collect'));
   protected readonly draft = computed(() => !!this.invoice() && isDraft(this.invoice()!));
   protected readonly payable = computed(() => !!this.invoice() && isPayable(this.invoice()!));
   protected readonly cancellable = computed(() => !!this.invoice() && isCancellable(this.invoice()!));
+  protected readonly canRequest = computed(() => hasPermission(this.user()?.permissions ?? [], 'billing.approvals:request'));
+  /** La demande d'approbation qui attend un responsable : tant qu'elle est là, la facture ne bouge plus. */
+  protected readonly awaiting = computed<ApprovalSummary | null>(() => this.invoice()?.approvals.find(isPending) ?? null);
+  /** Un brouillon s'annule directement ; une facture émise par une demande d'approbation. */
+  protected readonly canCancel = computed(() => this.cancellable() && (this.draft() ? this.canWrite() : this.canRequest()));
+  /** La remise saisie dépasse-t-elle le seuil ? Alors elle part en demande d'approbation. */
+  protected readonly discountOverLimit = computed(() => {
+    const inv = this.invoice();
+    if (!inv || this.panel()?.kind !== 'discount') return false;
+    const amount = toMinorUnits(String(this.discountValues()['amount'] ?? ''), inv.currencyDigits);
+    return amount !== null && discountNeedsApproval(amount, inv.subtotal, inv.discountApprovalPercent);
+  });
   protected readonly tag = computed(() => invoiceTag(this.i18n, this.invoice()?.status ?? 'DRAFT'));
   protected readonly loadFailure = computed(() => failureNotice(this.loadError()));
   protected readonly actionFailure = computed(() => failureNotice(this.actionError()));
@@ -325,11 +384,13 @@ export class InvoiceDetailPage {
       case 'addLine':
         return [{ key: 'add-line', title: this.i18n.t('billing.lines.title'), fields: itemSearchFields() }];
       case 'discount':
-        return [{ key: 'discount', title: this.i18n.t('billing.discount.title'), fields: discountFields({ digits, amount: inv.discount > 0 ? fromMinorUnits(inv.discount, digits) : '', reason: inv.discountReason ?? '', hasDiscount: inv.discount > 0, notice }) }];
+        return [{ key: 'discount', title: this.i18n.t('billing.discount.title'), fields: discountFields({ digits, amount: inv.discount > 0 ? fromMinorUnits(inv.discount, digits) : '', reason: inv.discountReason ?? '', hasDiscount: inv.discount > 0, notice, approval: this.discountOverLimit() && this.canRequest() }) }];
       case 'issue':
         return [{ key: 'issue', title: this.i18n.t('billing.issue.title'), fields: confirmFields({ tone: 'warning', title: 'billing.issue.warningTitle', text: 'billing.issue.warningText', submit: 'billing.issue.submit', keep: 'billing.issue.keep', notice }) }];
       case 'cancel':
-        return [{ key: 'cancel', title: this.i18n.t('billing.cancelInvoice.title'), fields: confirmFields({ tone: 'critical', title: 'billing.cancelInvoice.warningTitle', text: 'billing.cancelInvoice.warningText', submit: 'billing.cancelInvoice.submit', reasonLabel: 'billing.cancelInvoice.reason', keep: 'billing.cancelInvoice.keep', notice }) }];
+        return inv.status === 'DRAFT'
+          ? [{ key: 'cancel', title: this.i18n.t('billing.cancelInvoice.title'), fields: confirmFields({ tone: 'critical', title: 'billing.cancelInvoice.warningTitle', text: 'billing.cancelInvoice.warningText', submit: 'billing.cancelInvoice.submit', reasonLabel: 'billing.cancelInvoice.reason', keep: 'billing.cancelInvoice.keep', notice }) }]
+          : [{ key: 'cancel-request', title: this.i18n.t('billing.cancelRequest.title'), fields: confirmFields({ tone: 'warning', title: 'billing.cancelRequest.warningTitle', text: 'billing.cancelRequest.warningText', submit: 'billing.cancelRequest.submit', reasonLabel: 'billing.cancelRequest.reason', keep: 'billing.cancelRequest.keep', notice }) }];
       case 'collect':
         return [{ key: 'collect', title: this.i18n.t('billing.collect.title'), fields: collectFields({ digits, balance: fromMinorUnits(inv.balance, digits), notice }) }];
       case 'reprint':
@@ -435,6 +496,7 @@ export class InvoiceDetailPage {
     this.items.set(null);
     this.quantity.set(1);
     this.collectValues.set({});
+    this.discountValues.set({});
     this.panel.set(panel);
     if (panel.kind === 'addLine') void this.searchItems('');
   }
@@ -460,6 +522,8 @@ export class InvoiceDetailPage {
       this.quantity.set(Number.isInteger(q) && q >= 1 && q <= 9999 ? q : 1);
     } else if (kind === 'collect') {
       this.collectValues.set(values);
+    } else if (kind === 'discount') {
+      this.discountValues.set(values);
     }
   }
 
@@ -490,6 +554,34 @@ export class InvoiceDetailPage {
     await this.act(() => this.gateway.removeLine(inv.id, line.id), (updated) => this.invoice.set(updated), false);
   }
 
+  /** Seuil de remise en montant (arrondi à l'unité inférieure), pour l'afficher au caissier. */
+  protected limitOf(inv: Invoice): number {
+    return Math.floor((inv.subtotal * inv.discountApprovalPercent) / 100);
+  }
+
+  protected approvalLabel(a: ApprovalSummary): string {
+    return approvalTag(this.i18n, a.status).label;
+  }
+
+  protected approvalToneOf(a: ApprovalSummary) {
+    return approvalTag(this.i18n, a.status).tone;
+  }
+
+  /** La demande est partie : on recharge la facture, qui affiche maintenant sa demande en attente. */
+  private async requested(id: string): Promise<void> {
+    this.toast.show(this.i18n.t('billing.approval.sent'));
+    this.invoice.set(await this.gateway.getInvoice(id));
+  }
+
+  protected async withdraw(approval: ApprovalSummary): Promise<void> {
+    const inv = this.invoice();
+    if (!inv) return;
+    await this.act(() => this.approvals.withdraw(approval.id), async () => {
+      this.toast.show(this.i18n.t('billing.approval.withdrawn'));
+      this.invoice.set(await this.gateway.getInvoice(inv.id));
+    }, false);
+  }
+
   private async removeDiscount(): Promise<void> {
     const inv = this.invoice();
     if (!inv) return;
@@ -514,6 +606,10 @@ export class InvoiceDetailPage {
       case 'discount': {
         const amount = toMinorUnits(text('amount'), inv.currencyDigits);
         if (amount === null) return this.notice.set(this.i18n.t('billing.amount.invalid'));
+        if (discountNeedsApproval(amount, inv.subtotal, inv.discountApprovalPercent) && this.canRequest()) {
+          await this.act(() => this.approvals.request({ invoiceId: inv.id, kind: 'DISCOUNT', amount, reason: text('reason') }), () => this.requested(inv.id));
+          return;
+        }
         await this.act(() => this.gateway.setDiscount(inv.id, amount, amount === 0 ? null : text('reason')), (updated) => {
           this.invoice.set(updated);
           this.toast.show(this.i18n.t('billing.discount.applied'));
@@ -527,6 +623,10 @@ export class InvoiceDetailPage {
         });
         return;
       case 'cancel':
+        if (inv.status !== 'DRAFT') {
+          await this.act(() => this.approvals.request({ invoiceId: inv.id, kind: 'CANCEL', reason: text('reason') }), () => this.requested(inv.id));
+          return;
+        }
         await this.act(() => this.gateway.cancel(inv.id, text('reason')), (updated) => {
           this.invoice.set(updated);
           this.toast.show(this.i18n.t('billing.cancelInvoice.done', { number: updated.number }));

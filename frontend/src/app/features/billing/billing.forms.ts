@@ -1,3 +1,4 @@
+import { APPROVAL_KINDS, APPROVAL_STATUSES } from '../../core/billing/approval.models';
 import { INVOICE_STATUSES, PAYMENT_MODES, ITEM_CATEGORIES } from '../../core/billing/billing.models';
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 import { failureNotice } from '../../shared/failure-message';
@@ -44,7 +45,11 @@ export function itemSearchFields(): FieldSchema[] {
 }
 
 /** Remise sur toute la facture : montant et motif (obligatoire). Un bouton la retire quand elle existe. */
-export function discountFields(o: { readonly digits: number; readonly amount: string; readonly reason: string; readonly hasDiscount: boolean; readonly notice: string | null }): FieldSchema[] {
+export function discountFields(o: {
+  readonly digits: number; readonly amount: string; readonly reason: string; readonly hasDiscount: boolean; readonly notice: string | null;
+  /** La remise saisie dépasse le seuil : elle part en demande d'approbation au lieu de s'appliquer. */
+  readonly approval?: boolean;
+}): FieldSchema[] {
   return [
     ...failureNotice(o.notice),
     {
@@ -55,7 +60,7 @@ export function discountFields(o: { readonly digits: number; readonly amount: st
       type: 'text', name: 'reason', label: 'billing.discount.reason', hint: 'billing.discount.reasonHint', value: o.reason, normalize: 'trim',
       validators: [{ type: 'required', message: 'billing.reason.required' }, { type: 'maxLength', value: 200 }],
     },
-    { type: 'submit', name: 'submit', label: 'billing.discount.apply', busyLabel: 'billing.saving' },
+    { type: 'submit', name: 'submit', label: o.approval ? 'billing.discount.sendRequest' : 'billing.discount.apply', busyLabel: 'billing.saving' },
     ...(o.hasDiscount ? ([{ type: 'button', name: 'removeDiscount', label: 'billing.discount.remove', variant: 'outline' }] as const) : []),
     { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
   ];
@@ -128,5 +133,34 @@ export function catalogFilterFields(): FieldSchema[] {
     { type: 'text', name: 'q', label: 'billing.catalog.search', placeholder: 'billing.catalog.searchPlaceholder', normalize: 'trim', autofocus: true, span: 6, validators: [{ type: 'maxLength', value: 100 }] },
     { type: 'select', name: 'category', label: 'billing.catalog.category', placeholder: 'billing.catalog.allCategories', options: ITEM_CATEGORIES.map((c) => ({ value: c, label: `billing.category.${c}` })), span: 4 },
     { type: 'submit', name: 'submit', label: 'billing.filter.apply', span: 2, class: 'sm:self-end' },
+  ];
+}
+
+/** Filtres de la file des approbations : statut (« En attente » d'abord pour un responsable) et type. */
+export function approvalFilterFields(o: { readonly status: string }): FieldSchema[] {
+  return [
+    { type: 'select', name: 'status', label: 'billing.approval.filterStatus', placeholder: 'billing.approval.allStatuses', value: o.status, options: APPROVAL_STATUSES.map((v) => ({ value: v, label: `billing.approval.status.${v}` })), span: 4 },
+    { type: 'select', name: 'kind', label: 'billing.approval.filterKind', placeholder: 'billing.approval.allKinds', options: APPROVAL_KINDS.map((v) => ({ value: v, label: `billing.approval.kind.${v}` })), span: 4 },
+    { type: 'submit', name: 'submit', label: 'billing.filter.apply', span: 3, class: 'sm:self-end' },
+  ];
+}
+
+/**
+ * Décision d'un responsable sur une demande : accepter (commentaire facultatif) ou refuser (explication obligatoire, le demandeur la lira).
+ */
+export function decisionFields(o: { readonly approve: boolean; readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    {
+      type: 'message', name: 'info', tone: o.approve ? 'warning' : 'info', appearance: 'outlined',
+      title: o.approve ? 'billing.approval.approveTitle' : 'billing.approval.rejectTitle', text: o.approve ? 'billing.approval.approveText' : 'billing.approval.rejectText',
+    },
+    {
+      type: 'text', name: 'comment', label: o.approve ? 'billing.approval.approveComment' : 'billing.approval.rejectComment', autofocus: true, normalize: 'trim',
+      validators: o.approve ? [{ type: 'maxLength', value: 200 }] : [{ type: 'required', message: 'billing.reason.required' }, { type: 'maxLength', value: 200 }],
+    },
+    { type: 'paragraph', name: 'audit', text: 'billing.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: o.approve ? 'billing.approval.approveSubmit' : 'billing.approval.rejectSubmit', busyLabel: 'billing.saving' },
+    { type: 'button', name: 'cancel', label: 'billing.approval.keep', variant: 'outline' },
   ];
 }
