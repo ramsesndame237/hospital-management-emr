@@ -9,6 +9,8 @@ describe('API facturation /api/v1/billing (HTTP réel, PostgreSQL réel)', () =>
   beforeAll(async () => {
     c = await buildClinicalWorld();
     ids = c.ids;
+    // La caisse ouvre sa session : sans elle, aucun encaissement n'est possible.
+    await c.http().post(api('/billing/cash-sessions')).set(c.bearer('caisse')).send({ counter: 'Caisse test' }).expect(201);
   });
   afterAll(() => c.close());
 

@@ -3,7 +3,7 @@ import { Clock, IdGenerator } from '../../../../shared-kernel/ports';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { Temporal } from '../../../../shared-kernel/temporal';
 import { Invoice, InvoiceLine, lineTotal, Payment } from '../../domain/invoice';
-import { InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome } from '../../domain/ports';
+import { CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome } from '../../domain/ports';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemId, LineId, parseInvoiceStatus, parseNote, parsePaymentMode, parsePaymentReference, PatientRef, PaymentId, PaymentMode, Quantity, Reason,
 } from '../../domain/values';
@@ -13,6 +13,7 @@ const PAYMENT_NOT_FOUND = new DomainError('BILLING_PAYMENT_NOT_FOUND', 'Encaisse
 const PATIENT_NOT_FOUND = new DomainError('BILLING_PATIENT_NOT_FOUND', 'Patient introuvable.');
 const ITEM_NOT_FOUND = new DomainError('BILLING_ITEM_NOT_FOUND', 'Acte introuvable.');
 const ITEM_INACTIVE = new DomainError('BILLING_ITEM_INACTIVE', 'Cet acte est retiré du catalogue : on ne peut plus le facturer.');
+const NO_OPEN_SESSION = new DomainError('BILLING_NO_OPEN_SESSION', "Ouvrez votre caisse avant d'encaisser : aucune session de caisse ouverte à votre nom.");
 const CHANGED = new DomainError('BILLING_INVOICE_CHANGED', 'Cette facture vient d\'être modifiée par quelqu\'un d\'autre : rechargez-la puis recommencez.');
 const OVERPAYMENT = (balance: number) => new DomainError('BILLING_OVERPAYMENT', 'Le montant dépasse le solde de la facture.', { balance });
 
@@ -67,6 +68,7 @@ export interface InvoiceDependencies {
   readonly invoices: InvoiceRepository;
   readonly items: ItemRepository;
   readonly patients: PatientDirectory;
+  readonly sessions: CashSessionRepository;
   readonly currency: Currency;
   readonly audit: AuditLog;
   readonly clock: Clock;
@@ -259,6 +261,9 @@ export class CollectPaymentUseCase {
       change = tendered.value.value - amount.value.value;
     }
 
+    // Pas d'encaissement sans caisse ouverte : l'argent perçu doit pouvoir être compté à la clôture.
+    const session = await this.d.sessions.findOpenByCashier(actorId);
+    if (!session) return err(NO_OPEN_SESSION);
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
@@ -269,18 +274,19 @@ export class CollectPaymentUseCase {
     const paymentId = PaymentId.create(this.ids.next());
     if (!paymentId.ok) return err(paymentId.error);
     const payment: Payment = {
-      id: paymentId.value, receiptNumber: await this.d.invoices.nextReceiptNumber(), mode: mode.value, amount: amount.value, reference: reference.value, receivedBy: actorId, receivedAt: this.d.clock.now(),
+      id: paymentId.value, receiptNumber: await this.d.invoices.nextReceiptNumber(), mode: mode.value, amount: amount.value, reference: reference.value, receivedBy: actorId, receivedAt: this.d.clock.now(), sessionId: session.session.id.value,
     };
     const outcome = await this.d.invoices.addPayment(invoice, payment);
     if (outcome === 'OVERPAYMENT') {
       const fresh = await this.d.invoices.findById(invoice.id);
       return err(OVERPAYMENT(fresh?.balance.value ?? 0));
     }
+    if (outcome === 'SESSION_CLOSED') return err(NO_OPEN_SESSION);
     if (outcome === 'CHANGED') return err(CHANGED);
 
     const done = invoice.collect(payment); // même calcul que la base : met à jour le statut de la vue
     if (!done.ok) return err(done.error);
-    await record(this.d, actorId, 'billing.payment.collect', invoice, { receiptNumber: payment.receiptNumber.value, mode: mode.value, amount: amount.value.value, balance: invoice.balance.value });
+    await record(this.d, actorId, 'billing.payment.collect', invoice, { receiptNumber: payment.receiptNumber.value, mode: mode.value, amount: amount.value.value, balance: invoice.balance.value, sessionNumber: session.session.state.number.value });
     return ok({ payment: toPaymentView(payment), change, invoice: await toView(this.d, invoice) });
   }
 }

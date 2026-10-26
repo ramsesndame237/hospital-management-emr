@@ -5,6 +5,8 @@ import { Invoice, Payment } from '../../src/modules/billing/domain/invoice';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemCategory, ItemCode, ItemId, ItemName, LineId, PatientRef, PaymentId, PaymentMode, Quantity, Reason, ServiceRef,
 } from '../../src/modules/billing/domain/values';
+import { CashSession, CounterName, Denominations, SessionId } from '../../src/modules/billing/domain/cash-session';
+import { PgCashSessionRepository } from '../../src/modules/billing/infrastructure/persistence/pg-cash-session.repository';
 import { PgInvoiceRepository } from '../../src/modules/billing/infrastructure/persistence/pg-invoice.repository';
 import { PgItemRepository } from '../../src/modules/billing/infrastructure/persistence/pg-item.repository';
 import { Temporal } from '../../src/shared-kernel/temporal';
@@ -20,6 +22,9 @@ describe('schéma de la facturation sur PostgreSQL', () => {
   let f: Fixture;
   let items: PgItemRepository;
   let invoices: PgInvoiceRepository;
+  let sessions: PgCashSessionRepository;
+  /** La caisse ouverte pendant laquelle les encaissements de ces tests sont perçus. */
+  let openSession: string;
   let seq = 0;
 
   const newItem = (code: string, price = 5000, over: { name?: string; category?: ItemCategory; serviceId?: string } = {}): BillableItem => {
@@ -47,7 +52,7 @@ describe('schéma de la facturation sur PostgreSQL', () => {
 
   const pay = async (value: number, mode = PaymentMode.CASH): Promise<Payment> => {
     seq += 1;
-    return { id: must(PaymentId.create(uuid(900 + seq))), receiptNumber: await invoices.nextReceiptNumber(), mode, amount: must(Amount.positive(value)), reference: null, receivedBy: uuid(1), receivedAt: NOW };
+    return { id: must(PaymentId.create(uuid(900 + seq))), receiptNumber: await invoices.nextReceiptNumber(), mode, amount: must(Amount.positive(value)), reference: null, receivedBy: uuid(1), receivedAt: NOW, sessionId: openSession };
   };
 
   beforeEach(async () => {
@@ -55,7 +60,14 @@ describe('schéma de la facturation sur PostgreSQL', () => {
     f = await seedFixture(sql);
     items = new PgItemRepository(sql);
     invoices = new PgInvoiceRepository(sql);
+    sessions = new PgCashSessionRepository(sql);
     seq = 0;
+    const session = CashSession.open({
+      id: must(SessionId.create(uuid(4000))), number: await sessions.nextSessionNumber(), cashierId: uuid(1), counter: must(CounterName.create('Caisse 1')), currency: must(Currency.create('XAF')),
+      openedAt: NOW, openingCount: Denominations.EMPTY,
+    });
+    expect(await sessions.open(session)).toBe('OPENED');
+    openSession = session.id.value;
   });
   afterEach(() => db.close());
 

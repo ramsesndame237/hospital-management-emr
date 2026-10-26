@@ -3,10 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { STRUCTURE_REPOSITORY } from '../modules/administration/domain/ports';
 import type { StructureRepository } from '../modules/administration/domain/ports';
 import { NodeId } from '../modules/administration/domain/structure/values';
-import { BILLING_CURRENCY, BILLING_PATIENTS, BILLING_SERVICES } from '../modules/billing/domain/ports';
-import type { PatientDirectory, PatientInfo, ServiceDirectory, ServiceInfo } from '../modules/billing/domain/ports';
+import { BILLING_CURRENCY, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT } from '../modules/billing/domain/ports';
+import type { PatientDirectory, PatientInfo, ServiceDirectory, ServiceInfo, UserDirectory } from '../modules/billing/domain/ports';
 import { Currency } from '../modules/billing/domain/values';
 import type { ServiceRef } from '../modules/billing/domain/values';
+import { USER_REPOSITORY } from '../modules/iam/domain/ports';
+import type { UserRepository } from '../modules/iam/domain/ports';
+import { UserId } from '../modules/iam/domain/value-objects/user-id';
 import { PATIENT_REPOSITORY } from '../modules/patients/domain/ports';
 import type { PatientRepository } from '../modules/patients/domain/ports';
 import { PatientId } from '../modules/patients/domain/values';
@@ -40,6 +43,21 @@ export class ServicesForBilling implements ServiceDirectory {
   }
 }
 
+/** Les comptes appartiennent à l'IAM : le module Facturation n'en lit que l'identifiant de connexion (caissier, responsable). */
+export class UsersForBilling implements UserDirectory {
+  constructor(private readonly users: UserRepository) {}
+
+  async find(ids: readonly string[]): Promise<Map<string, { readonly id: string; readonly username: string }>> {
+    const found = new Map<string, { readonly id: string; readonly username: string }>();
+    for (const raw of ids) {
+      const id = UserId.create(raw);
+      const user = id.ok ? await this.users.findById(id.value) : null;
+      if (user) found.set(user.id.value, { id: user.id.value, username: user.username.value });
+    }
+    return found;
+  }
+}
+
 @Module({})
 export class BillingIntegrationModule {
   static register(): DynamicModule {
@@ -50,6 +68,8 @@ export class BillingIntegrationModule {
       providers: [
         { provide: BILLING_PATIENTS, inject: [PATIENT_REPOSITORY], useFactory: (p: PatientRepository) => new PatientsForBilling(p) },
         { provide: BILLING_SERVICES, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new ServicesForBilling(s) },
+        { provide: BILLING_USERS, inject: [USER_REPOSITORY], useFactory: (u: UserRepository) => new UsersForBilling(u) },
+        { provide: BILLING_VARIANCE_LIMIT, inject: [ConfigService], useFactory: (cfg: ConfigService): number => cfg.get<number>('BILLING_VARIANCE_LIMIT') ?? 5000 },
         {
           provide: BILLING_CURRENCY,
           inject: [ConfigService],
@@ -60,7 +80,7 @@ export class BillingIntegrationModule {
           },
         },
       ],
-      exports: [BILLING_PATIENTS, BILLING_SERVICES, BILLING_CURRENCY],
+      exports: [BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, BILLING_CURRENCY],
     };
   }
 }

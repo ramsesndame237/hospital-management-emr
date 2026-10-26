@@ -26,7 +26,7 @@ function draft(): Invoice {
 }
 
 function payment(n: number, value: number, mode = PaymentMode.CASH): Payment {
-  return { id: must(PaymentId.create(uuid(300 + n))), receiptNumber: must(ReceiptNumber.fromSequence(n)), mode, amount: amount(value), reference: null, receivedBy: uuid(3), receivedAt: NOW };
+  return { id: must(PaymentId.create(uuid(300 + n))), receiptNumber: must(ReceiptNumber.fromSequence(n)), mode, amount: amount(value), reference: null, receivedBy: uuid(3), receivedAt: NOW, sessionId: null };
 }
 
 describe('facturation : valeurs', () => {

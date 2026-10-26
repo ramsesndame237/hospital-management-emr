@@ -25,6 +25,8 @@ export interface Payment {
   readonly reference: string | null;
   readonly receivedBy: string;
   readonly receivedAt: Instant;
+  /** Session de caisse pendant laquelle l'argent a été perçu ; absente des encaissements antérieurs aux sessions de caisse. */
+  readonly sessionId: string | null;
 }
 
 export interface InvoiceState {
