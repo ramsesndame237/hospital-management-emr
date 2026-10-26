@@ -194,3 +194,17 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* Barre de chargement des pages : un segment qui glisse de gauche à droite tant qu'un écran se charge. */
+@keyframes route-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+@utility animate-route-progress {
+  animation: route-progress 1.1s ease-in-out infinite;
+}

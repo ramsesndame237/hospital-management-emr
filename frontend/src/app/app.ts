@@ -5,14 +5,16 @@ import { IdleService } from './core/session/idle.service';
 import { ThemeService } from './core/theme/theme.service';
 import { InactivityOverlay } from './layouts/context-layout/inactivity-overlay';
 import { SessionExpiredOverlay } from './layouts/context-layout/session-expired-overlay';
+import { RouteProgress } from './shared/route-progress';
 import { ToastHost } from './shared/toast/toast-host';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, InactivityOverlay, SessionExpiredOverlay, ToastHost],
+  imports: [RouterOutlet, InactivityOverlay, SessionExpiredOverlay, ToastHost, RouteProgress],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Pendant un dialogue de sécurité, l'application est inerte : ni clavier, ni lecteur d'écran n'atteignent les données masquées. -->
+    <app-route-progress />
     <div [attr.inert]="masked() ? '' : null"><router-outlet /></div>
     @if (idle.warning()) {
       <app-inactivity-overlay />

@@ -27,6 +27,8 @@ export const ICON_GLYPHS = {
   organization: '▣',
   site: '◫',
   add: '+',
+  user: '◉',
+  shield: '◈',
 } as const;
 
 export type IconName = keyof typeof ICON_GLYPHS;

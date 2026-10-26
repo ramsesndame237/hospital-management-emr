@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { Translator } from '../core/i18n/translator';
 
-type StatusTone = 'success' | 'warning' | 'critical' | 'neutral';
+export type StatusTone = 'success' | 'warning' | 'critical' | 'neutral';
 
 /** Ton de chaque statut d'établissement : vert = en règle et ouvert, orange = à surveiller, rouge = exercice interrompu. */
 const TONES: Readonly<Record<string, StatusTone>> = {
@@ -37,7 +37,11 @@ const CLASSES: Readonly<Record<StatusTone, string>> = {
 })
 export class StatusTag {
   private readonly i18n = inject(Translator);
-  readonly status = input.required<string>();
-  protected readonly label = computed(() => this.i18n.t(`server.status.${this.status()}`));
-  protected readonly tone = computed(() => CLASSES[TONES[this.status()] ?? 'neutral']);
+  /** Code d'un statut d'établissement (libellé et ton connus) ; peut rester vide si `text` et `tone` sont donnés. */
+  readonly status = input<string>('');
+  /** Texte déjà traduit, pour un état qui n'est pas un statut d'établissement (compte actif, rôle système…). */
+  readonly text = input<string>('');
+  readonly toneOverride = input<StatusTone | null>(null, { alias: 'tone' });
+  protected readonly label = computed(() => this.text() || this.i18n.t(`server.status.${this.status()}`));
+  protected readonly tone = computed(() => CLASSES[this.toneOverride() ?? TONES[this.status()] ?? 'neutral']);
 }
