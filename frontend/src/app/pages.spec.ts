@@ -5,7 +5,7 @@ import { ApiError } from './core/http/api-error';
 import { token } from './core/auth/testing/fake-auth-gateway';
 import { SessionService } from './core/auth/session.service';
 import { homeGuard } from './core/navigation/home.guard';
-import { visibleNavigation, NAVIGATION } from './core/navigation/navigation';
+import { visibleNavigation, NAVIGATION, isRouteActive } from './core/navigation/navigation';
 import { DraftStatus } from './core/session/draft-status';
 import { IdleService } from './core/session/idle.service';
 import { Temporal } from './core/time/temporal';
@@ -42,11 +42,25 @@ describe('menu de navigation', () => {
     expect(visibleNavigation(items, [], ['files:read:all'])).toHaveLength(1);
   });
 
-  it("montre à l'administrateur système l'organisation, les sites et la structure, à condition d'en avoir le droit", () => {
+  it("range l'organisation, les sites et la structure dans le groupe « Administration » de l'administrateur système", () => {
     const granted = ['administration.organization:read', 'administration.facilities:read', 'administration.structure:read'];
-    expect(visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], granted).map((i) => i.id)).toEqual(['dashboard', 'admin-organization', 'admin-sites', 'admin-structure']);
-    expect(visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], ['administration.facilities:read']).map((i) => i.id)).toEqual(['dashboard', 'admin-sites']);
-    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], granted).some((i) => i.id.startsWith('admin-'))).toBe(false);
+    const menu = visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], granted);
+    expect(menu.map((i) => i.id)).toEqual(['dashboard', 'administration']);
+    expect(menu[1].children?.map((i) => i.id)).toEqual(['admin-organization', 'admin-sites', 'admin-structure']);
+  });
+
+  it("ne garde dans le groupe que les entrées permises, et masque le groupe s'il n'en reste aucune", () => {
+    const one = visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], ['administration.facilities:read']);
+    expect(one[1].children?.map((i) => i.id)).toEqual(['admin-sites']);
+    expect(visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], []).map((i) => i.id)).toEqual(['dashboard']);
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], ['administration.facilities:read']).some((i) => i.id === 'administration')).toBe(false);
+  });
+
+  it("reconnaît l'écran affiché, sous-écrans compris", () => {
+    expect(isRouteActive('/admin/structure', '/admin/structure/abc?x=1')).toBe(true);
+    expect(isRouteActive('/admin/sites', '/admin/structure')).toBe(false);
+    expect(isRouteActive('/', '/admin/sites')).toBe(false);
+    expect(isRouteActive(undefined, '/')).toBe(false);
   });
 });
 
@@ -256,8 +270,8 @@ describe('AuthLayout', () => {
 describe('ShellLayout', () => {
   let fixture: ComponentFixture<ShellLayout>;
 
-  async function setup(roles: string[]) {
-    const ctx = configureApp({ roles });
+  async function setup(roles: string[], permissions?: string[]) {
+    const ctx = configureApp({ roles, permissions });
     const missing = watchMissingKeys(ctx.i18n);
     fixture = TestBed.createComponent(ShellLayout);
     await settle(fixture);
@@ -280,6 +294,56 @@ describe('ShellLayout', () => {
   it("ne montre à une caissière que le tableau de bord : le menu suit le rôle", async () => {
     await setup(['CASHIER']);
     expect(links()).toHaveLength(1);
+  });
+
+  describe('groupe « Administration » (administrateur système)', () => {
+    const ADMIN = ['administration.organization:read', 'administration.facilities:read', 'administration.structure:read'];
+    const group = () => buttonByText(fixture, 'Administration')!;
+    const subList = () => el(fixture, '#nav-group-administration')!;
+
+    it('replie le groupe au départ, puis le déplie et le replie au clic', async () => {
+      const { missing } = await setup(['SYSTEM_ADMIN'], ADMIN);
+      expect(group().getAttribute('aria-expanded')).toBe('false');
+      expect(subList().className).toContain('hidden');
+      group().click();
+      await settle(fixture);
+      expect(group().getAttribute('aria-expanded')).toBe('true');
+      expect(subList().className).not.toContain('hidden');
+      expect([...subList().querySelectorAll('a')].map((a) => a.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Organisation', 'Sites', 'Structure des sites']);
+      group().click();
+      await settle(fixture);
+      expect(subList().className).toContain('hidden');
+      expect(missing()).toEqual([]);
+    });
+
+    it("n'affiche que les sous-menus permis", async () => {
+      await setup(['SYSTEM_ADMIN'], ['administration.facilities:read']);
+      group().click();
+      await settle(fixture);
+      expect([...subList().querySelectorAll('a')].map((a) => a.textContent?.trim())).toEqual(['Sites']);
+    });
+
+    it("ne montre aucun groupe sans droit d'administration", async () => {
+      await setup(['SYSTEM_ADMIN'], []);
+      expect(buttonByText(fixture, 'Administration')).toBeUndefined();
+      expect(links()).toEqual(['Tableau de bord']);
+    });
+
+    it("s'ouvre tout seul quand l'écran affiché en fait partie", async () => {
+      configureApp({ roles: ['SYSTEM_ADMIN'], permissions: ADMIN });
+      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue('/admin/structure/abc');
+      fixture = TestBed.createComponent(ShellLayout);
+      await settle(fixture);
+      expect(group().getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it("garde les sous-menus visibles quand la navigation est réduite en rail d'icônes", async () => {
+      await setup(['SYSTEM_ADMIN'], ADMIN);
+      buttonByText(fixture, 'Réduire le menu')!.click();
+      await settle(fixture);
+      expect(subList().className).toContain('md:block');
+      expect(subList().querySelector('a')?.getAttribute('title')).toBe('Organisation');
+    });
   });
 
   it('réduit la navigation en rail d’icônes, retient le choix et le restitue au rechargement', async () => {

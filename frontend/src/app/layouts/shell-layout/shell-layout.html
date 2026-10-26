@@ -22,32 +22,60 @@
 
     <ul class="flex flex-1 flex-col">
       @for (item of items(); track item.id) {
-        <li>
-          <a
-            #link="routerLinkActive"
-            [routerLink]="item.route"
-            routerLinkActive
-            [routerLinkActiveOptions]="{ exact: item.route === '/' }"
-            class="flex min-h-11 items-center gap-2 text-sm leading-[44px] text-brand-deep-foreground transition-colors hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
-            [class.text-white]="link.isActive"
-            [class.font-medium]="link.isActive"
-            [class]="centerWhenCollapsed()"
-            [attr.aria-current]="link.isActive ? 'page' : null"
-            [attr.title]="collapsed() ? i18n.t(item.labelKey) : null"
-          >
-            @if (collapsed()) {
-              <app-icon [name]="item.icon" class="hidden w-5 text-base md:inline-block" />
-            }
-            <span class="flex items-center gap-1.5 truncate" [class]="hideWhenCollapsed()">
-              @if (link.isActive) {
-                <app-icon name="current" class="text-xs" />
+        @if (item.children; as children) {
+          <!-- Groupe : un titre qui déplie ses sous-entrées -->
+          <li>
+            <button
+              type="button"
+              class="flex min-h-11 w-full items-center justify-between gap-2 rounded-[2px] text-left text-sm leading-[44px] text-brand-deep-foreground transition-colors hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+              [class]="hideWhenCollapsed()"
+              [attr.aria-expanded]="isOpen(item)"
+              [attr.aria-controls]="'nav-group-' + item.id"
+              (click)="toggleGroup(item)"
+            >
+              <span class="truncate">{{ i18n.t(item.labelKey) }}</span>
+              <app-icon [name]="isOpen(item) ? 'chevronDown' : 'chevronRight'" class="text-xs" />
+            </button>
+            <ul [id]="'nav-group-' + item.id" [class]="groupListClass(item)">
+              @for (child of children; track child.id) {
+                <li>
+                  <ng-container *ngTemplateOutlet="entry; context: { $implicit: child, nested: true }" />
+                </li>
               }
-              {{ i18n.t(item.labelKey) }}
-            </span>
-          </a>
-        </li>
+            </ul>
+          </li>
+        } @else {
+          <li>
+            <ng-container *ngTemplateOutlet="entry; context: { $implicit: item, nested: false }" />
+          </li>
+        }
       }
     </ul>
+
+    <ng-template #entry let-item let-nested="nested">
+      <a
+        #link="routerLinkActive"
+        [routerLink]="item.route"
+        routerLinkActive
+        [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+        class="flex min-h-11 items-center gap-2 text-sm leading-[44px] text-brand-deep-foreground transition-colors hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+        [class.text-white]="link.isActive"
+        [class.font-medium]="link.isActive"
+        [class]="nested ? nestedClass() : centerWhenCollapsed()"
+        [attr.aria-current]="link.isActive ? 'page' : null"
+        [attr.title]="collapsed() ? i18n.t(item.labelKey) : null"
+      >
+        @if (collapsed()) {
+          <app-icon [name]="item.icon" class="hidden w-5 text-base md:inline-block" />
+        }
+        <span class="flex items-center gap-1.5 truncate" [class]="hideWhenCollapsed()">
+          @if (link.isActive) {
+            <app-icon name="current" class="text-xs" />
+          }
+          {{ i18n.t(item.labelKey) }}
+        </span>
+      </a>
+    </ng-template>
 
     <div class="flex flex-col text-xs leading-[22px] text-brand-deep-foreground">
       <p [class]="hideWhenCollapsed()">{{ i18n.t('shell.limitedAccess') }}</p>
