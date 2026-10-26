@@ -10,12 +10,13 @@ import {
   Address, IdentityDocument, nameKey, NextOfKin, parseDate, PatientId, PatientNumber, PersonName, PhoneNumber, ShortText,
 } from '../../src/modules/patients/domain/values';
 import { Calendar } from '../../src/shared-kernel/ports';
-import { PlainDate, Temporal } from '../../src/shared-kernel/temporal';
+import { Instant, PlainDate, Temporal } from '../../src/shared-kernel/temporal';
 import { FixedClock, MemoryAudit, must, SeqIds } from '../iam/fakes';
 
 class FixedCalendar implements Calendar {
   constructor(public date: PlainDate = Temporal.PlainDate.from('2026-10-23')) {}
   today() { return this.date; }
+  dateOf(instant: Instant) { return instant.toZonedDateTimeISO('UTC').toPlainDate(); }
 }
 
 /** Comme une vraie base : chaque lecture renvoie un nouvel objet, une modification non enregistrée ne laisse aucune trace. */

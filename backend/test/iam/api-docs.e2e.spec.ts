@@ -47,7 +47,7 @@ describe('documentation interactive de l\'API (OpenAPI)', () => {
 
   it('documente TOUS les endpoints de la nouvelle API (résumé, groupe, réponse de succès)', () => {
     const v1 = ops().filter((o) => o.path.startsWith('/api/v1/'));
-    expect(v1.length).toBe(60); // 7 d'authentification + 11 d'administration des comptes et de droits d'accès + 7 d'organisation et d'établissements + 7 de structure + 6 de référentiels + 8 de personnel + 5 d'affectations + 2 d'audit + 7 de patients
+    expect(v1.length).toBe(74); // 7 d'authentification + 11 d'administration des comptes et de droits d'accès + 7 d'organisation et d'établissements + 7 de structure + 6 de référentiels + 8 de personnel + 5 d'affectations + 2 d'audit + 7 de patients + 6 de rendez-vous + 8 d'admissions
     for (const { path, method, op } of v1) {
       expect({ path, method, summary: !!op.summary?.trim() }).toEqual({ path, method, summary: true });
       expect({ path, method, tags: (op.tags ?? []).length }).toEqual({ path, method, tags: 1 });
@@ -110,7 +110,7 @@ describe('documentation interactive de l\'API (OpenAPI)', () => {
   });
 
   it('organise les groupes dans l\'ordre voulu, avec leur description', () => {
-    expect(doc.tags.map((t) => t.name)).toEqual(['Authentification', 'Utilisateurs et rôles', 'Organisation et établissements', "Structure de l'établissement", 'Personnel', 'Affectations', 'Référentiels', 'Patients', "Journal d'audit", 'Système']);
+    expect(doc.tags.map((t) => t.name)).toEqual(['Authentification', 'Utilisateurs et rôles', 'Organisation et établissements', "Structure de l'établissement", 'Personnel', 'Affectations', 'Référentiels', 'Patients', 'Rendez-vous', 'Admissions', "Journal d'audit", 'Système']);
     expect(doc.tags[0].description).toContain('Parcours type');
   });
 

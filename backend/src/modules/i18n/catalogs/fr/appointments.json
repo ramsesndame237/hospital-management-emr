@@ -1,0 +1,6 @@
+{
+  "SCHEDULED": "Prévu",
+  "ARRIVED": "Patient présenté",
+  "CANCELLED": "Annulé",
+  "NO_SHOW": "Patient absent"
+}

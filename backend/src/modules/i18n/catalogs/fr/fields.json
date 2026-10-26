@@ -68,5 +68,16 @@
   "country": "pays",
   "type": "type",
   "number": "numéro",
-  "relationship": "lien"
+  "relationship": "lien",
+  "patientId": "patient",
+  "practitionerId": "professionnel",
+  "locationId": "service ou unité",
+  "startsAt": "début",
+  "durationMinutes": "durée",
+  "reasonCode": "motif",
+  "serviceId": "service",
+  "bedId": "lit",
+  "appointmentId": "rendez-vous",
+  "admittedAt": "heure d'arrivée",
+  "at": "heure"
 }

@@ -1,0 +1,6 @@
+{
+  "SCHEDULED": "Scheduled",
+  "ARRIVED": "Patient arrived",
+  "CANCELLED": "Cancelled",
+  "NO_SHOW": "No-show"
+}

@@ -1,0 +1,17 @@
+{
+  "OUTPATIENT": "Consultation / soins externes",
+  "EMERGENCY": "Urgence",
+  "INPATIENT": "Hospitalisation",
+  "IN_PROGRESS": "En cours",
+  "DISCHARGED": "Sortie enregistrée",
+  "CANCELLED": "Annulée",
+  "HOME": "Retour à domicile",
+  "TRANSFERRED_OUT": "Transfert vers un autre établissement",
+  "LEFT_AGAINST_ADVICE": "Sortie contre avis médical",
+  "DECEASED": "Décès",
+  "OTHER": "Autre",
+  "ADMISSION": "Arrivée",
+  "TRANSFER": "Transfert",
+  "DISCHARGE": "Sortie",
+  "CANCELLATION": "Annulation"
+}

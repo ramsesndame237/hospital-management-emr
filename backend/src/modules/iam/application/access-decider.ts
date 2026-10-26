@@ -44,6 +44,27 @@ export class AccessDecider {
     private readonly departments: DepartmentDirectory | null,
   ) {}
 
+  /**
+   * « Sur quels services cet utilisateur peut-il agir ? » — pour filtrer une liste plutôt que juger une ressource. `'ALL'` avec la
+   * portée « all » ; sinon ses services si la portée « department » est accordée ; sinon aucun (la portée « own » ne désigne pas
+   * de service). Compte inconnu, désactivé ou sans permission : aucun service.
+   */
+  async visibleDepartments(userId: string, permission: string): Promise<Result<'ALL' | readonly string[]>> {
+    const parts = (permission ?? '').split(':');
+    const parsed = parts.length === 2 ? Permission.create(permission) : null;
+    if (!parsed?.ok) return err(INVALID_PERMISSION(permission));
+    const authz = await this.resolver.authorizationOf(userId);
+    if (!authz || !authz.active) return ok([]);
+    const granted = authz.permissions.flatMap((p) => {
+      const r = Permission.create(p);
+      return r.ok ? [r.value] : [];
+    });
+    const scopes = AccessPolicy.scopesOf(granted, parsed.value.resource, parsed.value.action);
+    if (scopes.includes('all')) return ok('ALL');
+    if (scopes.includes('department') && this.departments) return ok(await this.departments.departmentsOf(userId));
+    return ok([]);
+  }
+
   /** `permission` est `ressource:action` (sans portée : c'est justement ce que l'on détermine). */
   async decide(userId: string, permission: string, context: AccessContext = {}): Promise<Result<AccessDecision>> {
     const parts = (permission ?? '').split(':');

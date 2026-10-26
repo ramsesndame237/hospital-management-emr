@@ -9,12 +9,13 @@ import {
   AssignmentId, ContactEmail, FacilityRef, NodeRef, parseDate, PersonName, PhoneNumber, ReferenceCode, StaffId, StaffNumber, UserRef,
 } from '../../src/modules/staff/domain/values';
 import { Calendar } from '../../src/shared-kernel/ports';
-import { PlainDate, Temporal } from '../../src/shared-kernel/temporal';
+import { Instant, PlainDate, Temporal } from '../../src/shared-kernel/temporal';
 import { FixedClock, MemoryAudit, must, SeqIds } from '../iam/fakes';
 
 class FixedCalendar implements Calendar {
   constructor(public date: PlainDate = Temporal.PlainDate.from('2026-10-23')) {}
   today() { return this.date; }
+  dateOf(instant: Instant) { return instant.toZonedDateTimeISO('UTC').toPlainDate(); }
 }
 
 class InMemoryAssignments implements AssignmentRepository {
