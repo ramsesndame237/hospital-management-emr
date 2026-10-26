@@ -18,6 +18,8 @@ export class PatientsModule {
   static register(): DynamicModule {
     return {
       module: PatientsModule,
+      // Global : la racine de composition (`src/integration`) en consomme le dépôt sans réimporter (ni dupliquer) le module.
+      global: true,
       controllers: [PatientsController],
       providers: [
         { provide: PATIENT_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgPatientRepository(sql) },
@@ -57,6 +59,7 @@ export class PatientsModule {
           useFactory: (p: PatientRepository, a: AuditLog, c: Clock) => new GetPatientHistoryUseCase(p, a, c),
         },
       ],
+      exports: [PATIENT_REPOSITORY],
     };
   }
 }

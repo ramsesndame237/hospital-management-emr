@@ -22,11 +22,16 @@ export class SystemClock implements Clock {
 /** « Quel jour sommes-nous ? » dans le fuseau de l'établissement : la date change à minuit chez lui, pas à minuit UTC. */
 export interface Calendar {
   today(): PlainDate;
+  /** Le jour (dans le fuseau de l'établissement) auquel appartient un instant : un rendez-vous à 23 h 30 UTC peut tomber le lendemain chez lui. */
+  dateOf(instant: Instant): PlainDate;
 }
 
 export class SystemCalendar implements Calendar {
   constructor(private readonly clock: Clock, private readonly timeZone: string) {}
   today(): PlainDate {
-    return this.clock.now().toZonedDateTimeISO(this.timeZone).toPlainDate();
+    return this.dateOf(this.clock.now());
+  }
+  dateOf(instant: Instant): PlainDate {
+    return instant.toZonedDateTimeISO(this.timeZone).toPlainDate();
   }
 }

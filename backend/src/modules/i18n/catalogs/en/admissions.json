@@ -1,0 +1,17 @@
+{
+  "OUTPATIENT": "Outpatient visit",
+  "EMERGENCY": "Emergency",
+  "INPATIENT": "Inpatient stay",
+  "IN_PROGRESS": "In progress",
+  "DISCHARGED": "Discharged",
+  "CANCELLED": "Cancelled",
+  "HOME": "Home",
+  "TRANSFERRED_OUT": "Transferred to another facility",
+  "LEFT_AGAINST_ADVICE": "Left against medical advice",
+  "DECEASED": "Deceased",
+  "OTHER": "Other",
+  "ADMISSION": "Arrival",
+  "TRANSFER": "Transfer",
+  "DISCHARGE": "Discharge",
+  "CANCELLATION": "Cancellation"
+}

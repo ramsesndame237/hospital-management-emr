@@ -7,6 +7,8 @@ import { validateEnv } from './config/env.validation';
 import { ALL_ENTITIES } from './database/entities';
 import { HealthController } from './health/health.controller';
 import { AdministrationModule } from './modules/administration/administration.module';
+import { AdmissionsModule } from './modules/admissions/admissions.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { IamModule } from './modules/iam/iam.module';
 import { LocalizationModule } from './modules/i18n/localization.module';
@@ -14,6 +16,9 @@ import { PatientsModule } from './modules/patients/patients.module';
 import { ReferentialsModule } from './modules/referentials/referentials.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { AdministrationIntegrationModule } from './integration/administration.integration';
+import { AdmissionsIntegrationModule } from './integration/admissions.integration';
+import { AppointmentsIntegrationModule } from './integration/appointments.integration';
+import { ServiceAccessIntegrationModule } from './integration/service-access.integration';
 import { AuthorizationIntegrationModule } from './integration/authorization.integration';
 import { ApiDocsIntegrationModule } from './integration/api-docs.integration';
 import { StaffIntegrationModule } from './integration/staff.integration';
@@ -58,7 +63,7 @@ export class AppModule {
       }),
     );
     // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
-    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), ReferentialsModule.register(), AdministrationIntegrationModule.register(), AdministrationModule.register(), StaffIntegrationModule.register(), StaffModule.register(), AuthorizationIntegrationModule.register(), AuditModule.register(), PatientsModule.register());
+    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), ReferentialsModule.register(), AdministrationIntegrationModule.register(), AdministrationModule.register(), StaffIntegrationModule.register(), StaffModule.register(), AuthorizationIntegrationModule.register(), AuditModule.register(), PatientsModule.register(), ServiceAccessIntegrationModule.register(), AppointmentsIntegrationModule.register(), AppointmentsModule.register(), AdmissionsIntegrationModule.register(), AdmissionsModule.register());
     // Toujours présent (accès `null` sans base) : voir `ApiDocsIntegrationModule`.
     imports.push(ApiDocsIntegrationModule.register({ identity: useDb }));
     return {
