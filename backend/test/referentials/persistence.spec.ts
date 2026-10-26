@@ -38,9 +38,9 @@ describe('schéma référentiels sur PostgreSQL', () => {
     expect(row).toEqual({ active: false, labels: { fr: 'Modifié' } });
   });
 
-  it('fournit trois catalogues de départ, bilingues, que le dépôt relit sans erreur', async () => {
+  it('fournit quatre catalogues de départ, bilingues, que le dépôt relit sans erreur', async () => {
     const catalogs = new PgCatalogRepository(sql);
-    expect((await catalogs.findAll()).map((c) => c.code.value)).toEqual(['MEASUREMENT_UNIT', 'SPECIALTY', 'VISIT_REASON']);
+    expect((await catalogs.findAll()).map((c) => c.code.value)).toEqual(['MEASUREMENT_UNIT', 'PROFESSION', 'SPECIALTY', 'VISIT_REASON']);
     const counts = await catalogs.countEntries();
     expect(counts.SPECIALTY.total).toBeGreaterThan(5);
     const { items } = await new PgEntryRepository(sql).list(SPECIALTY, { activeOnly: true }, 0, 200);

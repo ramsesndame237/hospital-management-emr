@@ -20,5 +20,17 @@
   "serviceType": "service type",
   "specialtyCode": "specialty",
   "floor": "floor",
-  "facilityId": "facility"
+  "facilityId": "facility",
+  "staffNumber": "staff number",
+  "firstName": "first name",
+  "lastName": "last name",
+  "professionCode": "profession",
+  "phone": "phone",
+  "hiredOn": "hiring date",
+  "departedOn": "departure date",
+  "startDate": "start date",
+  "endDate": "end date",
+  "nodeId": "service or unit",
+  "primary": "primary assignment",
+  "userId": "account"
 }

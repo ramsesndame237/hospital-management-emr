@@ -20,5 +20,17 @@
   "serviceType": "type de service",
   "specialtyCode": "spécialité",
   "floor": "étage",
-  "facilityId": "établissement"
+  "facilityId": "établissement",
+  "staffNumber": "matricule",
+  "firstName": "prénom",
+  "lastName": "nom de famille",
+  "professionCode": "profession",
+  "phone": "téléphone",
+  "hiredOn": "date d'embauche",
+  "departedOn": "date de départ",
+  "startDate": "date de début",
+  "endDate": "date de fin",
+  "nodeId": "service ou unité",
+  "primary": "affectation principale",
+  "userId": "compte"
 }

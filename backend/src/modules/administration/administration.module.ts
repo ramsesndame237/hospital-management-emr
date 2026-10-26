@@ -24,6 +24,8 @@ export class AdministrationModule {
   static register(): DynamicModule {
     return {
       module: AdministrationModule,
+      // Global : la racine de composition (`src/integration`) en consomme le dépôt de structure sans réimporter (ni dupliquer) le module.
+      global: true,
       controllers: [AdministrationController, StructureController],
       providers: [
         // --- adaptateurs ---
@@ -62,6 +64,7 @@ export class AdministrationModule {
           useFactory: (f: FacilityRepository, s: StructureRepository, sp: SpecialtyDirectory, ids: IdGenerator, a: AuditLog, c: Clock) => new ManageStructureUseCases(f, s, sp, ids, a, c),
         },
       ],
+      exports: [STRUCTURE_REPOSITORY],
     };
   }
 }

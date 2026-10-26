@@ -47,8 +47,8 @@ describe('API référentiels /api/v1/referentials (HTTP réel, PostgreSQL réel)
 
   it('le personnel lit les catalogues et leurs valeurs de départ ; il ne peut pas les modifier', async () => {
     const catalogs = await http().get(BASE).set(bearer(doctor)).expect(200);
-    expect(catalogs.body.map((c: { code: string }) => c.code)).toEqual(['MEASUREMENT_UNIT', 'SPECIALTY', 'VISIT_REASON']);
-    expect(catalogs.body[1]).toMatchObject({ labels: { fr: 'Spécialités médicales', en: 'Medical specialties' }, entryCount: 12, activeEntryCount: 12 });
+    expect(catalogs.body.map((c: { code: string }) => c.code)).toEqual(['MEASUREMENT_UNIT', 'PROFESSION', 'SPECIALTY', 'VISIT_REASON']);
+    expect(catalogs.body[2]).toMatchObject({ labels: { fr: 'Spécialités médicales', en: 'Medical specialties' }, entryCount: 12, activeEntryCount: 12 });
 
     const page = await http().get(`${BASE}/specialty/entries?limit=3`).set(bearer(doctor)).expect(200);
     expect(page.body).toMatchObject({ total: 12, offset: 0, limit: 3 });
