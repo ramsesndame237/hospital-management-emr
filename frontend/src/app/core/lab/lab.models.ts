@@ -18,7 +18,8 @@ export type Priority = (typeof PRIORITIES)[number];
 export const SOURCES = ['OPD', 'IPD', 'ER', 'EXTERNAL'] as const;
 export type Source = (typeof SOURCES)[number];
 
-export const REQUISITION_STATUSES = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'CANCELLED'] as const;
+/** `IN_ANALYSIS` : des résultats saisis, pas tous ; `RESULTED` : tous saisis ; `VERIFIED` : tous validés ; `RELEASED` : tous publiés. */
+export const REQUISITION_STATUSES = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'IN_ANALYSIS', 'RESULTED', 'VERIFIED', 'RELEASED', 'CANCELLED'] as const;
 export type RequisitionStatus = (typeof REQUISITION_STATUSES)[number];
 
 export const SPECIMEN_STATUSES = ['PENDING_COLLECTION', 'COLLECTED', 'RECEIVED', 'REJECTED'] as const;
@@ -108,12 +109,70 @@ export interface Specimen {
   readonly events: readonly SpecimenEvent[];
 }
 
+/** `IN_PROGRESS` : lu par un prescripteur tant qu'aucune version n'est publiée (jamais de valeur non publiée). */
+export type ResultStatus = 'IN_PROGRESS' | 'ENTERED' | 'RETURNED' | 'VERIFIED' | 'RELEASED';
+export type ResultFlag = 'NORMAL' | 'LOW' | 'HIGH' | 'CRITICAL_LOW' | 'CRITICAL_HIGH';
+
+export const NOTIFICATION_METHODS = ['PHONE', 'IN_PERSON', 'SECURE_MESSAGE'] as const;
+export type NotificationMethod = (typeof NOTIFICATION_METHODS)[number];
+
+export interface ResultVersion {
+  readonly version: number;
+  readonly value: string;
+  readonly flag: ResultFlag | null;
+  readonly unit: string | null;
+  readonly refLow: number | null;
+  readonly refHigh: number | null;
+  readonly criticalLow: number | null;
+  readonly criticalHigh: number | null;
+  /** Dernier résultat publié du même patient, au moment de la saisie. */
+  readonly previousValue: number | null;
+  /** Variation de plus de 30 % par rapport au résultat précédent. */
+  readonly deltaAlert: boolean;
+  readonly enteredBy: LabUser | null;
+  readonly enteredAt: string;
+  readonly comment: string | null;
+  readonly amendmentReason: string | null;
+}
+
+export interface CriticalNotification {
+  readonly version: number;
+  readonly notifiedName: string;
+  readonly notifiedRole: string;
+  readonly method: NotificationMethod;
+  readonly at: string;
+  readonly by: LabUser | null;
+}
+
+export interface TestResult {
+  readonly status: ResultStatus;
+  readonly currentVersion: number | null;
+  readonly releasedVersion: number | null;
+  readonly versions: readonly ResultVersion[];
+  readonly returnReason: string | null;
+  readonly verifiedBy: LabUser | null;
+  readonly verifiedAt: string | null;
+  readonly releasedBy: LabUser | null;
+  readonly releasedAt: string | null;
+  /** Valeur critique : l'appel du clinicien conditionne la publication. */
+  readonly criticalRequired: boolean;
+  readonly criticalNotified: boolean;
+  readonly notifications: readonly CriticalNotification[];
+  /** Une version amendée attend sa validation ; la version publiée reste celle du prescripteur. */
+  readonly amendmentPending: boolean;
+}
+
 export interface OrderedTest {
   readonly testId: string;
   readonly code: string;
   readonly name: string;
   readonly section: Section;
   readonly specimenId: string;
+  readonly resultType: ResultType;
+  readonly unit: string | null;
+  readonly decimals: number;
+  readonly choices: readonly string[];
+  readonly result: TestResult | null;
 }
 
 export interface Requisition {
@@ -180,11 +239,23 @@ export interface RequisitionBySpecimen extends Requisition {
   readonly specimenId: string;
 }
 
+export interface NotifyInput {
+  readonly notifiedName: string;
+  readonly notifiedRole: string;
+  readonly method: NotificationMethod;
+  readonly readBackConfirmed: boolean;
+}
+
+/** La version courante d'un résultat (la plus récente), ou `null`. */
+export const currentVersionOf = (r: TestResult | null): ResultVersion | null => (r && r.versions.length > 0 ? r.versions[r.versions.length - 1] : null);
+
+export const isCriticalFlag = (flag: ResultFlag | null): boolean => flag === 'CRITICAL_LOW' || flag === 'CRITICAL_HIGH';
+
 /** Un échantillon attend son prélèvement. */
 export const awaitsCollection = (s: Pick<Specimen, 'status'>): boolean => s.status === 'PENDING_COLLECTION';
 /** Un échantillon prélevé attend sa réception au laboratoire. */
 export const awaitsReceipt = (s: Pick<Specimen, 'status'>): boolean => s.status === 'COLLECTED';
 /** Une demande se traite tant qu'elle n'est ni annulée ni entièrement reçue. */
-export const isOpen = (r: Pick<Requisition, 'status'>): boolean => r.status !== 'CANCELLED' && r.status !== 'RECEIVED';
+export const isOpen = (r: Pick<Requisition, 'status'>): boolean => r.status !== 'CANCELLED' && r.status !== 'RECEIVED' && r.status !== 'IN_ANALYSIS' && r.status !== 'RESULTED' && r.status !== 'VERIFIED' && r.status !== 'RELEASED';
 /** Les échantillons encore en jeu : ni rejetés (remplacés) ni annulés. */
 export const activeSpecimens = (r: Pick<Requisition, 'specimens'>): readonly Specimen[] => r.specimens.filter((s) => s.status !== 'REJECTED');

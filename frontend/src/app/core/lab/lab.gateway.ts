@@ -4,7 +4,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
 import {
-  CollectInput, LabTest, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, TestFilter,
+  CollectInput, LabTest, NotifyInput, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, TestFilter,
 } from './lab.models';
 
 /**
@@ -25,6 +25,16 @@ export abstract class LabGateway {
   abstract receive(specimenId: string): Promise<Requisition>;
   /** Rejette l'échantillon : un nouveau prélèvement est créé automatiquement. */
   abstract reject(specimenId: string, input: RejectInput): Promise<Requisition>;
+  /** Saisit (ou corrige, tant que rien n'est validé) le résultat d'une analyse. Le serveur calcule le drapeau et l'alerte de variation. */
+  abstract enterResult(requisitionId: string, testId: string, value: string, comment: string | null): Promise<Requisition>;
+  /** Valide un résultat saisi : jamais par son auteur (409 `LAB_VERIFY_SELF`). */
+  abstract verifyResult(requisitionId: string, testId: string): Promise<Requisition>;
+  abstract returnResult(requisitionId: string, testId: string, reason: string): Promise<Requisition>;
+  /** Documente l'appel du clinicien pour une valeur critique ; condition de la publication. */
+  abstract notifyCritical(requisitionId: string, testId: string, input: NotifyInput): Promise<Requisition>;
+  abstract releaseResult(requisitionId: string, testId: string): Promise<Requisition>;
+  /** Amende un résultat publié : nouvelle version avec son motif. */
+  abstract amendResult(requisitionId: string, testId: string, value: string, reason: string, comment: string | null): Promise<Requisition>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/lab`. */
@@ -72,6 +82,34 @@ export class HttpLabGateway extends LabGateway {
 
   override reject(specimenId: string, input: RejectInput): Promise<Requisition> {
     return this.call(this.http.post<Requisition>(`${this.base}/specimens/${specimenId}/reject`, input));
+  }
+
+  private results(requisitionId: string, testId: string): string {
+    return `${this.base}/requisitions/${requisitionId}/results/${testId}`;
+  }
+
+  override enterResult(requisitionId: string, testId: string, value: string, comment: string | null): Promise<Requisition> {
+    return this.call(this.http.put<Requisition>(this.results(requisitionId, testId), { value, comment }));
+  }
+
+  override verifyResult(requisitionId: string, testId: string): Promise<Requisition> {
+    return this.call(this.http.post<Requisition>(`${this.results(requisitionId, testId)}/verify`, null));
+  }
+
+  override returnResult(requisitionId: string, testId: string, reason: string): Promise<Requisition> {
+    return this.call(this.http.post<Requisition>(`${this.results(requisitionId, testId)}/return`, { reason }));
+  }
+
+  override notifyCritical(requisitionId: string, testId: string, input: NotifyInput): Promise<Requisition> {
+    return this.call(this.http.post<Requisition>(`${this.results(requisitionId, testId)}/critical-notification`, input));
+  }
+
+  override releaseResult(requisitionId: string, testId: string): Promise<Requisition> {
+    return this.call(this.http.post<Requisition>(`${this.results(requisitionId, testId)}/release`, null));
+  }
+
+  override amendResult(requisitionId: string, testId: string, value: string, reason: string, comment: string | null): Promise<Requisition> {
+    return this.call(this.http.post<Requisition>(`${this.results(requisitionId, testId)}/amend`, { value, reason, comment }));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {
