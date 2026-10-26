@@ -1,0 +1,196 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css';
+
+@import '@spartan-ng/brain/hlm-tailwind-preset.css';
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  color-scheme: light;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.984 0.003 247.858);
+  --sidebar-primary-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ---------- Identité Sanjeevani : jetons de conception issus du Figma (clair) + équivalents sombres ---------- */
+:root {
+  /* Application d'entreprise : angles quasi droits (2 px). Tous les rayons de Spartan dérivent de cette variable. */
+  --radius: 0.125rem;
+
+  --font-sans: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Surfaces et texte (Figma : surface/*, text/*, border/default) */
+  --background: #f4f7fa;
+  --foreground: #0f1b2d;
+  --card: #ffffff;
+  --card-foreground: #0f1b2d;
+  --popover: #ffffff;
+  --popover-foreground: #0f1b2d;
+  --muted: #eaf0f5;
+  --muted-foreground: #5a6b80;
+  --border: #dbe3ec;
+  --input: #dbe3ec;
+  --secondary: #eaf0f5;
+  --secondary-foreground: #0f1b2d;
+  --accent: #e3f1f5;
+  --accent-foreground: #06324a;
+
+  /* Marque (Figma : brand/primary, brand/deep) */
+  --primary: #0b6e8a;
+  --primary-foreground: #ffffff;
+  --ring: #0b6e8a;
+
+  /* États (Figma : status/*) */
+  --destructive: #b42318;
+  --status-success: #067647;
+  --status-warning: #b54708;
+  --status-critical: #b42318;
+  --status-info: #175cd3;
+
+  /* Panneaux sombres (barre de navigation, panneau de confiance) */
+  --brand-deep: #06324a;
+  --brand-deep-foreground: #bed0da;
+  --brand-deep-line: #416276;
+  --brand-deep-active: #0b4a68;
+
+  /* Fond voilé derrière une boîte de dialogue de sécurité */
+  --surface-overlay: #dde4ea;
+}
+
+:root.dark {
+  --background: #0a141d;
+  --foreground: #e6edf3;
+  --card: #10202c;
+  --card-foreground: #e6edf3;
+  --popover: #10202c;
+  --popover-foreground: #e6edf3;
+  --muted: #17293a;
+  --muted-foreground: #93a4b5;
+  --border: #243a4d;
+  --input: #243a4d;
+  --secondary: #17293a;
+  --secondary-foreground: #e6edf3;
+  --accent: #123246;
+  --accent-foreground: #e6edf3;
+
+  --primary: #3aa8c6;
+  --primary-foreground: #04202c;
+  --ring: #3aa8c6;
+
+  --destructive: #f97066;
+  --status-success: #47cd89;
+  --status-warning: #f79009;
+  --status-critical: #f97066;
+  --status-info: #7aa7ff;
+
+  --brand-deep: #041f2f;
+  --brand-deep-foreground: #a9bfcc;
+  --brand-deep-line: #2f4a5c;
+  --brand-deep-active: #0a3a52;
+
+  --surface-overlay: #060e15;
+}
+
+@theme inline {
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-deep-foreground: var(--brand-deep-foreground);
+  --color-brand-deep-line: var(--brand-deep-line);
+  --color-brand-deep-active: var(--brand-deep-active);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+  --color-status-info: var(--status-info);
+  --color-surface-overlay: var(--surface-overlay);
+}
+
+/* Libellés de section en capitales espacées (« ACCÈS PERSONNEL », « SYSTÈME D'INFORMATION HOSPITALIER »). */
+@utility eyebrow {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

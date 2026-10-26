@@ -6,7 +6,7 @@ const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 const safeJson = (value: unknown): string => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 const FAVICON =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230b6e8a'/%3E%3Cpath d='M17 9h6v8h8v6h-8v8h-6v-8H9v-6h8z' fill='white'/%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='2' fill='%230b6e8a'/%3E%3Cpath d='M17 9h6v8h8v6h-8v8h-6v-8H9v-6h8z' fill='white'/%3E%3C/svg%3E";
 
 const ICON = {
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>',
@@ -52,7 +52,7 @@ export function renderPortalPage({ localization, docsPath }: PortalPageInput): s
 <div class="layout">
   <aside class="hero">
     <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="rgba(255,255,255,.16)"/><path d="M17 9h6v8h8v6h-8v8h-6v-8H9v-6h8z" fill="#fff"/></svg>
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="2" fill="rgba(255,255,255,.16)"/><path d="M17 9h6v8h8v6h-8v8h-6v-8H9v-6h8z" fill="#fff"/></svg>
       <div>Sanjeevani EMR<small>API</small></div>
     </div>
     <div>

@@ -11,14 +11,16 @@ import { CreateUserUseCase } from '../modules/iam/application/use-cases/manage-u
  * Le mot de passe temporaire est affiché ici et nulle part ailleurs ; il devra être changé à la première connexion,
  * qui exigera aussi l'inscription MFA (profil administrateur).
  *
+ *   (variables dans .env, ou en ligne :)
  *   BOOTSTRAP_ADMIN_USERNAME=admin BOOTSTRAP_ADMIN_EMAIL=dsi@hopital.example node dist/cli/bootstrap-admin.js
  */
 async function main(): Promise<void> {
+  // Le fichier `.env` doit être chargé AVANT de lire les variables ci-dessous (une variable déjà définie dans l'environnement l'emporte).
+  loadLocalEnv();
   const username = process.env.BOOTSTRAP_ADMIN_USERNAME ?? 'admin';
   const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
-  if (!email) throw new Error('BOOTSTRAP_ADMIN_EMAIL est obligatoire.');
+  if (!email) throw new Error('BOOTSTRAP_ADMIN_EMAIL est obligatoire (dans .env ou dans l\'environnement).');
 
-  loadLocalEnv();
   configurePgTypes();
   const app = await NestFactory.createApplicationContext(AppModule.register(), { logger: ['error', 'warn'] });
   try {

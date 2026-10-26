@@ -1,0 +1,374 @@
+{
+  "app": {
+    "name": "Sanjeevani EMR"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "language": "Langue",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "signOut": "Se déconnecter",
+    "back": "Retour",
+    "soon": "Disponible prochainement",
+    "dateTimeAt": "{date} à {time}",
+    "step": "ÉTAPE {current} / {total}  ·  {name}",
+    "copy": "Copier",
+    "copied": "Copié"
+  },
+  "authPanel": {
+    "label": "Engagements de sécurité",
+    "eyebrow": "SYSTÈME D’INFORMATION HOSPITALIER",
+    "title": "Les soins, en toute sécurité",
+    "lead": "Un accès maîtrisé. Des données protégées. La confiance au cœur de chaque soin.",
+    "g1": "Accès par rôle",
+    "g2": "Authentification à deux facteurs",
+    "g3": "Traçabilité complète",
+    "g4": "FR / EN",
+    "privacy": "Protection des données de santé",
+    "network": "Réseau de soins Sanjeevani · Cameroun",
+    "accessNotice": "Accès réservé au personnel autorisé. Toutes les connexions sont journalisées."
+  },
+  "auth": {
+    "eyebrow": "ACCÈS PERSONNEL"
+  },
+  "login": {
+    "pageTitle": "Connexion",
+    "title": "Connexion à votre espace",
+    "lead": "Utilisez votre compte professionnel pour accéder à Sanjeevani EMR.",
+    "username": "Identifiant",
+    "usernamePlaceholder": "prenom.nom",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Votre mot de passe",
+    "submit": "Se connecter",
+    "retry": "Réessayer",
+    "submitting": "Vérification…",
+    "forgot": "Mot de passe oublié ? Réinitialiser",
+    "supportCode": "Code d’assistance : {code}",
+    "help": "Besoin d’aide ? Contactez l’administrateur : {phone}.",
+    "network": {
+      "title": "La connexion réseau a été interrompue",
+      "text": "Vérifiez votre connexion Internet, puis réessayez. Aucune demande n’a pu être confirmée."
+    },
+    "errors": {
+      "usernameRequired": "Saisissez votre identifiant.",
+      "passwordRequired": "Saisissez votre mot de passe.",
+      "generic": "Une erreur est survenue. Réessayez dans un instant."
+    },
+    "retryIn": "Réessayer dans {time}",
+    "status": "Consulter l’état du service",
+    "invalid": {
+      "title": "Connexion impossible",
+      "hint": "Vérifiez vos informations et réessayez."
+    },
+    "rate": {
+      "title": "Trop de tentatives, réessayez dans {time}",
+      "text": "Pour protéger votre accès, les nouvelles tentatives sont temporairement suspendues.",
+      "minutes": "{n} min",
+      "seconds": "{n} s"
+    },
+    "unavailable": {
+      "title": "Le service de connexion est indisponible",
+      "text": "Un incident technique empêche la connexion. Réessayez dans quelques instants."
+    }
+  },
+  "mfa": {
+    "title": "Vérifiez votre identité",
+    "lead": "Saisissez le code à 6 chiffres affiché dans votre application d’authentification.",
+    "code": "Code de vérification",
+    "recoveryCode": "Code de secours",
+    "verify": "Vérifier",
+    "useRecovery": "Utiliser un code de récupération",
+    "useApp": "Utiliser mon application",
+    "errors": {
+      "codeRequired": "Saisissez le code.",
+      "codeFormat": "Le code comporte 6 chiffres."
+    },
+    "account": "Compte professionnel · {username}",
+    "hint": "Collez les 6 chiffres ou saisissez-les dans l’ordre.",
+    "verifying": "Vérification en cours…",
+    "backToLogin": "← Retour à la connexion",
+    "clockNote": "L’heure de votre appareil doit être synchronisée automatiquement. Aucun code ne vous sera demandé par téléphone.",
+    "invalid": {
+      "title": "Ce code est incorrect ou a expiré",
+      "text": "Attendez le prochain code dans votre application, puis réessayez."
+    }
+  },
+  "expired": {
+    "pageTitle": "Session expirée",
+    "title": "Reconnectez-vous pour continuer",
+    "lead": "La sécurité de vos patients reste notre priorité.",
+    "noticeTitle": "Votre session a expiré",
+    "noticeText": "Pour protéger les données de santé, votre session a été fermée automatiquement.",
+    "kept": "Votre page a été conservée. Après vérification de votre identité, vous reprendrez votre consultation au même endroit.",
+    "draftSaved": "✓ Brouillon enregistré · {when}",
+    "relogin": "Se reconnecter",
+    "otherAccount": "Utiliser un autre compte",
+    "dialogEyebrow": "SÉCURITÉ DE LA SESSION"
+  },
+  "setup": {
+    "pageTitle": "Finalisation du compte",
+    "title": "Créez votre mot de passe",
+    "lead": "Remplacez le mot de passe temporaire transmis par votre administrateur.",
+    "steps": {
+      "password": "Mot de passe",
+      "authenticator": "Authentificateur",
+      "recovery": "Codes de récupération"
+    },
+    "currentPassword": "Mot de passe temporaire",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "continue": "Continuer vers l’authentification",
+    "saving": "Enregistrement…",
+    "errors": {
+      "mismatch": "Les deux mots de passe ne sont pas identiques."
+    },
+    "breached": {
+      "title": "Ce mot de passe est apparu dans une fuite de données",
+      "text": "Choisissez un mot de passe unique que vous n’utilisez sur aucun autre service."
+    }
+  },
+  "inactivity": {
+    "eyebrow": "PROTECTION DES DONNÉES DE SANTÉ",
+    "title": "Êtes-vous toujours là ?",
+    "lead": "Sans activité, votre session sera automatiquement fermée. Confirmez votre présence pour continuer.",
+    "countdownLabel": "Déconnexion dans",
+    "draftTitle": "Brouillon enregistré",
+    "draftText": "Votre note clinique a été sauvegardée à {time}. Elle sera disponible à votre prochaine connexion.",
+    "stay": "Rester connecté",
+    "maskedContext": "DOSSIER PATIENT / CONSULTATION · CONTENU MASQUÉ",
+    "dataMasked": "Données masquées pendant l’interruption"
+  },
+  "form": {
+    "password": {
+      "show": "Afficher",
+      "hide": "Masquer",
+      "strength": {
+        "1": "Force faible · mot de passe insuffisant",
+        "2": "Force moyenne · à renforcer",
+        "3": "Force bonne · mot de passe correct",
+        "4": "Force élevée · mot de passe robuste"
+      },
+      "rules": {
+        "minLength": "Au moins {min} caractères",
+        "notCommon": "Différent des mots de passe courants",
+        "noIdentity": "Sans identifiant ni adresse e-mail"
+      },
+      "ruleMet": "(respectée)",
+      "ruleUnmet": "(non respectée)",
+      "compromised": "Force {level} · mot de passe compromis",
+      "level": {
+        "1": "faible",
+        "2": "moyenne",
+        "3": "bonne",
+        "4": "élevée"
+      }
+    },
+    "errors": {
+      "min": "La valeur doit être au moins {min}.",
+      "max": "La valeur doit être au plus {max}.",
+      "equalsField": "Les deux valeurs ne sont pas identiques.",
+      "passwordPolicy": "Le mot de passe ne respecte pas la politique de sécurité."
+    },
+    "otp": {
+      "digit": "Chiffre {index} sur {total}"
+    },
+    "qr": {
+      "alt": "QR code à scanner avec votre application d’authentification"
+    }
+  },
+  "shell": {
+    "mainNav": "Navigation principale",
+    "limitedAccess": "Accès limité à votre rôle",
+    "collapseMenu": "Réduire le menu",
+    "expandMenu": "Développer le menu",
+    "openMenu": "Ouvrir le menu",
+    "search": "Rechercher…",
+    "notifications": "Notifications",
+    "help": "Aide",
+    "userMenu": "Menu utilisateur",
+    "profileLink": "Mon profil et ma sécurité",
+    "auditNotice": "Votre accès à ce dossier est journalisé."
+  },
+  "roles": {
+    "SYSTEM_ADMIN": "Administrateur système",
+    "DOCTOR": "Médecin",
+    "NURSE": "Infirmier(ère)",
+    "PHARMACIST": "Pharmacien(ne)",
+    "LAB_TECHNICIAN": "Technicien(ne) de laboratoire",
+    "RADIOLOGIST": "Radiologue",
+    "CASHIER": "Caissier(ère)",
+    "RECEPTIONIST": "Réceptionniste",
+    "ACCOUNTANT": "Comptable",
+    "DPO_AUDITOR": "DPO / Auditeur",
+    "PATIENT": "Patient"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "agenda": "Mon agenda",
+    "consultations": "Consultations",
+    "rounds": "Hospitalisation (tournées)",
+    "emergency": "Urgences",
+    "results": "Résultats",
+    "tasks": "Tâches & messages",
+    "patients": "Dossiers patients",
+    "surgery": "Bloc opératoire",
+    "maternity": "Maternité",
+    "documents": "Documents & certificats",
+    "planning": "Mon planning",
+    "reports": "Rapports",
+    "help": "Aide et support"
+  },
+  "dashboard": {
+    "title": "Mon espace de travail",
+    "subtitle": "Vue du {date} · Contexte et outils adaptés à votre rôle.",
+    "recordOpen": "Dossier ouvert",
+    "today": "Vue du jour",
+    "consultations": "Consultations du jour",
+    "results": "Résultats à revoir",
+    "documents": "Documents à signer",
+    "perimeter": "Périmètre de mon rôle",
+    "perimeterOf": {
+      "all": "Tous les patients de l’établissement",
+      "department": "Patients avec relation de soin · Mon service",
+      "own": "Mes patients uniquement"
+    },
+    "scopeText": "Les entrées de navigation et les actions suivent les droits du rôle connecté.",
+    "locked": "Verrouillé : Administration des rôles : accès non autorisé",
+    "activity": "Mon activité",
+    "noActivity": "Aucune activité prévue aujourd’hui.",
+    "visit": {
+      "followUp": "Suivi",
+      "consultation": "Consultation"
+    },
+    "status": {
+      "confirmed": "Confirmé",
+      "arrived": "Arrivée",
+      "waiting": "En attente"
+    },
+    "quick": {
+      "title": "Accès rapides",
+      "profile": "Mon profil et ma sécurité",
+      "help": "Aide et support"
+    }
+  },
+  "profile": {
+    "title": "Mon profil",
+    "subtitle": "Données professionnelles · Les rôles sont gérés par votre administrateur.",
+    "identity": "Identité professionnelle",
+    "fullName": "Nom complet",
+    "email": "E-mail professionnel",
+    "phone": "Téléphone",
+    "errors": {
+      "phone": "Saisissez un numéro valide (chiffres et espaces, « + » au début pour l’international)."
+    },
+    "photoSignature": "Photo et signature",
+    "photo": "Photo de profil",
+    "photoHint": "Importer JPG / PNG · 2 Mo maximum",
+    "signature": "Signature professionnelle",
+    "signatureHint": "Signature conservée · Remplacer après vérification",
+    "signatureLogged": "La signature des documents médicaux est journalisée.",
+    "practice": "Exercice et habilitations",
+    "establishment": "Établissement : {name}",
+    "save": "Enregistrer le profil",
+    "cancel": "Annuler",
+    "notSavedTitle": "Enregistrement pas encore disponible",
+    "notSavedText": "Votre saisie est valide, mais le service de mise à jour du profil n’est pas encore connecté : rien n’a été modifié."
+  },
+  "modules": {
+    "soon": "Ce module sera disponible prochainement."
+  },
+  "recovery": {
+    "title": "Utiliser un code de récupération",
+    "lead": "Vous n’avez pas accès à votre application ? Utilisez l’un des codes conservés lors de la sécurisation de votre compte.",
+    "noticeTitle": "Chaque code est à usage unique",
+    "noticeText": "Le code saisi sera invalidé après vérification.",
+    "code": "Code de récupération",
+    "format": "Format : 5 caractères, tiret, 5 caractères.",
+    "verify": "Vérifier le code",
+    "backToApp": "← Revenir à l’application d’authentification",
+    "noCode": "Aucun code disponible ? Contactez votre administrateur pour rétablir un accès sécurisé.",
+    "errors": {
+      "required": "Saisissez un code de récupération.",
+      "format": "Le code comporte 5 caractères, un tiret, puis 5 caractères."
+    },
+    "verifiedTitle": "Identité vérifiée",
+    "accepted": {
+      "title": "Code de récupération accepté",
+      "text": "Ce code a été utilisé et ne pourra plus servir. Pensez à renouveler vos codes s’il ne vous en reste plus."
+    },
+    "remaining": {
+      "title": "{count} codes restants"
+    },
+    "continue": "Choisir mon contexte de travail"
+  },
+  "forgot": {
+    "title": "Mot de passe oublié ?",
+    "lead": "Saisissez votre identifiant ou votre adresse e-mail professionnelle pour demander un lien de réinitialisation.",
+    "identifier": "Identifiant ou adresse e-mail",
+    "errors": {
+      "required": "Saisissez votre identifiant ou votre adresse e-mail."
+    },
+    "privacy": {
+      "title": "Votre confidentialité est préservée",
+      "text": "Si un compte correspond à ces informations, un message sera envoyé à l’adresse associée. La réponse sera identique dans tous les cas."
+    },
+    "sent": {
+      "title": "Demande enregistrée",
+      "text": "Si un compte correspond à ces informations, un message a été envoyé à l’adresse associée. La réponse est identique dans tous les cas."
+    },
+    "unavailable": {
+      "title": "Réinitialisation par e-mail pas encore disponible",
+      "text": "Contactez l’administrateur de votre établissement pour obtenir un nouveau mot de passe."
+    },
+    "failed": {
+      "title": "Demande impossible",
+      "text": "Une erreur est survenue. Réessayez dans un instant."
+    },
+    "submit": "Envoyer un lien de réinitialisation",
+    "sending": "Envoi en cours…",
+    "back": "← Retour à la connexion"
+  },
+  "authenticator": {
+    "title": "Ajoutez un authentificateur",
+    "lead": "Installez Google Authenticator, Microsoft Authenticator ou Aegis, puis ajoutez votre compte professionnel.",
+    "loading": "Préparation de l’association…",
+    "failed": "Impossible de préparer l’association",
+    "scan": {
+      "title": "1. Scannez ce QR code",
+      "text": "Dans votre application, choisissez « Ajouter un compte », puis « Scanner un QR code ».",
+      "account": "Compte : {username}"
+    },
+    "manual": "Ou saisissez cette clé manuellement",
+    "confirm": "2. Confirmez l’association",
+    "submit": "Vérifier et continuer",
+    "help": {
+      "title": "Le code n’est pas reconnu ?",
+      "text": "Activez la date et l’heure automatiques de votre téléphone. Attendez le prochain code, puis réessayez."
+    }
+  },
+  "recoveryCodes": {
+    "title": "Conservez vos codes",
+    "lead": "Ces codes vous permettront de vous connecter si vous perdez votre téléphone. Chaque code ne fonctionne qu’une fois.",
+    "noticeTitle": "{count} codes confidentiels à usage unique",
+    "noticeText": "Conservez-les hors de cet appareil, dans un endroit sûr. Ne les envoyez jamais par e-mail.",
+    "download": "Télécharger .txt",
+    "print": "Imprimer",
+    "saved": "J’ai conservé ces codes en lieu sûr",
+    "finish": "Terminer la sécurisation",
+    "helper": "Confirmez la conservation des codes pour continuer.",
+    "helperSaved": "La conservation des codes est confirmée. Vous pouvez continuer.",
+    "copied": "Codes copiés",
+    "fileTitle": "Codes de récupération (usage unique) — à conserver en lieu sûr"
+  },
+  "ready": {
+    "title": "Votre compte est prêt",
+    "lead": "Votre accès professionnel est désormais sécurisé. Bienvenue, {name}.",
+    "noticeTitle": "Sécurisation terminée",
+    "noticeText": "Les trois étapes de protection de votre compte ont été effectuées.",
+    "password": "Mot de passe personnel défini",
+    "authenticator": "Authentificateur associé",
+    "codes": "{count} codes de récupération conservés",
+    "open": "Accéder à mon espace",
+    "note": "Une vérification en deux étapes sera demandée avant le choix de votre contexte de travail."
+  }
+}
