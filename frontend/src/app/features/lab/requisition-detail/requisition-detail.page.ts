@@ -112,7 +112,20 @@ type Panel =
 
             @if (showResults()) {
               <section class="border border-border bg-card" aria-labelledby="results-title">
-                <h2 id="results-title" class="border-b border-border px-4 py-3 text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('lab.result.title') }}</h2>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+                  <h2 id="results-title" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('lab.result.title') }}</h2>
+                  <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    @if (canVerifyAll()) {
+                      <button type="button" [class]="link" [disabled]="busy()" [attr.title]="i18n.t('lab.result.verifyAllHint')" (click)="batch('verify')">{{ i18n.t('lab.result.verifyAll') }}</button>
+                    }
+                    @if (canReleaseAll()) {
+                      <button type="button" [class]="link" [disabled]="busy()" (click)="batch('release')">{{ i18n.t('lab.result.releaseAll') }}</button>
+                    }
+                    @if (hasReleased()) {
+                      <a [routerLink]="['/lab/requisitions', r.id, 'report']" [class]="link">{{ i18n.t('lab.detail.report') }}</a>
+                    }
+                  </div>
+                </div>
                 <div class="overflow-x-auto">
                   <table class="w-full text-left text-sm leading-6">
                     <caption class="sr-only">{{ i18n.t('lab.result.title') }}</caption>
@@ -327,6 +340,11 @@ export class RequisitionDetailPage {
   protected readonly canRelease = computed(() => this.has('lab.results:release'));
   protected readonly canAmend = computed(() => this.has('lab.results:amend'));
   protected readonly canNotify = computed(() => this.has('lab.results:notify'));
+  /** Un résultat saisi par quelqu'un d'autre attend ma validation. */
+  protected readonly canVerifyAll = computed(() => this.live && this.canVerify() && !!this.requisition()?.tests.some((t) => t.result?.status === 'ENTERED' && !this.mine(t)));
+  /** Un résultat validé, saisi par quelqu'un d'autre, attend ma publication. */
+  protected readonly canReleaseAll = computed(() => this.live && this.canRelease() && !!this.requisition()?.tests.some((t) => t.result?.status === 'VERIFIED' && !this.mine(t)));
+  protected readonly hasReleased = computed(() => !!this.requisition()?.tests.some((t) => t.result?.releasedVersion != null));
   /** Le laboratoire voit toutes les versions et l'historique ; un prescripteur seulement ce qui est publié. */
   protected readonly bench = computed(() => this.has('lab.requisitions:read:all'));
   private readonly history = signal<ReadonlySet<string>>(new Set());
@@ -505,6 +523,27 @@ export class RequisitionDetailPage {
   protected async verify(t: OrderedTest): Promise<void> {
     const r = this.requisition();
     if (r) await this.act(() => this.gateway.verifyResult(r.id, t.testId), () => this.toast.show(this.i18n.t('lab.result.verified', { name: t.name })), false);
+  }
+
+  /** Valide ou publie d'un coup tout ce qui peut l'être ; ce qui est écarté (saisi par soi, valeur critique sans appel) est dit avec sa raison. */
+  protected async batch(kind: 'verify' | 'release'): Promise<void> {
+    const r = this.requisition();
+    if (!r) return;
+    this.busy.set(true);
+    this.actionError.set(null);
+    try {
+      const outcome = await (kind === 'verify' ? this.gateway.verifyAll(r.id) : this.gateway.releaseAll(r.id));
+      this.requisition.set(outcome.requisition);
+      this.toast.show(this.i18n.t(outcome.processed === 0 ? 'lab.result.batchNone' : kind === 'verify' ? 'lab.result.batchVerified' : 'lab.result.batchReleased', { n: outcome.processed }));
+      if (outcome.skipped.length > 0) {
+        const list = outcome.skipped.map((s) => `${s.code} (${this.i18n.t(`lab.result.skipReason.${s.reason}`)})`).join(', ');
+        this.toast.show(this.i18n.t('lab.result.batchSkipped', { list }));
+      }
+    } catch (error) {
+      this.actionError.set(failureMessage(error, this.i18n));
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected async release(t: OrderedTest): Promise<void> {

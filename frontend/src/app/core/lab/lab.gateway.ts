@@ -4,7 +4,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
 import {
-  CollectInput, LabTest, NotifyInput, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, TestFilter,
+  BatchOutcome, CollectInput, LabTest, NotifyInput, ReferenceRange, Report, TestChanges, TestInput, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, TestFilter,
 } from './lab.models';
 
 /**
@@ -33,6 +33,16 @@ export abstract class LabGateway {
   /** Documente l'appel du clinicien pour une valeur critique ; condition de la publication. */
   abstract notifyCritical(requisitionId: string, testId: string, input: NotifyInput): Promise<Requisition>;
   abstract releaseResult(requisitionId: string, testId: string): Promise<Requisition>;
+  /** Valide d'un coup tous les résultats saisis, sauf ceux de l'appelant (quatre yeux). */
+  abstract verifyAll(requisitionId: string): Promise<BatchOutcome>;
+  /** Publie d'un coup tous les résultats validés, sauf ceux de l'appelant et les valeurs critiques sans appel documenté. */
+  abstract releaseAll(requisitionId: string): Promise<BatchOutcome>;
+  abstract getReport(requisitionId: string): Promise<Report>;
+  abstract createTest(input: TestInput): Promise<LabTest>;
+  abstract updateTest(id: string, changes: TestChanges): Promise<LabTest>;
+  /** Remplace d'un bloc les valeurs de référence (analyse numérique). */
+  abstract setRanges(id: string, ranges: readonly ReferenceRange[]): Promise<LabTest>;
+  abstract setTestActive(id: string, active: boolean): Promise<LabTest>;
   /** Amende un résultat publié : nouvelle version avec son motif. */
   abstract amendResult(requisitionId: string, testId: string, value: string, reason: string, comment: string | null): Promise<Requisition>;
 }
@@ -47,6 +57,7 @@ export class HttpLabGateway extends LabGateway {
     const params: Record<string, string | number> = { offset, limit };
     if (filter.search) params['search'] = filter.search;
     if (filter.section) params['section'] = filter.section;
+    if (filter.includeInactive) params['includeInactive'] = 'true';
     return this.call(this.http.get<Page<LabTest>>(`${this.base}/tests`, { params }));
   }
 
@@ -82,6 +93,34 @@ export class HttpLabGateway extends LabGateway {
 
   override reject(specimenId: string, input: RejectInput): Promise<Requisition> {
     return this.call(this.http.post<Requisition>(`${this.base}/specimens/${specimenId}/reject`, input));
+  }
+
+  override verifyAll(requisitionId: string): Promise<BatchOutcome> {
+    return this.call(this.http.post<BatchOutcome>(`${this.base}/requisitions/${requisitionId}/results/verify`, null));
+  }
+
+  override releaseAll(requisitionId: string): Promise<BatchOutcome> {
+    return this.call(this.http.post<BatchOutcome>(`${this.base}/requisitions/${requisitionId}/results/release`, null));
+  }
+
+  override getReport(requisitionId: string): Promise<Report> {
+    return this.call(this.http.get<Report>(`${this.base}/requisitions/${requisitionId}/report`));
+  }
+
+  override createTest(input: TestInput): Promise<LabTest> {
+    return this.call(this.http.post<LabTest>(`${this.base}/tests`, input));
+  }
+
+  override updateTest(id: string, changes: TestChanges): Promise<LabTest> {
+    return this.call(this.http.patch<LabTest>(`${this.base}/tests/${id}`, changes));
+  }
+
+  override setRanges(id: string, ranges: readonly ReferenceRange[]): Promise<LabTest> {
+    return this.call(this.http.put<LabTest>(`${this.base}/tests/${id}/ranges`, { ranges }));
+  }
+
+  override setTestActive(id: string, active: boolean): Promise<LabTest> {
+    return this.call(this.http.post<LabTest>(`${this.base}/tests/${id}/${active ? 'activate' : 'deactivate'}`, null));
   }
 
   private results(requisitionId: string, testId: string): string {

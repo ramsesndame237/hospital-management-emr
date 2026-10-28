@@ -1,6 +1,6 @@
-import { NOTIFICATION_METHODS, PRIORITIES, REJECTION_REASONS, REQUISITION_STATUSES, ResultType, SECTIONS, SOURCES } from '../../core/lab/lab.models';
+import { CONTAINERS, LabTest, NOTIFICATION_METHODS, PRIORITIES, REJECTION_REASONS, REQUISITION_STATUSES, RESULT_TYPES, ResultType, SECTIONS, SOURCES, SPECIMEN_TYPES } from '../../core/lab/lab.models';
 import { failureNotice } from '../../shared/failure-message';
-import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
+import { FieldSchema, OptionSpec, ValidatorSpec } from '../../shared/form-builder/form-schema';
 
 const options = (values: readonly string[], prefix: string): OptionSpec[] => values.map((v) => ({ value: v, label: `${prefix}.${v}` }));
 
@@ -108,6 +108,15 @@ export function catalogFilterFields(): FieldSchema[] {
   ];
 }
 
+/** Filtres du catalogue pour qui le gère : en plus, l'affichage des analyses retirées. */
+export function catalogManageFilterFields(): FieldSchema[] {
+  return [
+    ...catalogFilterFields().filter((f) => f.type !== 'submit'),
+    { type: 'checkbox', name: 'inactive', label: 'lab.manage.showInactive', span: 6 },
+    { type: 'submit', name: 'submit', label: 'lab.catalog.apply', span: 2, class: 'sm:self-end' },
+  ];
+}
+
 /**
  * Saisie (ou amendement) d'un résultat : un champ numérique, une liste de valeurs admises, ou un texte libre selon l'analyse. Un amendement
  * demande en plus son motif. Le serveur calcule le drapeau (bas, haut, critique) et l'alerte de variation.
@@ -161,4 +170,45 @@ export function notifyFields(o: { readonly notice: string | null }): FieldSchema
     { type: 'submit', name: 'submit', label: 'lab.result.notifySubmit', busyLabel: 'lab.saving' },
     { type: 'button', name: 'cancel', label: 'lab.cancel', variant: 'outline' },
   ];
+}
+
+/**
+ * Création ou modification d'une analyse. À la création on choisit le code et le type de résultat (ils ne changeront plus) ; ensuite, l'unité et les
+ * décimales ne concernent qu'une analyse numérique, les valeurs admises qu'une analyse à choix.
+ */
+export function testFormFields(o: { readonly test: LabTest | null; readonly notice: string | null }): FieldSchema[] {
+  const t = o.test;
+  const create = t === null;
+  const required: ValidatorSpec[] = [{ type: 'required', message: 'lab.manage.required' }];
+  // À la création le type se choisit dans le formulaire (les champs qui en dépendent se montrent selon lui) ; ensuite il est connu.
+  const only = (type: ResultType): Partial<FieldSchema> => (create ? { showIf: { field: 'resultType', equals: type } } : {});
+  const fields: FieldSchema[] = [...failureNotice(o.notice)];
+  if (create) {
+    fields.push({
+      type: 'text', name: 'code', label: 'lab.manage.code', hint: 'lab.manage.codeHint', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono',
+      validators: [...required, { type: 'maxLength', value: 20 }, { type: 'pattern', value: '^[A-Za-z0-9][A-Za-z0-9_.-]*$', message: 'lab.manage.codeHint' }],
+    });
+  }
+  fields.push({ type: 'text', name: 'name', label: 'lab.manage.name', value: t?.name ?? '', autofocus: !create, normalize: 'trim', validators: [...required, { type: 'maxLength', value: 120 }] });
+  fields.push({ type: 'select', name: 'section', label: 'lab.manage.section', value: t?.section ?? 'HAEMATOLOGY', options: options(SECTIONS, 'lab.section'), validators: required, span: 6 });
+  if (create) {
+    fields.push({ type: 'select', name: 'resultType', label: 'lab.manage.resultType', hint: 'lab.manage.resultTypeHint', value: 'NUMERIC', options: RESULT_TYPES.map((r) => ({ value: r, label: `lab.manage.resultTypes.${r}` })), validators: required, span: 6 });
+  }
+  fields.push({ type: 'select', name: 'specimenType', label: 'lab.manage.specimenType', value: t?.specimenType ?? 'BLOOD', options: options(SPECIMEN_TYPES, 'lab.specimenType'), validators: required, span: 6 });
+  fields.push({ type: 'select', name: 'container', label: 'lab.manage.container', value: t?.container ?? 'PURPLE', options: options(CONTAINERS, 'lab.container'), validators: required, span: 6 });
+  if (create || t?.resultType === 'NUMERIC') {
+    fields.push({ type: 'text', name: 'unit', label: 'lab.manage.unit', value: t?.unit ?? '', normalize: 'trim', span: 6, validators: [{ type: 'maxLength', value: 20 }], ...only('NUMERIC') } as FieldSchema);
+    fields.push({
+      type: 'number', name: 'decimals', label: 'lab.manage.decimals', value: t?.decimals ?? 1, inputMode: 'numeric', span: 6, validators: [...required, { type: 'min', value: 0 }, { type: 'max', value: 4 }], ...only('NUMERIC'),
+    } as FieldSchema);
+  }
+  if (create || t?.resultType === 'CHOICE') {
+    fields.push({ type: 'textarea', name: 'choices', label: 'lab.manage.choices', hint: 'lab.manage.choicesHint', value: (t?.choices ?? []).join('\n'), rows: 4, ...only('CHOICE') } as FieldSchema);
+  }
+  fields.push({ type: 'number', name: 'tatMinutes', label: 'lab.manage.tat', value: t?.tatMinutes ?? 240, inputMode: 'numeric', validators: [...required, { type: 'min', value: 1 }, { type: 'max', value: 43200 }] });
+  fields.push({ type: 'textarea', name: 'instructions', label: 'lab.manage.instructions', value: t?.instructions ?? '', rows: 3, normalize: 'trim', validators: [{ type: 'maxLength', value: 500 }] });
+  fields.push({ type: 'paragraph', name: 'audit', text: 'lab.auditNote', tone: 'muted' });
+  fields.push({ type: 'submit', name: 'submit', label: 'lab.manage.submit', busyLabel: 'lab.saving' });
+  fields.push({ type: 'button', name: 'cancel', label: 'lab.cancel', variant: 'outline' });
+  return fields;
 }

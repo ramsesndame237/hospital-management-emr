@@ -1,6 +1,6 @@
 import { LabGateway } from '../lab.gateway';
 import {
-  CollectInput, LabTest, LabPatient, NotifyInput, ResultVersion, TestResult, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, Specimen, TestFilter,
+  BatchOutcome, CollectInput, LabTest, LabPatient, NotifyInput, ReferenceRange, Report, ReportItem, ResultVersion, TestChanges, TestInput, TestResult, OrderInput, Page, RejectInput, Requisition, RequisitionBySpecimen, RequisitionFilter, RequisitionSummary, Specimen, TestFilter,
 } from '../lab.models';
 
 export const patient: LabPatient = { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth', sex: 'FEMALE', birthDate: '1990-03-14' };
@@ -44,6 +44,16 @@ export const summary = (over: Partial<RequisitionSummary> = {}): RequisitionSumm
   id: 'r-1', number: 'LAB-0000123', status: 'ORDERED', priority: 'ROUTINE', source: 'OPD', patient, orderedBy: doctor, orderedAt: '2026-10-24T08:00:00Z', testCodes: ['HGB'], sections: ['HAEMATOLOGY'], ...over,
 });
 
+export const reportItem = (over: Partial<ReportItem> = {}): ReportItem => ({
+  testCode: 'HGB', testName: 'Hémoglobine', section: 'HAEMATOLOGY', status: 'RELEASED', value: '13.5', unit: 'g/dL', flag: 'NORMAL', refLow: 11.5, refHigh: 15.5, criticalLow: 7, criticalHigh: 20, version: 1,
+  amended: false, amendmentReason: null, verifiedBy: { id: 'u-lab2', username: 'labo2' }, releasedBy: { id: 'u-lab2', username: 'labo2' }, releasedAt: '2026-10-24T10:20:00Z', ...over,
+});
+
+export const report = (over: Partial<Report> = {}): Report => ({
+  number: 'LAB-0000123', patient, priority: 'ROUTINE', source: 'OPD', orderedBy: doctor, orderedAt: '2026-10-24T08:00:00Z', clinicalNotes: null, complete: true, items: [reportItem()],
+  generatedAt: '2026-10-24T11:00:00Z', ...over,
+});
+
 /** Double de test du port `LabGateway` : chaque méthode est un mock Vitest que le test configure. */
 export class FakeLabGateway extends LabGateway {
   override listTests = vi.fn<(filter: TestFilter, offset: number, limit: number) => Promise<Page<LabTest>>>().mockResolvedValue(
@@ -78,6 +88,13 @@ export class FakeLabGateway extends LabGateway {
       tests: [orderedTest({ specimenId: 's-2' })],
     })),
   );
+  override verifyAll = vi.fn<(requisitionId: string) => Promise<BatchOutcome>>().mockImplementation(() => Promise.resolve({ requisition: requisition(), processed: 2, skipped: [] }));
+  override releaseAll = vi.fn<(requisitionId: string) => Promise<BatchOutcome>>().mockImplementation(() => Promise.resolve({ requisition: requisition(), processed: 2, skipped: [] }));
+  override getReport = vi.fn<(requisitionId: string) => Promise<Report>>().mockImplementation(() => Promise.resolve(report()));
+  override createTest = vi.fn<(input: TestInput) => Promise<LabTest>>().mockImplementation((input) => Promise.resolve(labTest({ id: 't-new', ...input, ranges: [], active: true })));
+  override updateTest = vi.fn<(id: string, changes: TestChanges) => Promise<LabTest>>().mockImplementation((id, changes) => Promise.resolve(labTest({ id, ...changes })));
+  override setRanges = vi.fn<(id: string, ranges: readonly ReferenceRange[]) => Promise<LabTest>>().mockImplementation((id, ranges) => Promise.resolve(labTest({ id, ranges })));
+  override setTestActive = vi.fn<(id: string, active: boolean) => Promise<LabTest>>().mockImplementation((id, active) => Promise.resolve(labTest({ id, active })));
   override enterResult = vi.fn<(requisitionId: string, testId: string, value: string, comment: string | null) => Promise<Requisition>>().mockImplementation((_r, _t, value, comment) =>
     Promise.resolve(requisition({ status: 'RESULTED', specimens: [specimen({ status: 'RECEIVED' })], tests: [orderedTest({ result: result({ versions: [version({ value, comment })] }) })] })),
   );

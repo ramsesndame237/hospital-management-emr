@@ -66,7 +66,27 @@ export interface LabTest {
 export interface TestFilter {
   readonly search?: string;
   readonly section?: Section;
+  /** Inclure les analyses retirées du catalogue (gestion du catalogue). */
+  readonly includeInactive?: boolean;
 }
+
+/** Création d'une analyse (le code et le type de résultat ne changeront plus). */
+export interface TestInput {
+  readonly code: string;
+  readonly name: string;
+  readonly section: Section;
+  readonly specimenType: SpecimenType;
+  readonly container: Container;
+  readonly resultType: ResultType;
+  readonly unit: string | null;
+  readonly decimals: number;
+  readonly choices: readonly string[];
+  readonly tatMinutes: number;
+  readonly instructions: string | null;
+}
+
+/** Modification d'une analyse : tout sauf le code et le type de résultat. */
+export type TestChanges = Omit<TestInput, 'code' | 'resultType'>;
 
 export interface LabUser {
   readonly id: string;
@@ -237,6 +257,48 @@ export interface RejectInput {
 /** Demande retrouvée par code-barres, avec l'échantillon scanné. */
 export interface RequisitionBySpecimen extends Requisition {
   readonly specimenId: string;
+}
+
+/** Action en lot : la demande à jour, le nombre de résultats traités, et ceux qui ont été écartés avec leur raison. */
+export interface BatchOutcome {
+  readonly requisition: Requisition;
+  readonly processed: number;
+  readonly skipped: readonly { readonly code: string; readonly reason: string }[];
+}
+
+export interface ReportItem {
+  readonly testCode: string;
+  readonly testName: string;
+  readonly section: Section;
+  /** `PENDING` : pas encore publié (rapport partiel). */
+  readonly status: 'RELEASED' | 'PENDING';
+  readonly value: string | null;
+  readonly unit: string | null;
+  readonly flag: ResultFlag | null;
+  readonly refLow: number | null;
+  readonly refHigh: number | null;
+  readonly criticalLow: number | null;
+  readonly criticalHigh: number | null;
+  readonly version: number | null;
+  readonly amended: boolean;
+  readonly amendmentReason: string | null;
+  readonly verifiedBy: LabUser | null;
+  readonly releasedBy: LabUser | null;
+  readonly releasedAt: string | null;
+}
+
+/** Rapport d'une demande : uniquement ce qui est publié, avec les signatures. */
+export interface Report {
+  readonly number: string;
+  readonly patient: LabPatient | null;
+  readonly priority: Priority;
+  readonly source: Source;
+  readonly orderedBy: LabUser | null;
+  readonly orderedAt: string;
+  readonly clinicalNotes: string | null;
+  readonly complete: boolean;
+  readonly items: readonly ReportItem[];
+  readonly generatedAt: string;
 }
 
 export interface NotifyInput {
