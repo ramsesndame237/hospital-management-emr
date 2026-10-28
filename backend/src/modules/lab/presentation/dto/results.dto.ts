@@ -1,5 +1,6 @@
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { DocProperty } from '../../../api-docs';
+import { RequisitionDto, RequisitionPatientDto, UserSummaryDto } from './requisitions.dto';
 
 const METHODS = ['PHONE', 'IN_PERSON', 'SECURE_MESSAGE'];
 
@@ -44,4 +45,108 @@ export class CriticalNotificationInputDto {
   @DocProperty({ description: 'La personne prévenue a relu la valeur à voix haute : **doit être vrai**.', example: true })
   @IsBoolean()
   readBackConfirmed!: boolean;
+}
+
+export class SkippedResultDto {
+  @DocProperty({ description: "Code de l'analyse écartée.", example: 'HGB' })
+  code!: string;
+
+  @DocProperty({ description: 'Raison : `LAB_VERIFY_SELF` (résultat saisi par vous), `LAB_CRITICAL_NOT_NOTIFIED` (appel du clinicien à documenter)…', example: 'LAB_VERIFY_SELF' })
+  reason!: string;
+}
+
+export class BatchResultDto {
+  @DocProperty({ description: 'La demande à jour.', type: RequisitionDto })
+  requisition!: RequisitionDto;
+
+  @DocProperty({ description: 'Nombre de résultats traités.', example: 3 })
+  processed!: number;
+
+  @DocProperty({ description: 'Résultats écartés, avec la raison : les autres sont passés.', type: SkippedResultDto, itemType: SkippedResultDto })
+  skipped!: readonly SkippedResultDto[];
+}
+
+export class ReportItemDto {
+  @DocProperty({ description: "Code de l'analyse.", example: 'HGB' })
+  testCode!: string;
+
+  @DocProperty({ description: "Libellé de l'analyse.", example: 'Hémoglobine' })
+  testName!: string;
+
+  @DocProperty({ description: 'Section.', example: 'HAEMATOLOGY' })
+  section!: string;
+
+  @DocProperty({ description: '`RELEASED` (publié) ou `PENDING` (pas encore publié : le rapport est partiel).', example: 'RELEASED', enum: ['RELEASED', 'PENDING'] })
+  status!: string;
+
+  @DocProperty({ description: 'Valeur publiée.', example: '13.5', nullable: true })
+  value!: string | null;
+
+  @DocProperty({ description: 'Unité.', example: 'g/dL', nullable: true })
+  unit!: string | null;
+
+  @DocProperty({ description: 'Position par rapport aux valeurs de référence.', example: 'NORMAL', nullable: true })
+  flag!: string | null;
+
+  @DocProperty({ description: 'Limite basse.', example: 11.5, nullable: true })
+  refLow!: number | null;
+
+  @DocProperty({ description: 'Limite haute.', example: 15.5, nullable: true })
+  refHigh!: number | null;
+
+  @DocProperty({ description: 'Seuil critique bas.', example: 7, nullable: true })
+  criticalLow!: number | null;
+
+  @DocProperty({ description: 'Seuil critique haut.', example: 20, nullable: true })
+  criticalHigh!: number | null;
+
+  @DocProperty({ description: 'Version publiée.', example: 1, nullable: true })
+  version!: number | null;
+
+  @DocProperty({ description: 'Cette version amende un résultat déjà publié.', example: false })
+  amended!: boolean;
+
+  @DocProperty({ description: "Motif de l'amendement.", example: null, nullable: true })
+  amendmentReason!: string | null;
+
+  @DocProperty({ description: 'Qui a validé.', type: UserSummaryDto, nullable: true })
+  verifiedBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Qui a publié.', type: UserSummaryDto, nullable: true })
+  releasedBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Publié le (ISO 8601, UTC).', example: '2026-11-02T10:20:00Z', format: 'date-time', nullable: true })
+  releasedAt!: string | null;
+}
+
+export class ReportDto {
+  @DocProperty({ description: 'Numéro de la demande.', example: 'LAB-0000123' })
+  number!: string;
+
+  @DocProperty({ description: 'Patient.', type: RequisitionPatientDto, nullable: true })
+  patient!: RequisitionPatientDto | null;
+
+  @DocProperty({ description: 'Priorité.', example: 'ROUTINE' })
+  priority!: string;
+
+  @DocProperty({ description: 'Provenance.', example: 'OPD' })
+  source!: string;
+
+  @DocProperty({ description: 'Prescripteur.', type: UserSummaryDto, nullable: true })
+  orderedBy!: UserSummaryDto | null;
+
+  @DocProperty({ description: 'Demandée le.', example: '2026-11-02T08:00:00Z', format: 'date-time' })
+  orderedAt!: string;
+
+  @DocProperty({ description: 'Renseignements cliniques.', example: null, nullable: true })
+  clinicalNotes!: string | null;
+
+  @DocProperty({ description: 'Tous les résultats sont publiés.', example: true })
+  complete!: boolean;
+
+  @DocProperty({ description: 'Une ligne par analyse demandée.', type: ReportItemDto, itemType: ReportItemDto })
+  items!: readonly ReportItemDto[];
+
+  @DocProperty({ description: 'Édité le.', example: '2026-11-02T11:00:00Z', format: 'date-time' })
+  generatedAt!: string;
 }

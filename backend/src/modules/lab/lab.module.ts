@@ -4,6 +4,7 @@ import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/por
 import { SERVICE_ACCESS, ServiceAccess } from '../../shared-kernel/service-access';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
 import { CatalogDependencies, CreateTestUseCase, GetTestUseCase, ListTestsUseCase, ManageTestUseCases } from './application/use-cases/catalog';
+import { GetReportUseCase } from './application/use-cases/reports';
 import { ResultUseCases } from './application/use-cases/results';
 import {
   CancelRequisitionUseCase, FindBySpecimenUseCase, GetRequisitionUseCase, ListRequisitionsUseCase, OrderRequisitionUseCase, RequisitionDependencies, SpecimenUseCases,
@@ -55,6 +56,7 @@ export class LabModule {
         { provide: CancelRequisitionUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new CancelRequisitionUseCase(d) },
         { provide: FindBySpecimenUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new FindBySpecimenUseCase(d) },
         { provide: ResultUseCases, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new ResultUseCases(d) },
+        { provide: GetReportUseCase, inject: [REQUISITION_DEPENDENCIES], useFactory: (d: RequisitionDependencies) => new GetReportUseCase(d) },
         { provide: SpecimenUseCases, inject: [REQUISITION_DEPENDENCIES, ID_GENERATOR], useFactory: (d: RequisitionDependencies, ids: IdGenerator) => new SpecimenUseCases(d, ids) },
       ],
     };

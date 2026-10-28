@@ -22,6 +22,13 @@ function parseComment(raw: string | null | undefined): Result<string | null> {
   return text.length <= 300 ? ok(text) : err(new DomainError('LAB_COMMENT_INVALID', 'Le commentaire ne doit pas dépasser 300 caractères.'));
 }
 
+/** Résultat d'une action en lot : la demande à jour, ce qui a été traité, et ce qui ne pouvait pas l'être (avec la raison). */
+export interface BatchOutcome {
+  readonly requisition: RequisitionView;
+  readonly processed: number;
+  readonly skipped: readonly { readonly code: string; readonly reason: string }[];
+}
+
 export interface EnterResultInput {
   readonly value: unknown;
   readonly comment?: string | null;
@@ -103,6 +110,44 @@ export class ResultUseCases {
     const entry = await this.entryFor(found.value.requisition, found.value.test, input);
     if (!entry.ok) return err(entry.error);
     return this.apply(actorId, requisitionId, testId, 'lab.result.enter', (r, t) => r.enterResult(t.testId, actorId, this.d.clock.now(), entry.value), this.versionInfo);
+  }
+
+  private async batch(
+    actorId: string, rawRequisition: string, action: string, wanted: 'ENTERED' | 'VERIFIED', change: (r: Requisition, test: OrderedTest) => Result<void>,
+  ): Promise<Result<BatchOutcome>> {
+    const id = RequisitionId.create(rawRequisition);
+    if (!id.ok) return err(NOT_FOUND);
+    const done: string[] = [];
+    const skipped: { code: string; reason: string }[] = [];
+    const mutated = await this.d.requisitions.mutate(id.value, (r) => {
+      // Chaque résultat est tenté à part : celui qui ne peut pas l'être (sa propre saisie, une valeur critique sans appel) est écarté, les autres passent.
+      for (const test of r.state.tests.filter((t) => t.result?.status === wanted)) {
+        const applied = change(r, test);
+        if (applied.ok) done.push(test.code.value);
+        else skipped.push({ code: test.code.value, reason: applied.error.code });
+      }
+      return ok(undefined);
+    });
+    if (!mutated) return err(NOT_FOUND);
+    if (!mutated.ok) return err(mutated.error);
+    const s = mutated.value.state;
+    for (const code of done) {
+      await this.d.audit.record({
+        action, outcome: 'SUCCESS', actorId, resourceType: 'lab-requisition', resourceId: s.id.value, metadata: { requisitionNumber: s.number.value, patientId: s.patientId.value, testCode: code, batch: true },
+        occurredAt: this.d.clock.now(),
+      });
+    }
+    return ok({ requisition: await toView(this.d, actorId, mutated.value), processed: done.length, skipped });
+  }
+
+  /** Valide d'un coup tous les résultats saisis de la demande, sauf ceux de l'appelant (quatre yeux) : ils sont listés comme écartés. */
+  verifyAll(actorId: string, requisitionId: string): Promise<Result<BatchOutcome>> {
+    return this.batch(actorId, requisitionId, 'lab.result.verify', 'ENTERED', (r, t) => r.verifyResult(t.testId, actorId, this.d.clock.now()));
+  }
+
+  /** Publie d'un coup tous les résultats validés, sauf ceux de l'appelant et les valeurs critiques dont l'appel n'est pas documenté. */
+  releaseAll(actorId: string, requisitionId: string): Promise<Result<BatchOutcome>> {
+    return this.batch(actorId, requisitionId, 'lab.result.release', 'VERIFIED', (r, t) => r.releaseResult(t.testId, actorId, this.d.clock.now()));
   }
 
   /** Valide un résultat saisi : jamais par son auteur. */
