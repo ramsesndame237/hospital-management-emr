@@ -48,6 +48,7 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
               <tr>
                 <th scope="col" class="px-4 py-2 font-medium">{{ i18n.t('pharmacy.receipts.number') }}</th>
                 <th scope="col" class="px-4 py-2 font-medium">{{ i18n.t('pharmacy.receipt.supplier') }}</th>
+                <th scope="col" class="px-4 py-2 font-medium">{{ i18n.t('pharmacy.receipts.order') }}</th>
                 <th scope="col" class="px-4 py-2 font-medium">{{ i18n.t('pharmacy.receipts.when') }}</th>
                 <th scope="col" class="px-4 py-2 text-right font-medium">{{ i18n.t('pharmacy.receipts.lines') }}</th>
                 <th scope="col" class="px-4 py-2 text-right font-medium">{{ i18n.t('pharmacy.receipts.units') }}</th>
@@ -60,6 +61,7 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
                 <tr class="border-b border-border align-top last:border-b-0" [attr.data-test]="r.number">
                   <td class="px-4 py-3 font-mono text-xs">{{ r.number }}@if (r.deliveryNote) { <span class="block font-sans text-muted-foreground">{{ r.deliveryNote }}</span>}</td>
                   <td class="px-4 py-3">{{ r.supplier }}</td>
+                  <td class="px-4 py-3 font-mono text-xs">{{ r.orderNumber ?? '—' }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">{{ when(r.receivedAt) }}<span class="block text-xs text-muted-foreground">{{ r.receivedBy?.username ?? '' }}</span></td>
                   <td class="px-4 py-3 text-right font-mono">{{ r.lines }}</td>
                   <td class="px-4 py-3 text-right font-mono">{{ r.units }}</td>
@@ -70,7 +72,7 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">{{ i18n.t('pharmacy.receipts.empty') }}</td>
+                  <td colspan="8" class="px-4 py-8 text-center text-muted-foreground">{{ i18n.t('pharmacy.receipts.empty') }}</td>
                 </tr>
               }
             </tbody>

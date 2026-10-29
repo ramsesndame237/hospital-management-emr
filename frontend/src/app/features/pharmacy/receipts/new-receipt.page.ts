@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { MoneyFormatter, minorDigitsOf, toMinorUnits } from '../../../core/billing/money';
+import { fromMinorUnits, MoneyFormatter, minorDigitsOf, toMinorUnits } from '../../../core/billing/money';
 import { Translator } from '../../../core/i18n/translator';
 import { PharmacyGateway } from '../../../core/pharmacy/pharmacy.gateway';
-import { Drug, ReceiptLineInput } from '../../../core/pharmacy/pharmacy.models';
+import { Drug, Order, ReceiptLineInput } from '../../../core/pharmacy/pharmacy.models';
 import { failureMessage } from '../../../shared/failure-message';
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
 import { ToastService } from '../../../shared/toast/toast.service';
@@ -15,7 +15,7 @@ const FIELDS = ['batchNumber', 'expiry', 'quantity', 'unitCost'] as const;
 
 /** Une ligne en cours de saisie : tout est du texte tant que la réception n'est pas enregistrée. */
 interface Line {
-  readonly drug: Drug;
+  readonly drug: Pick<Drug, 'id' | 'name' | 'genericName' | 'unit'>;
   batchNumber: string;
   expiry: string;
   quantity: string;
@@ -37,6 +37,14 @@ interface Line {
         <p class="text-sm leading-6 text-muted-foreground">{{ i18n.t('pharmacy.receipt.lead') }}</p>
       </header>
 
+      @if (loadError()) {
+        <p class="border-l-4 border-status-critical bg-card p-3 text-sm text-status-critical" role="alert">{{ loadError() }}</p>
+      }
+      @if (forOrder(); as o) {
+        <p class="border-l-4 border-primary bg-card p-3 text-sm" role="status" data-test="order-banner">{{ i18n.t('pharmacy.receipt.forOrder', { number: o.number, supplier: o.supplier?.name ?? '' }) }}</p>
+      }
+
+      @if (!forOrder()) {
       <section class="flex flex-col gap-3 border border-border bg-card p-4" aria-labelledby="receipt-search-title">
         <h2 id="receipt-search-title" class="text-sm leading-6 font-semibold text-foreground">{{ i18n.t('pharmacy.receipt.searchTitle') }}</h2>
         <app-form-builder [fields]="searchFields" [busy]="searching()" formId="receipt-search" (submitted)="search($event)" />
@@ -53,6 +61,7 @@ interface Line {
           </ul>
         }
       </section>
+      }
 
       <section class="flex flex-col gap-3" aria-labelledby="receipt-lines-title">
         <h2 id="receipt-lines-title" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('pharmacy.receipt.linesTitle') }}</h2>
@@ -100,7 +109,10 @@ interface Line {
     </div>
   `,
 })
-export class NewReceiptPage {
+export class NewReceiptPage implements OnInit {
+  /** `?order=<id>` : la livraison s'impute sur ce bon de commande approuvé. */
+  readonly order = input<string | undefined>(undefined);
+
   protected readonly i18n = inject(Translator);
   private readonly gateway = inject(PharmacyGateway);
   private readonly router = inject(Router);
@@ -118,9 +130,31 @@ export class NewReceiptPage {
   protected readonly lineError = signal<string | null>(null);
   protected readonly busy = signal(false);
   protected readonly currency = signal('XAF');
+  protected readonly forOrder = signal<Order | null>(null);
+  protected readonly loadError = signal<string | null>(null);
   private readonly notice = signal<string | null>(null);
 
-  protected readonly headerFields = computed(() => receiptHeaderFields({ notice: this.notice() }));
+  protected readonly headerFields = computed(() => receiptHeaderFields({ notice: this.notice(), forOrder: this.forOrder() !== null }));
+
+  ngOnInit(): void {
+    const id = this.order();
+    if (id) void this.loadOrder(id);
+  }
+
+  /** Contre un bon : une ligne par médicament encore attendu, avec le reste à recevoir et le coût convenu ; il ne reste qu'à saisir lot et péremption. */
+  private async loadOrder(id: string): Promise<void> {
+    try {
+      const order = await this.gateway.getOrder(id);
+      const digits = minorDigitsOf(order.currency);
+      this.currency.set(order.currency);
+      this.forOrder.set(order);
+      this.lines.set(
+        order.lines.filter((l) => l.drug && l.outstanding > 0).map((l) => ({ drug: l.drug!, batchNumber: '', expiry: '', quantity: String(l.outstanding), unitCost: fromMinorUnits(l.unitCost, digits) })),
+      );
+    } catch (error) {
+      this.loadError.set(failureMessage(error, this.i18n));
+    }
+  }
 
   protected async search(value: Record<string, unknown>): Promise<void> {
     this.searching.set(true);
@@ -185,7 +219,10 @@ export class NewReceiptPage {
     try {
       const deliveryNote = String(value['deliveryNote'] ?? '').trim();
       const notes = String(value['notes'] ?? '').trim();
-      const posted = await this.gateway.postReceipt({ supplier: String(value['supplier']).trim(), ...(deliveryNote ? { deliveryNote } : {}), ...(notes ? { notes } : {}), lines });
+      const order = this.forOrder();
+      const posted = await this.gateway.postReceipt({
+        ...(order ? { purchaseOrderId: order.id } : { supplier: String(value['supplier']).trim() }), ...(deliveryNote ? { deliveryNote } : {}), ...(notes ? { notes } : {}), lines,
+      });
       this.toast.show(this.i18n.t('pharmacy.receipt.done', { number: posted.number, total: this.formatter.format(posted.value, posted.currency, minorDigitsOf(posted.currency)) }));
       await this.router.navigate(['/pharmacy/receipts', posted.id]);
     } catch (error) {

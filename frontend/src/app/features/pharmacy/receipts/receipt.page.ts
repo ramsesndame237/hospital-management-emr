@@ -30,6 +30,9 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
           <p class="text-sm leading-6 text-muted-foreground">
             {{ i18n.t('pharmacy.receipts.summary', { supplier: r.supplier, when: when(r.receivedAt), who: r.receivedBy?.username ?? '' }) }}
           </p>
+          @if (r.order; as o) {
+            <p class="text-sm text-muted-foreground">{{ i18n.t('pharmacy.receipts.forOrder') }} <a [routerLink]="['/pharmacy/orders', o.id]" [class]="link">{{ o.number }}</a></p>
+          }
           @if (r.deliveryNote) {
             <p class="text-sm text-muted-foreground">{{ i18n.t('pharmacy.receipts.deliveryNoteOf', { note: r.deliveryNote }) }}</p>
           }

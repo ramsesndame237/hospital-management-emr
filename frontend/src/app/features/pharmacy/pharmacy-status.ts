@@ -1,5 +1,5 @@
 import { Translator } from '../../core/i18n/translator';
-import { AdjustmentStatus, Batch, StockLevel } from '../../core/pharmacy/pharmacy.models';
+import { AdjustmentStatus, Batch, OrderStatus, StockLevel } from '../../core/pharmacy/pharmacy.models';
 import { StatusTone } from '../../shared/status-tag';
 
 type Tag = { readonly label: string; readonly tone: StatusTone };
@@ -33,4 +33,10 @@ export function daysText(i18n: Translator, days: number): string {
   if (days === 1) return i18n.t('pharmacy.days.tomorrow');
   if (days > 1) return i18n.t('pharmacy.days.left', { n: days });
   return i18n.t('pharmacy.days.ago', { n: -days });
+}
+
+/** Statut d'un bon de commande : à approuver ou partiellement reçu en orange (un travail reste à faire), reçu en vert, annulé en rouge. */
+export function orderTag(i18n: Translator, status: OrderStatus): Tag {
+  const tone: StatusTone = status === 'RECEIVED' ? 'success' : status === 'CANCELLED' ? 'critical' : status === 'PENDING_APPROVAL' || status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral';
+  return { label: i18n.t(`pharmacy.orderStatus.${status}`), tone };
 }
