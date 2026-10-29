@@ -1,6 +1,6 @@
 import { DomainError, err, ok, Result } from '../../../shared-kernel/result';
 import { Instant, PlainDate, Temporal } from '../../../shared-kernel/temporal';
-import { BatchId, BatchNumber, DrugId, Money, parseOptionalText, ReceiptId, ReceiptNumber } from './values';
+import { BatchId, BatchNumber, DrugId, Money, parseOptionalText, PurchaseOrderId, ReceiptId, ReceiptNumber } from './values';
 
 export const MAX_RECEIPT_LINES = 50;
 
@@ -24,6 +24,8 @@ export interface ReceiptState {
   readonly notes: string | null;
   readonly receivedBy: string;
   readonly receivedAt: Instant;
+  /** Bon de commande auquel la livraison s'impute, s'il y en a un. */
+  readonly purchaseOrderId: PurchaseOrderId | null;
   readonly lines: readonly ReceiptLine[];
 }
 
@@ -35,6 +37,7 @@ export interface ReceiptDraft {
   readonly notes?: string | null;
   readonly receivedBy: string;
   readonly receivedAt: Instant;
+  readonly purchaseOrderId?: PurchaseOrderId | null;
   readonly lines: readonly ReceiptLine[];
 }
 
@@ -68,7 +71,7 @@ export class GoodsReceipt {
         return err(new DomainError('PHARMACY_RECEIPT_EXPIRED', `Le lot ${line.batchNumber.value} est déjà périmé (${line.expiry.toString()}) : il ne peut pas être reçu.`, { batch: line.batchNumber.value, expiry: line.expiry.toString() }));
       }
     }
-    return ok(new GoodsReceipt({ ...draft, supplier, deliveryNote: deliveryNote.value, notes: notes.value, lines: [...draft.lines] }));
+    return ok(new GoodsReceipt({ ...draft, supplier, deliveryNote: deliveryNote.value, notes: notes.value, purchaseOrderId: draft.purchaseOrderId ?? null, lines: [...draft.lines] }));
   }
 
   get state(): ReceiptState { return this.current; }

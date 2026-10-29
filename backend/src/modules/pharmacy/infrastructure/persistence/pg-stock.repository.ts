@@ -1,14 +1,15 @@
 import { SqlExecutor } from '../../../../database/sql-executor';
 import { requiredInstantFromDb } from '../../../../database/temporal-mapping';
-import { err, ok, Result } from '../../../../shared-kernel/result';
+import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { PlainDate, Temporal } from '../../../../shared-kernel/temporal';
 import { Batch, MovementDraft, MovementType, StockLevel } from '../../domain/batch';
 import {
-  BatchFilter, BatchWithDrug, MovementFilter, MovementRecord, ReceiptFilter, ReceiptSummary, StockFilter, StockRepository, StockRow, StockSummary,
+  BatchFilter, BatchWithDrug, MovementFilter, OrderLink, MovementRecord, ReceiptFilter, ReceiptSummary, StockFilter, StockRepository, StockRow, StockSummary,
 } from '../../domain/ports';
 import { GoodsReceipt, ReceiptLine } from '../../domain/receipt';
-import { BatchId, BatchNumber, DrugId, Money, parseForm, parseSchedule, ReceiptId, ReceiptNumber } from '../../domain/values';
+import { BatchId, BatchNumber, DrugId, Money, parseForm, parseSchedule, PurchaseOrderId, ReceiptId, ReceiptNumber } from '../../domain/values';
 import { BatchRow, batchColumns, loadBatch, need, saveBatch, toBatch, writeMovement } from './pg-batch';
+import { loadOrder, saveOrder } from './pg-purchase-order.repository';
 
 const num = (v: string | number | null | undefined): number => (v === null || v === undefined ? 0 : Number(v));
 const day = (v: string): PlainDate => Temporal.PlainDate.from(v.slice(0, 10));
@@ -22,6 +23,7 @@ interface ReceiptRow {
   notes: string | null;
   received_by: string;
   received_at: Date | string;
+  purchase_order_id: string | null;
 }
 
 interface LineRow {
@@ -61,9 +63,16 @@ export class PgStockRepository implements StockRepository {
     return need(ReceiptNumber.fromSequence(Number(rows[0].n)), 'Numéro de réception');
   }
 
-  async postReceipt(receipt: GoodsReceipt): Promise<Result<GoodsReceipt>> {
+  async postReceipt(receipt: GoodsReceipt, link?: OrderLink): Promise<Result<GoodsReceipt>> {
     const s = receipt.state;
     return this.sql.transaction(async (tx) => {
+      // Ordre des verrous : le bon de commande, puis les lots (une approbation ne verrouille que le bon : aucune attente circulaire).
+      const purchaseOrder = s.purchaseOrderId ? await loadOrder(tx, s.purchaseOrderId.value, true) : null;
+      if (s.purchaseOrderId) {
+        if (!purchaseOrder) return err(new DomainError('PHARMACY_ORDER_NOT_FOUND', 'Bon de commande introuvable.'));
+        const applied = link?.apply(purchaseOrder);
+        if (applied && !applied.ok) return err(applied.error);
+      }
       // Les lots sont verrouillés dans un ordre fixe : deux réceptions simultanées se mettent en file au lieu de s'interbloquer.
       const order = s.lines.map((line, index) => ({ line, index })).sort((a, b) => a.line.drugId.value.localeCompare(b.line.drugId.value) || a.line.batchNumber.value.localeCompare(b.line.batchNumber.value));
       const staged: { index: number; line: ReceiptLine; batch: Batch; created: boolean; movement: MovementDraft }[] = [];
@@ -80,8 +89,8 @@ export class PgStockRepository implements StockRepository {
         }
       }
       await tx.query(
-        'INSERT INTO pharmacy_receipts (id, receipt_number, supplier, delivery_note, notes, received_by, received_at) VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)',
-        [s.id.value, s.number.value, s.supplier, s.deliveryNote, s.notes, s.receivedBy, s.receivedAt.toString()],
+        'INSERT INTO pharmacy_receipts (id, receipt_number, supplier, delivery_note, notes, received_by, received_at, purchase_order_id) VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz, $8)',
+        [s.id.value, s.number.value, s.supplier, s.deliveryNote, s.notes, s.receivedBy, s.receivedAt.toString(), s.purchaseOrderId?.value ?? null],
       );
       for (const item of staged) {
         await saveBatch(tx, item.batch, item.created);
@@ -91,12 +100,22 @@ export class PgStockRepository implements StockRepository {
           [s.id.value, item.index, item.line.drugId.value, item.line.batchId.value, item.line.batchNumber.value, item.line.expiry.toString(), item.line.quantity, item.line.unitCost.value],
         );
       }
+      if (purchaseOrder) await saveOrder(tx, purchaseOrder);
       return ok((await this.loadReceipt(tx, s.id.value))!);
     });
   }
 
+  async lastUnitCosts(drugIds: readonly DrugId[]): Promise<Map<string, number>> {
+    if (drugIds.length === 0) return new Map();
+    const rows = await this.sql.query<{ drug_id: string; unit_cost: string | number }>(
+      'SELECT DISTINCT ON (drug_id) drug_id, unit_cost FROM pharmacy_batches WHERE drug_id = ANY($1::uuid[]) ORDER BY drug_id, received_at DESC, id',
+      [drugIds.map((i) => i.value)],
+    );
+    return new Map(rows.map((r) => [r.drug_id, num(r.unit_cost)]));
+  }
+
   private async loadReceipt(db: SqlExecutor, id: string): Promise<GoodsReceipt | null> {
-    const rows = await db.query<ReceiptRow>('SELECT id, receipt_number, supplier, delivery_note, notes, received_by, received_at FROM pharmacy_receipts WHERE id = $1', [id]);
+    const rows = await db.query<ReceiptRow>('SELECT id, receipt_number, supplier, delivery_note, notes, received_by, received_at, purchase_order_id FROM pharmacy_receipts WHERE id = $1', [id]);
     const r = rows[0];
     if (!r) return null;
     const lines = await db.query<LineRow>('SELECT drug_id, batch_id, batch_number, expiry_date::text AS expiry_date, quantity, unit_cost FROM pharmacy_receipt_lines WHERE receipt_id = $1 ORDER BY position', [id]);
@@ -109,6 +128,7 @@ export class PgStockRepository implements StockRepository {
       notes: r.notes,
       receivedBy: r.received_by,
       receivedAt: requiredInstantFromDb(r.received_at),
+      purchaseOrderId: r.purchase_order_id ? need(PurchaseOrderId.create(r.purchase_order_id), what) : null,
       lines: lines.map((l): ReceiptLine => ({
         drugId: need(DrugId.create(l.drug_id), what), batchId: need(BatchId.create(l.batch_id), what), batchNumber: need(BatchNumber.create(l.batch_number), what),
         expiry: day(l.expiry_date), quantity: l.quantity, unitCost: Money.restore(num(l.unit_cost)),
@@ -128,8 +148,9 @@ export class PgStockRepository implements StockRepository {
     if (filter.drugId) where.push(`EXISTS (SELECT 1 FROM pharmacy_receipt_lines x WHERE x.receipt_id = r.id AND x.drug_id = ${arg(filter.drugId.value)})`);
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const total = await this.sql.query<{ n: number }>(`SELECT count(*)::int AS n FROM pharmacy_receipts r ${condition}`, args);
-    const rows = await this.sql.query<ReceiptRow & { lines: number; units: number; value: string }>(
-      `SELECT r.id, r.receipt_number, r.supplier, r.delivery_note, r.notes, r.received_by, r.received_at,
+    const rows = await this.sql.query<ReceiptRow & { lines: number; units: number; value: string; order_number: string | null }>(
+      `SELECT r.id, r.receipt_number, r.supplier, r.delivery_note, r.notes, r.received_by, r.received_at, r.purchase_order_id,
+              (SELECT o.order_number FROM pharmacy_purchase_orders o WHERE o.id = r.purchase_order_id) AS order_number,
               (SELECT count(*)::int FROM pharmacy_receipt_lines l WHERE l.receipt_id = r.id) AS lines,
               (SELECT COALESCE(SUM(l.quantity), 0)::int FROM pharmacy_receipt_lines l WHERE l.receipt_id = r.id) AS units,
               (SELECT COALESCE(SUM(l.quantity::numeric * l.unit_cost), 0)::text FROM pharmacy_receipt_lines l WHERE l.receipt_id = r.id) AS value
@@ -140,7 +161,7 @@ export class PgStockRepository implements StockRepository {
       total: total[0]?.n ?? 0,
       items: rows.map((r): ReceiptSummary => ({
         id: r.id, number: r.receipt_number, supplier: r.supplier, deliveryNote: r.delivery_note, receivedBy: r.received_by, receivedAt: requiredInstantFromDb(r.received_at),
-        lines: r.lines, units: r.units, value: num(r.value),
+        orderNumber: r.order_number, lines: r.lines, units: r.units, value: num(r.value),
       })),
     };
   }

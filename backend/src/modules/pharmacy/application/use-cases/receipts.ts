@@ -1,8 +1,9 @@
 import { IdGenerator } from '../../../../shared-kernel/ports';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { Drug } from '../../domain/drug';
+import { PurchaseOrder } from '../../domain/purchase-order';
 import { GoodsReceipt, ReceiptLine } from '../../domain/receipt';
-import { BatchId, BatchNumber, DrugId, Money, parseExpiry, Quantity, ReceiptId } from '../../domain/values';
+import { BatchId, BatchNumber, DrugId, Money, parseExpiry, PurchaseOrderId, Quantity, ReceiptId } from '../../domain/values';
 import { DrugSummaryView, PharmacyDependencies, UserSummary, pageOf, toDrugSummary, userSummaries } from '../views';
 
 const NOT_FOUND = new DomainError('PHARMACY_RECEIPT_NOT_FOUND', 'Réception introuvable.');
@@ -25,6 +26,8 @@ export interface ReceiptView {
   readonly notes: string | null;
   readonly receivedBy: UserSummary | null;
   readonly receivedAt: string;
+  /** Bon de commande auquel la livraison s'impute. */
+  readonly order: { readonly id: string; readonly number: string } | null;
   readonly units: number;
   readonly value: number;
   readonly currency: string;
@@ -35,12 +38,14 @@ async function toView(d: PharmacyDependencies, receipt: GoodsReceipt, known?: Ma
   const s = receipt.state;
   const drugs = known ?? new Map((await d.drugs.findByIds(s.lines.map((l) => l.drugId))).map((x) => [x.id.value, x]));
   const who = await userSummaries(d, [s.receivedBy]);
+  const order = s.purchaseOrderId ? await d.orders.findById(s.purchaseOrderId) : null;
   const lines = s.lines.map((l): ReceiptLineView => ({
     drug: drugs.get(l.drugId.value) ? toDrugSummary(drugs.get(l.drugId.value)!) : null, batchId: l.batchId.value, batchNumber: l.batchNumber.value, expiry: l.expiry.toString(),
     quantity: l.quantity, unitCost: l.unitCost.value, value: l.quantity * l.unitCost.value,
   }));
   return {
     id: s.id.value, number: s.number.value, supplier: s.supplier, deliveryNote: s.deliveryNote, notes: s.notes, receivedBy: who(s.receivedBy), receivedAt: s.receivedAt.toString(),
+    order: order ? { id: order.id.value, number: order.state.number.value } : null,
     units: lines.reduce((n, l) => n + l.quantity, 0), value: lines.reduce((n, l) => n + l.value, 0), currency: d.currency, lines,
   };
 }
@@ -54,7 +59,10 @@ export interface ReceiptLineInput {
 }
 
 export interface PostReceiptInput {
-  supplier: string;
+  /** Libre quand la livraison s'impute sur un bon de commande (c'est alors le fournisseur du bon). */
+  supplier?: string;
+  /** Bon de commande approuvé auquel la livraison s'impute : les quantités reçues y sont reportées, et jamais au-delà du commandé. */
+  purchaseOrderId?: string;
   deliveryNote?: string | null;
   notes?: string | null;
   lines: readonly ReceiptLineInput[];
@@ -65,6 +73,12 @@ export class PostReceiptUseCase {
 
   /** Enregistre une livraison et met à jour les lots, tout ou rien. Un médicament inconnu ou retiré du formulaire, un lot périmé, une péremption qui contredit un lot existant font tout refuser. */
   async execute(actorId: string, input: PostReceiptInput): Promise<Result<ReceiptView>> {
+    let order: PurchaseOrder | null = null;
+    if (input.purchaseOrderId) {
+      const orderId = PurchaseOrderId.create(input.purchaseOrderId);
+      order = orderId.ok ? await this.d.orders.findById(orderId.value) : null;
+      if (!order) return err(new DomainError('PHARMACY_ORDER_NOT_FOUND', 'Bon de commande introuvable.'));
+    }
     const lines: ReceiptLine[] = [];
     for (const raw of input.lines ?? []) {
       const drugId = DrugId.create(raw.drugId);
@@ -75,7 +89,9 @@ export class PostReceiptUseCase {
       if (!expiry.ok) return err(expiry.error);
       const quantity = Quantity.create(raw.quantity);
       if (!quantity.ok) return err(quantity.error);
-      const cost = Money.create(raw.unitCost ?? 0);
+      // Contre un bon de commande, le coût d'achat par défaut est le coût convenu.
+      const agreed = order?.state.lines.find((l) => l.drugId.value === drugId.value.value)?.unitCost.value;
+      const cost = Money.create(raw.unitCost ?? agreed ?? 0);
       if (!cost.ok) return err(cost.error);
       const batchId = BatchId.create(this.ids.next());
       if (!batchId.ok) return err(batchId.error);
@@ -89,17 +105,24 @@ export class PostReceiptUseCase {
     }
     const id = ReceiptId.create(this.ids.next());
     if (!id.ok) return err(id.error);
+    const supplier = order ? ((await this.d.suppliers.findByIds([order.state.supplierId]))[0]?.state.name ?? input.supplier ?? '') : (input.supplier ?? '');
     const receipt = GoodsReceipt.create(
-      { id: id.value, number: await this.d.stock.nextReceiptNumber(), supplier: input.supplier, deliveryNote: input.deliveryNote, notes: input.notes, receivedBy: actorId, receivedAt: this.d.clock.now(), lines },
+      {
+        id: id.value, number: await this.d.stock.nextReceiptNumber(), supplier, deliveryNote: input.deliveryNote, notes: input.notes, receivedBy: actorId, receivedAt: this.d.clock.now(),
+        purchaseOrderId: order?.id ?? null, lines,
+      },
       this.d.calendar.today(),
     );
     if (!receipt.ok) return err(receipt.error);
-    const posted = await this.d.stock.postReceipt(receipt.value);
+    // Les quantités reçues par médicament, reportées sur le bon dans la même transaction que les lots.
+    const received = new Map<string, number>();
+    for (const l of lines) received.set(l.drugId.value, (received.get(l.drugId.value) ?? 0) + l.quantity);
+    const posted = await this.d.stock.postReceipt(receipt.value, order ? { apply: (o) => o.receive(received) } : undefined);
     if (!posted.ok) return err(posted.error);
     const view = await toView(this.d, posted.value, drugs);
     await this.d.audit.record({
       action: 'pharmacy.receipt.post', outcome: 'SUCCESS', actorId, resourceType: 'pharmacy-receipt', resourceId: view.id,
-      metadata: { number: view.number, supplier: view.supplier, lines: view.lines.length, units: view.units, value: view.value }, occurredAt: this.d.clock.now(),
+      metadata: { number: view.number, supplier: view.supplier, lines: view.lines.length, units: view.units, value: view.value, order: view.order?.number ?? null }, occurredAt: this.d.clock.now(),
     });
     return ok(view);
   }
@@ -123,6 +146,7 @@ export interface ReceiptSummaryView {
   readonly deliveryNote: string | null;
   readonly receivedBy: UserSummary | null;
   readonly receivedAt: string;
+  readonly orderNumber: string | null;
   readonly lines: number;
   readonly units: number;
   readonly value: number;
@@ -139,7 +163,7 @@ export class ListReceiptsUseCase {
     const who = await userSummaries(this.d, page.items.map((r) => r.receivedBy));
     return ok({
       total: page.total, offset, limit, currency: this.d.currency,
-      items: page.items.map((r) => ({ id: r.id, number: r.number, supplier: r.supplier, deliveryNote: r.deliveryNote, receivedBy: who(r.receivedBy), receivedAt: r.receivedAt.toString(), lines: r.lines, units: r.units, value: r.value })),
+      items: page.items.map((r) => ({ id: r.id, number: r.number, supplier: r.supplier, deliveryNote: r.deliveryNote, receivedBy: who(r.receivedBy), receivedAt: r.receivedAt.toString(), orderNumber: r.orderNumber, lines: r.lines, units: r.units, value: r.value })),
     });
   }
 }
