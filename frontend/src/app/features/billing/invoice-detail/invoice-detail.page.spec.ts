@@ -1,7 +1,9 @@
 import { DOCUMENT } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ApprovalGateway } from '../../../core/billing/approval.gateway';
 import { BillingGateway } from '../../../core/billing/billing.gateway';
 import { CashSessionGateway } from '../../../core/billing/cash-session.gateway';
+import { FakeApprovalGateway, requester, summaryOf, supervisor } from '../../../core/billing/testing/fake-approval-gateway';
 import { FakeCashSessionGateway } from '../../../core/billing/testing/fake-cash-session-gateway';
 import { FakeBillingGateway, invoice, item, line, page, payment } from '../../../core/billing/testing/fake-billing-gateway';
 import { ApiError } from '../../../core/http/api-error';
@@ -9,7 +11,7 @@ import { ToastService } from '../../../shared/toast/toast.service';
 import { configureApp, settle, watchMissingKeys } from '../../../testing/app-testing';
 import { InvoiceDetailPage } from './invoice-detail.page';
 
-const CASHIER = ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect', 'billing.catalog:read'];
+const CASHIER = ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect', 'billing.catalog:read', 'billing.approvals:request'];
 const norm = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 /** Le texte d'un bloc, avec une espace entre chaque élément (comme à l'écran : un `<dt>` et son `<dd>` ne se touchent pas). */
@@ -25,6 +27,7 @@ describe('InvoiceDetailPage', () => {
   let fixture: ComponentFixture<InvoiceDetailPage>;
   let billing: FakeBillingGateway;
   let cash: FakeCashSessionGateway;
+  let approvals: FakeApprovalGateway;
   let missingKeys: () => string[];
   const root = () => fixture.nativeElement as HTMLElement;
   const q = <T extends HTMLElement>(selector: string) => root().querySelector<T>(selector);
@@ -34,10 +37,14 @@ describe('InvoiceDetailPage', () => {
   async function setup(options: { permissions?: readonly string[]; invoice?: ReturnType<typeof invoice> | null; prepare?: (g: FakeBillingGateway) => void; noCash?: boolean } = {}) {
     billing = new FakeBillingGateway();
     cash = new FakeCashSessionGateway();
+    approvals = new FakeApprovalGateway();
     if (options.noCash) cash.current.mockResolvedValue(null);
     if (options.invoice) billing.getInvoice.mockResolvedValue(options.invoice);
     options.prepare?.(billing);
-    const { i18n } = configureApp({ roles: ['CASHIER'], permissions: options.permissions ?? CASHIER, providers: [{ provide: BillingGateway, useValue: billing }, { provide: CashSessionGateway, useValue: cash }] });
+    const { i18n } = configureApp({
+      roles: ['CASHIER'], permissions: options.permissions ?? CASHIER, profile: { id: requester.id },
+      providers: [{ provide: BillingGateway, useValue: billing }, { provide: CashSessionGateway, useValue: cash }, { provide: ApprovalGateway, useValue: approvals }],
+    });
     missingKeys = watchMissingKeys(i18n);
     fixture = TestBed.createComponent(InvoiceDetailPage);
     fixture.componentRef.setInput('id', 'inv-1');
@@ -165,14 +172,14 @@ describe('InvoiceDetailPage', () => {
     });
 
     it('ne laisse écrire que la caisse : pas d\'encaissement sans le droit de percevoir', async () => {
-      await setup({ permissions: ['billing.invoices:read', 'billing.invoices:write'], invoice: issued() });
+      await setup({ permissions: ['billing.invoices:read', 'billing.invoices:write'] });
       expect(buttonNamed('Encaisser')).toBeUndefined();
       expect(buttonNamed('Annuler la facture')).toBeDefined();
     });
 
     it.each([
       ['un brouillon (préparer)', () => invoice(), ['Ajouter un acte', 'Remise', 'Émettre la facture', 'Annuler la facture']],
-      ['une facture émise (encaisser, annuler)', () => issued(), ['Encaisser', 'Annuler la facture']],
+      ['une facture émise (encaisser, demander l’annulation)', () => issued(), ['Encaisser', 'Demander l’annulation']],
       ['une facture payée en partie (encaisser seulement)', () => partially(), ['Encaisser']],
       ['une facture payée (rien)', () => issued({ status: 'PAID', payments: [payment({ amount: 11500 })] }), []],
     ])('propose pour %s les bonnes actions', async (_name, make, expected) => {
@@ -238,12 +245,12 @@ describe('InvoiceDetailPage', () => {
     it('applique une remise avec son motif, converti en entier', async () => {
       await setup();
       await click(buttonNamed('Remise'));
-      await type('#invoice-discount-amount', '1 500');
+      await type('#invoice-discount-amount', '1 000');
       await type('#invoice-discount-reason', '  Personnel de l\'hôpital ');
       await submit('invoice-discount');
-      expect(billing.setDiscount).toHaveBeenCalledWith('inv-1', 1500, 'Personnel de l\'hôpital');
+      expect(billing.setDiscount).toHaveBeenCalledWith('inv-1', 1000, 'Personnel de l\'hôpital');
       expect(q('aside')).toBeNull();
-      expect(text()).toContain('Remise (Personnel) − 1 500 FCFA');
+      expect(text()).toContain('Remise (Personnel) − 1 000 FCFA');
     });
 
     it('exige un montant valide et un motif avant tout appel', async () => {
@@ -270,11 +277,11 @@ describe('InvoiceDetailPage', () => {
     it('affiche le refus du serveur dans le panneau, saisie conservée', async () => {
       await setup({ prepare: (g) => g.setDiscount.mockRejectedValue(new ApiError(422, 'BILLING_DISCOUNT_TOO_HIGH', 'La remise ne peut pas dépasser le total de la facture (11500).')) });
       await click(buttonNamed('Remise'));
-      await type('#invoice-discount-amount', '99999');
+      await type('#invoice-discount-amount', '1000');
       await type('#invoice-discount-reason', 'Trop');
       await submit('invoice-discount');
       expect(q('aside [role=alert]')?.textContent).toContain('ne peut pas dépasser');
-      expect(q<HTMLInputElement>('#invoice-discount-amount')?.value).toBe('99999');
+      expect(q<HTMLInputElement>('#invoice-discount-amount')?.value).toBe('1000');
     });
   });
 
@@ -299,8 +306,8 @@ describe('InvoiceDetailPage', () => {
       expect(billing.issue).not.toHaveBeenCalled();
     });
 
-    it('annule une facture avec un motif obligatoire', async () => {
-      await setup({ invoice: issued() });
+    it('annule directement un brouillon avec un motif obligatoire', async () => {
+      await setup();
       await click(buttonNamed('Annuler la facture'));
       await submit('invoice-cancel');
       expect(text()).toContain('Le motif est obligatoire.');
@@ -308,8 +315,28 @@ describe('InvoiceDetailPage', () => {
       await type('#invoice-cancel-reason', ' Mauvais patient ');
       await submit('invoice-cancel');
       expect(billing.cancel).toHaveBeenCalledWith('inv-1', 'Mauvais patient');
+      expect(approvals.request).not.toHaveBeenCalled();
       expect(text()).toContain('Facture annulée');
       expect(q('h1')?.textContent).toContain('Annulée');
+    });
+
+    it('une facture émise ne s\'annule pas seule : le caissier envoie une demande motivée', async () => {
+      await setup({ invoice: issued() });
+      expect(buttonNamed('Annuler la facture')).toBeUndefined();
+      await click(buttonNamed('Demander l’annulation'));
+      expect(q('aside h2')?.textContent).toContain('Demander l’annulation');
+      expect(text()).toContain('Un responsable doit donner son accord');
+      await submit('invoice-cancel-request');
+      expect(text()).toContain('Le motif est obligatoire.');
+      expect(approvals.request).not.toHaveBeenCalled();
+      billing.getInvoice.mockResolvedValue(issued({ approvals: [summaryOf({ kind: 'CANCEL', amount: null, reason: 'Mauvais patient' })] }));
+      await type('#invoice-cancel-request-reason', ' Mauvais patient ');
+      await submit('invoice-cancel-request');
+      expect(approvals.request).toHaveBeenCalledWith({ invoiceId: 'inv-1', kind: 'CANCEL', reason: 'Mauvais patient' });
+      expect(billing.cancel).not.toHaveBeenCalled();
+      expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Demande envoyée à un responsable.');
+      expect(text()).toContain('Annulation en attente de l’accord d’un responsable');
+      expect(q('aside')).toBeNull();
     });
 
     it('ne propose pas d\'annuler une facture déjà encaissée', async () => {
@@ -467,5 +494,95 @@ describe('InvoiceDetailPage', () => {
   it('ne fait jamais de calcul d\'argent : tout vient de l\'API', async () => {
     await setup({ invoice: invoice({ lines: [line({ id: 'x', quantity: 3, unitPrice: 333, total: 999 })], discount: 0 }) });
     expect(text()).toContain('Total à payer 999 FCFA');
+  });
+  describe('circuit d\'approbation', () => {
+    const pendingDiscount = (over: Parameters<typeof summaryOf>[0] = {}) => invoice({ approvals: [summaryOf(over)] });
+
+    it('envoie une remise au-delà du seuil en demande d\'approbation, avec un bouton et un message explicites', async () => {
+      await setup();
+      await click(buttonNamed('Remise'));
+      await type('#invoice-discount-amount', '1000');
+      expect(text()).not.toContain('sera envoyée à un responsable');
+      expect(buttonNamed('Appliquer la remise')).toBeDefined();
+      await type('#invoice-discount-amount', '2000');
+      expect(text()).toContain('Cette remise dépasse 10 % de la facture (1 150 FCFA) : elle sera envoyée à un responsable');
+      expect(buttonNamed('Envoyer pour approbation')).toBeDefined();
+      await type('#invoice-discount-reason', ' Patient indigent ');
+      billing.getInvoice.mockResolvedValue(pendingDiscount());
+      await submit('invoice-discount');
+      expect(approvals.request).toHaveBeenCalledWith({ invoiceId: 'inv-1', kind: 'DISCOUNT', amount: 2000, reason: 'Patient indigent' });
+      expect(billing.setDiscount).not.toHaveBeenCalled();
+      expect(text()).toContain('Remise de 2 000 FCFA en attente de l’accord d’un responsable');
+      expect(text()).toContain('Demande de caissier');
+    });
+
+    it('applique directement une remise dans le seuil', async () => {
+      await setup();
+      await click(buttonNamed('Remise'));
+      await type('#invoice-discount-amount', '1000');
+      await type('#invoice-discount-reason', 'Fidélité');
+      await submit('invoice-discount');
+      expect(billing.setDiscount).toHaveBeenCalledWith('inv-1', 1000, 'Fidélité');
+      expect(approvals.request).not.toHaveBeenCalled();
+    });
+
+    it('gèle la facture pendant l\'attente : plus d\'ajout, de remise, d\'émission ni d\'annulation', async () => {
+      await setup({ invoice: pendingDiscount() });
+      for (const label of ['Ajouter un acte', 'Remise', 'Émettre la facture', 'Annuler la facture', 'Demander l’annulation']) expect(buttonNamed(label)).toBeUndefined();
+      expect(text()).toContain('Tant qu’elle n’est pas décidée, la facture ne peut plus être modifiée.');
+    });
+
+    it('laisse l\'auteur retirer sa demande, puis libère la facture', async () => {
+      await setup({ invoice: pendingDiscount() });
+      billing.getInvoice.mockResolvedValue(invoice({ approvals: [summaryOf({ status: 'WITHDRAWN' })] }));
+      await click(buttonNamed('Retirer ma demande'));
+      expect(approvals.withdraw).toHaveBeenCalledWith('ap-1');
+      expect(text()).not.toContain('en attente de l’accord');
+      expect(buttonNamed('Remise')).toBeDefined();
+      expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Demande retirée.');
+    });
+
+    it('ne propose pas à un autre de retirer la demande de quelqu\'un', async () => {
+      await setup({ invoice: pendingDiscount({ requestedBy: supervisor }) });
+      expect(buttonNamed('Retirer ma demande')).toBeUndefined();
+    });
+
+    it('prévient qu\'une demande est périmée', async () => {
+      await setup({ invoice: pendingDiscount({ outdated: true }) });
+      expect(text()).toContain('un responsable ne pourra que la refuser');
+    });
+
+    it('montre l\'historique des demandes, le refus et son explication', async () => {
+      await setup({
+        invoice: invoice({
+          approvals: [
+            summaryOf({ id: 'ap-2', status: 'REJECTED', decidedBy: supervisor, decidedAt: '2026-10-24T09:40:00Z', decisionComment: 'Hors barème' }),
+            summaryOf({ id: 'ap-1', kind: 'CANCEL', amount: null, status: 'APPROVED', decidedBy: supervisor, decidedAt: '2026-10-24T09:30:00Z', decisionComment: 'Vu' }),
+          ],
+        }),
+      });
+      const history = textOf(q('section[class*="border"]:has(ul)'));
+      expect(history).toContain('Demandes d’approbation');
+      expect(history).toContain('Refusée');
+      expect(history).toContain('Refusée par comptable : Hors barème');
+      expect(history).toContain('Acceptée');
+      expect(buttonNamed('Retirer ma demande')).toBeUndefined();
+    });
+
+    it('affiche le refus du serveur dans le panneau (demande déjà en cours)', async () => {
+      await setup();
+      approvals.request.mockRejectedValue(new ApiError(409, 'BILLING_APPROVAL_PENDING', 'Une demande d\'approbation attend déjà la décision d\'un responsable pour cette facture.'));
+      await click(buttonNamed('Remise'));
+      await type('#invoice-discount-amount', '2000');
+      await type('#invoice-discount-reason', 'Indigent');
+      await submit('invoice-discount');
+      expect(q('aside [role=alert]')?.textContent).toContain('attend déjà la décision');
+    });
+
+    it('sans le droit de demander, une facture émise n\'offre pas d\'annulation', async () => {
+      await setup({ invoice: issued(), permissions: ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect'] });
+      expect(buttonNamed('Annuler la facture')).toBeUndefined();
+      expect(buttonNamed('Demander l’annulation')).toBeUndefined();
+    });
   });
 });

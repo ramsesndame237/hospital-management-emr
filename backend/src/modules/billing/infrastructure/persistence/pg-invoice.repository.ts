@@ -118,6 +118,11 @@ export class PgInvoiceRepository implements InvoiceRepository {
     return invoice && payment ? { invoice, payment } : null;
   }
 
+  /** Relit la facture en la verrouillant jusqu'à la fin de la transaction en cours (décision d'une demande d'approbation). */
+  async findByIdForUpdate(id: InvoiceId): Promise<Invoice | null> {
+    return this.load(this.sql, id.value, true);
+  }
+
   private async load(db: SqlExecutor, id: string, lock = false): Promise<Invoice | null> {
     const rows = await db.query<InvoiceRow>(`SELECT ${COLUMNS} FROM billing_invoices WHERE id = $1${lock ? ' FOR UPDATE' : ''}`, [id]);
     if (!rows[0]) return null;

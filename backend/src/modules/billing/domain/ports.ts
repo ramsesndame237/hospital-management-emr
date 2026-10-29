@@ -1,5 +1,6 @@
 import { Result } from '../../../shared-kernel/result';
 import { Instant } from '../../../shared-kernel/temporal';
+import { ApprovalId, ApprovalKind, ApprovalRequest, ApprovalStatus } from './approval';
 import { BillableItem } from './item';
 import { CashSession, SessionId, SessionNumber, SessionStatus, Takings } from './cash-session';
 import { Invoice, Payment } from './invoice';
@@ -130,11 +131,60 @@ export interface CashSessionRepository {
   payments(sessionId: SessionId): Promise<SessionPayment[]>;
 }
 
+/** La facture à laquelle se rapporte une demande, telle qu'elle est maintenant (lue en même temps que la demande). */
+export interface ApprovalInvoice {
+  readonly id: string;
+  readonly number: string;
+  readonly patientId: string;
+  readonly status: InvoiceStatus;
+  readonly currency: string;
+  readonly subtotal: number;
+  readonly discount: number;
+  readonly version: number;
+}
+
+export interface ApprovalRecord {
+  readonly request: ApprovalRequest;
+  readonly invoice: ApprovalInvoice;
+}
+
+export interface ApprovalFilter {
+  readonly requestedBy?: string;
+  readonly status?: ApprovalStatus;
+  readonly kind?: ApprovalKind;
+  readonly invoiceId?: InvoiceId;
+}
+
+export type CreateApprovalOutcome = 'CREATED' | 'ALREADY_PENDING' | 'INVOICE_CHANGED';
+
+export interface ApprovalRepository {
+  findById(id: ApprovalId): Promise<ApprovalRecord | null>;
+  /** Une demande attend-elle une décision pour cette facture ? */
+  hasPending(invoiceId: InvoiceId): Promise<boolean>;
+  /**
+   * Enregistre la demande. Sous le verrou de la facture : refusée (`ALREADY_PENDING`) si une autre demande attend déjà, ou (`INVOICE_CHANGED`) si
+   * la facture n'est plus à la version lue par le demandeur.
+   */
+  create(request: ApprovalRequest): Promise<CreateApprovalOutcome>;
+  /**
+   * Décide une demande. La demande et sa facture sont verrouillées ensemble ; `apply` applique la décision (et, pour une acceptation, ses effets sur
+   * la facture) et répond `true` si elle a modifié la facture. Rien n'est écrit si elle refuse. `null` : demande introuvable.
+   */
+  decide(id: ApprovalId, apply: (request: ApprovalRequest, invoice: Invoice) => Result<boolean>): Promise<Result<ApprovalRecord> | null>;
+  /** Modifie la demande seule (retrait), sous verrou. `null` : demande introuvable. */
+  mutate(id: ApprovalId, apply: (request: ApprovalRequest) => Result<void>): Promise<Result<ApprovalRecord> | null>;
+  /** Les demandes en attente d'abord (la plus ancienne en tête), puis les autres de la plus récente à la plus ancienne. */
+  list(filter: ApprovalFilter, offset: number, limit: number): Promise<{ items: ApprovalRecord[]; total: number }>;
+}
+
 /** Les comptes appartiennent à l'IAM : la racine de composition branche ce port dessus (nom du caissier, du responsable). */
 export interface UserDirectory {
   find(ids: readonly string[]): Promise<Map<string, { readonly id: string; readonly username: string }>>;
 }
 
+export const APPROVAL_REPOSITORY = Symbol('BILLING_APPROVAL_REPOSITORY');
+/** Remise (en % du sous-total) au-delà de laquelle elle doit être approuvée par un responsable. */
+export const BILLING_DISCOUNT_APPROVAL_PERCENT = Symbol('BILLING_DISCOUNT_APPROVAL_PERCENT');
 export const CASH_SESSION_REPOSITORY = Symbol('BILLING_CASH_SESSION_REPOSITORY');
 export const BILLING_USERS = Symbol('BILLING_USERS');
 /** Écart de caisse (plus petite unité de la devise) au-delà duquel la clôture attend la contre-signature d'un responsable. */

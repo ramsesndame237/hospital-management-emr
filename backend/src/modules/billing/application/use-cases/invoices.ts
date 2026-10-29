@@ -2,8 +2,10 @@ import { AuditLog } from '../../../audit/domain/audit-log.port';
 import { Clock, IdGenerator } from '../../../../shared-kernel/ports';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { Temporal } from '../../../../shared-kernel/temporal';
+import { discountNeedsApproval } from '../../domain/approval';
 import { Invoice, InvoiceLine, lineTotal, Payment } from '../../domain/invoice';
-import { CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome } from '../../domain/ports';
+import { ApprovalRepository, CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome, UserDirectory } from '../../domain/ports';
+import { ApprovalSummaryView, summarize } from './approval-views';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemId, LineId, parseInvoiceStatus, parseNote, parsePaymentMode, parsePaymentReference, PatientRef, PaymentId, PaymentMode, Quantity, Reason,
 } from '../../domain/values';
@@ -15,6 +17,9 @@ const ITEM_NOT_FOUND = new DomainError('BILLING_ITEM_NOT_FOUND', 'Acte introuvab
 const ITEM_INACTIVE = new DomainError('BILLING_ITEM_INACTIVE', 'Cet acte est retiré du catalogue : on ne peut plus le facturer.');
 const NO_OPEN_SESSION = new DomainError('BILLING_NO_OPEN_SESSION', "Ouvrez votre caisse avant d'encaisser : aucune session de caisse ouverte à votre nom.");
 const CHANGED = new DomainError('BILLING_INVOICE_CHANGED', 'Cette facture vient d\'être modifiée par quelqu\'un d\'autre : rechargez-la puis recommencez.');
+const APPROVAL_PENDING = new DomainError('BILLING_APPROVAL_PENDING', "Une demande d'approbation attend la décision d'un responsable pour cette facture : attendez-la ou retirez-la.");
+const APPROVAL_REQUIRED = (kind: 'DISCOUNT' | 'CANCEL', extra: Record<string, string | number> = {}) =>
+  new DomainError(kind === 'DISCOUNT' ? 'BILLING_DISCOUNT_APPROVAL_REQUIRED' : 'BILLING_CANCEL_APPROVAL_REQUIRED', kind === 'DISCOUNT' ? "Cette remise dépasse le seuil autorisé : demandez l'accord d'un responsable." : "Une facture émise ne s'annule qu'avec l'accord d'un responsable : envoyez une demande.", { kind, ...extra });
 const OVERPAYMENT = (balance: number) => new DomainError('BILLING_OVERPAYMENT', 'Le montant dépasse le solde de la facture.', { balance });
 
 export interface InvoiceLineView {
@@ -62,6 +67,10 @@ export interface InvoiceView {
   readonly cancellationReason: string | null;
   readonly issuedAt: string | null;
   readonly payments: readonly PaymentView[];
+  /** Demandes d'approbation de cette facture (remise, annulation), la plus récente en premier. */
+  readonly approvals: readonly ApprovalSummaryView[];
+  /** Remise (en % du sous-total) au-delà de laquelle un responsable doit l'approuver. */
+  readonly discountApprovalPercent: number;
 }
 
 export interface InvoiceDependencies {
@@ -69,6 +78,10 @@ export interface InvoiceDependencies {
   readonly items: ItemRepository;
   readonly patients: PatientDirectory;
   readonly sessions: CashSessionRepository;
+  readonly approvals: ApprovalRepository;
+  readonly users: UserDirectory;
+  /** Remise (en % du sous-total) au-delà de laquelle un responsable doit l'approuver. */
+  readonly discountApprovalPercent: number;
   readonly currency: Currency;
   readonly audit: AuditLog;
   readonly clock: Clock;
@@ -81,6 +94,7 @@ const toPaymentView = (p: Payment): PaymentView => ({
 async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<InvoiceView> {
   const s = invoice.state;
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
+  const approvals = await summarize(d.users, (await d.approvals.list({ invoiceId: s.id }, 0, 50)).items);
   return {
     id: s.id.value, number: s.number.value, status: s.status, currency: s.currency.value, currencyDigits: s.currency.minorDigits,
     patient: patient ? { id: patient.id, number: patient.number, lastName: patient.lastName, firstName: patient.firstName } : null,
@@ -89,6 +103,7 @@ async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<Invoice
     })),
     subtotal: invoice.subtotal.value, discount: s.discount.value, discountReason: s.discountReason?.value ?? null, total: invoice.total.value, paid: invoice.paid.value, balance: invoice.balance.value,
     note: s.note, cancellationReason: s.cancellationReason?.value ?? null, issuedAt: s.issuedAt?.toString() ?? null, payments: s.payments.map(toPaymentView),
+    approvals, discountApprovalPercent: d.discountApprovalPercent,
   };
 }
 
@@ -102,6 +117,11 @@ async function loadInvoice(d: InvoiceDependencies, rawId: string): Promise<Resul
 /** L'écriture est refusée si la facture a changé depuis sa lecture. */
 function saved(outcome: SaveOutcome): Result<void> {
   return outcome === 'SAVED' ? ok(undefined) : err(CHANGED);
+}
+
+/** Tant qu'une demande attend une décision, la facture ne bouge pas : ce que le responsable examine est ce qui sera appliqué. */
+async function ensureNoPendingApproval(d: InvoiceDependencies, invoice: Invoice): Promise<Result<void>> {
+  return (await d.approvals.hasPending(invoice.id)) ? err(APPROVAL_PENDING) : ok(undefined);
 }
 
 function record(d: InvoiceDependencies, actorId: string, action: string, invoice: Invoice, extra: Record<string, string | number | boolean | null> = {}, reason?: string): Promise<void> {
@@ -159,6 +179,8 @@ export class ManageInvoiceUseCases {
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
+    const pending = await ensureNoPendingApproval(this.d, invoice);
+    if (!pending.ok) return err(pending.error);
     const line = await buildLine(this.d, this.ids, input.itemId, input.quantity);
     if (!line.ok) return err(line.error);
     const added = invoice.addLine(line.value);
@@ -173,6 +195,8 @@ export class ManageInvoiceUseCases {
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
+    const pending = await ensureNoPendingApproval(this.d, invoice);
+    if (!pending.ok) return err(pending.error);
     const lineId = LineId.create(rawLineId);
     if (!lineId.ok) return err(new DomainError('BILLING_LINE_NOT_FOUND', 'Ligne de facture introuvable.'));
     const removed = invoice.removeLine(lineId.value);
@@ -188,12 +212,17 @@ export class ManageInvoiceUseCases {
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
+    const pending = await ensureNoPendingApproval(this.d, invoice);
+    if (!pending.ok) return err(pending.error);
     const amount = Amount.create(input.amount);
     if (!amount.ok) return err(amount.error);
     const reason = input.reason === undefined || input.reason === null || input.reason.trim() === '' ? ok(null) : Reason.create(input.reason);
     if (!reason.ok) return err(reason.error);
     const done = invoice.setDiscount(amount.value, reason.value);
     if (!done.ok) return err(done.error);
+    if (discountNeedsApproval(amount.value, invoice.subtotal, this.d.discountApprovalPercent)) {
+      return err(APPROVAL_REQUIRED('DISCOUNT', { percent: this.d.discountApprovalPercent }));
+    }
     const written = saved(await this.d.invoices.save(invoice));
     if (!written.ok) return err(written.error);
     await record(this.d, actorId, 'billing.invoice.discount', invoice, { discount: amount.value.value }, reason.value?.value);
@@ -204,6 +233,8 @@ export class ManageInvoiceUseCases {
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
+    const pending = await ensureNoPendingApproval(this.d, invoice);
+    if (!pending.ok) return err(pending.error);
     const done = invoice.issue(this.d.clock.now());
     if (!done.ok) return err(done.error);
     const written = saved(await this.d.invoices.save(invoice));
@@ -218,6 +249,10 @@ export class ManageInvoiceUseCases {
     const loaded = await loadInvoice(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const invoice = loaded.value;
+    const pending = await ensureNoPendingApproval(this.d, invoice);
+    if (!pending.ok) return err(pending.error);
+    // Une facture émise est un document numéroté : l'annuler demande l'accord d'un responsable (une facture encore en brouillon, non).
+    if (invoice.status === InvoiceStatus.ISSUED && invoice.state.payments.length === 0) return err(APPROVAL_REQUIRED('CANCEL'));
     const done = invoice.cancel(reason.value);
     if (!done.ok) return err(done.error);
     const written = saved(await this.d.invoices.save(invoice));

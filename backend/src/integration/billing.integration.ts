@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { STRUCTURE_REPOSITORY } from '../modules/administration/domain/ports';
 import type { StructureRepository } from '../modules/administration/domain/ports';
 import { NodeId } from '../modules/administration/domain/structure/values';
-import { BILLING_CURRENCY, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT } from '../modules/billing/domain/ports';
+import { BILLING_CURRENCY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT } from '../modules/billing/domain/ports';
 import type { PatientDirectory, PatientInfo, ServiceDirectory, ServiceInfo, UserDirectory } from '../modules/billing/domain/ports';
 import { Currency } from '../modules/billing/domain/values';
 import type { ServiceRef } from '../modules/billing/domain/values';
@@ -69,6 +69,7 @@ export class BillingIntegrationModule {
         { provide: BILLING_PATIENTS, inject: [PATIENT_REPOSITORY], useFactory: (p: PatientRepository) => new PatientsForBilling(p) },
         { provide: BILLING_SERVICES, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new ServicesForBilling(s) },
         { provide: BILLING_USERS, inject: [USER_REPOSITORY], useFactory: (u: UserRepository) => new UsersForBilling(u) },
+        { provide: BILLING_DISCOUNT_APPROVAL_PERCENT, inject: [ConfigService], useFactory: (cfg: ConfigService): number => cfg.get<number>('BILLING_DISCOUNT_APPROVAL_PERCENT') ?? 10 },
         { provide: BILLING_VARIANCE_LIMIT, inject: [ConfigService], useFactory: (cfg: ConfigService): number => cfg.get<number>('BILLING_VARIANCE_LIMIT') ?? 5000 },
         {
           provide: BILLING_CURRENCY,
@@ -80,7 +81,7 @@ export class BillingIntegrationModule {
           },
         },
       ],
-      exports: [BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, BILLING_CURRENCY],
+      exports: [BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_CURRENCY],
     };
   }
 }

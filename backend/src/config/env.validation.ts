@@ -30,6 +30,8 @@ export interface Env {
   BILLING_CURRENCY: string;
   /** Écart de caisse (plus petite unité de la devise) au-delà duquel la clôture d'une caisse attend la contre-signature d'un responsable. */
   BILLING_VARIANCE_LIMIT: number;
+  /** Remise (en % du sous-total d'une facture) au-delà de laquelle elle doit être approuvée par un responsable. */
+  BILLING_DISCOUNT_APPROVAL_PERCENT: number;
   COOKIE_SECURE: boolean;
   /** Vérification des mots de passe compromis (API HIBP, k-anonymité : seuls 5 caractères du hachage SHA-1 sont envoyés). */
   BREACH_CHECK_ENABLED: boolean;
@@ -70,6 +72,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     TIME_ZONE: String(raw.TIME_ZONE ?? 'UTC').trim(),
     BILLING_CURRENCY: String(raw.BILLING_CURRENCY ?? 'XAF').trim().toUpperCase(),
     BILLING_VARIANCE_LIMIT: Number(raw.BILLING_VARIANCE_LIMIT ?? 5000),
+    BILLING_DISCOUNT_APPROVAL_PERCENT: Number(raw.BILLING_DISCOUNT_APPROVAL_PERCENT ?? 10),
     COOKIE_SECURE: bool(raw.COOKIE_SECURE, String(raw.NODE_ENV) === 'production'),
     BREACH_CHECK_ENABLED: bool(raw.BREACH_CHECK_ENABLED, String(raw.NODE_ENV) === 'production'),
     I18N_ADAPTER: String(raw.I18N_ADAPTER ?? 'nestjs-i18n') as Env['I18N_ADAPTER'],
@@ -90,6 +93,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   if (!/^[A-Z]{3}$/.test(env.BILLING_CURRENCY)) errors.push('BILLING_CURRENCY doit être un code de devise ISO 4217 (ex. XAF, EUR)');
   if (!Number.isInteger(env.BILLING_VARIANCE_LIMIT) || env.BILLING_VARIANCE_LIMIT < 0) errors.push('BILLING_VARIANCE_LIMIT doit être un entier positif ou nul (plus petite unité de la devise)');
+  if (!Number.isInteger(env.BILLING_DISCOUNT_APPROVAL_PERCENT) || env.BILLING_DISCOUNT_APPROVAL_PERCENT < 0 || env.BILLING_DISCOUNT_APPROVAL_PERCENT > 100) errors.push('BILLING_DISCOUNT_APPROVAL_PERCENT doit être un entier de 0 à 100');
   if (!Number.isInteger(env.PORT) || env.PORT <= 0) errors.push('PORT invalide');
   if (!Number.isInteger(env.DB_PORT) || env.DB_PORT <= 0) errors.push('DB_PORT invalide');
   if (env.NODE_ENV === 'production') {

@@ -229,7 +229,8 @@
     "billingNew": "New invoice",
     "billingCatalog": "Price catalog",
     "billingSession": "My cash drawer",
-    "billingSessions": "Cash sessions"
+    "billingSessions": "Cash sessions",
+    "billingApprovals": "Approvals"
   },
   "admin": {
     "actions": "Actions",
@@ -713,7 +714,8 @@
       "reprintOf": "Reprint receipt {number}",
       "cancelledTitle": "Invoice cancelled",
       "openCash": "Open my cash drawer",
-      "noCash": "You have no open cash drawer: open it to be able to collect payments."
+      "noCash": "You have no open cash drawer: open it to be able to collect payments.",
+      "requestCancel": "Request the cancellation"
     },
     "lines": {
       "title": "Add an item",
@@ -736,7 +738,9 @@
       "apply": "Apply the discount",
       "remove": "Remove the discount",
       "removed": "Discount removed.",
-      "applied": "Discount applied."
+      "applied": "Discount applied.",
+      "needsApproval": "This discount exceeds {percent}% of the invoice ({limit}): it will be sent to a supervisor, who will approve or reject it.",
+      "sendRequest": "Send for approval"
     },
     "issue": {
       "title": "Issue the invoice",
@@ -882,6 +886,76 @@
       "commentHint": "What you checked.",
       "submit": "Co-sign the closing",
       "done": "Session {number} co-signed."
+    },
+    "approval": {
+      "title": "Approvals",
+      "lead": "A discount above the limit or the cancellation of an issued invoice needs a supervisor’s approval. Pending requests come first.",
+      "leadOwn": "Your approval requests and what became of them. A supervisor accepts or rejects each one; you can withdraw one that is still waiting.",
+      "kind": {
+        "DISCOUNT": "Discount",
+        "CANCEL": "Cancellation"
+      },
+      "status": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "WITHDRAWN": "Withdrawn"
+      },
+      "filterStatus": "Status",
+      "filterKind": "Type",
+      "allStatuses": "All statuses",
+      "allKinds": "All types",
+      "invoice": "Invoice",
+      "request": "Request",
+      "requestedBy": "Requested by",
+      "requestedAt": "Sent on",
+      "decision": "Decision",
+      "discountText": "Discount of {amount} on {subtotal}",
+      "cancelText": "Cancellation of the invoice ({total})",
+      "reasonOf": "Reason: {reason}",
+      "decidedBy": "{name}, on {date}",
+      "openOf": "Open invoice {number}",
+      "empty": "No requests.",
+      "pagination": "Requests pagination",
+      "outdated": "The invoice has changed since this request: it can no longer be approved, only rejected or withdrawn.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "withdraw": "Withdraw",
+      "approveOf": "Approve the request on {number}",
+      "rejectOf": "Reject the request on {number}",
+      "withdrawOf": "Withdraw the request on {number}",
+      "approvePanel": "Approve the request",
+      "rejectPanel": "Reject the request",
+      "approveTitle": "You are authorising this operation",
+      "approveText": "The discount or cancellation is applied to the invoice right away. You cannot decide your own request.",
+      "rejectTitle": "The request will be rejected",
+      "rejectText": "The invoice stays as it is. The requester will read your explanation.",
+      "approveComment": "Comment (optional)",
+      "rejectComment": "Reason for rejection",
+      "approveSubmit": "Approve the request",
+      "rejectSubmit": "Reject the request",
+      "keep": "Leave pending",
+      "approved": "Request approved.",
+      "rejected": "Request rejected.",
+      "withdrawn": "Request withdrawn.",
+      "sent": "Request sent to a supervisor."
+    },
+    "approvalNotice": {
+      "DISCOUNT": "Discount of {amount} waiting for a supervisor’s approval. Until it is decided, the invoice can no longer be changed.",
+      "CANCEL": "Cancellation waiting for a supervisor’s approval. Until it is decided, the invoice can no longer be changed.",
+      "by": "Request by {name}, sent on {date}.",
+      "outdated": "The invoice has changed since this request: a supervisor can only reject it.",
+      "withdraw": "Withdraw my request",
+      "history": "Approval requests",
+      "rejectedBy": "Rejected by {name}: {comment}"
+    },
+    "cancelRequest": {
+      "title": "Request the cancellation",
+      "warningTitle": "A supervisor must approve",
+      "warningText": "An issued invoice cannot be cancelled on your own. Your request goes to a supervisor; the invoice can no longer be changed until they decide.",
+      "submit": "Send the request",
+      "reason": "Reason for the cancellation",
+      "keep": "Keep the invoice"
     }
   }
 }

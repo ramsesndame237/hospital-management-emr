@@ -202,22 +202,23 @@ describe('API facturation /api/v1/billing (HTTP réel, PostgreSQL réel)', () =>
     });
 
     it('applique une remise avec motif, la plafonne au total, la retire, et efface celle qui devient trop grande', async () => {
-      const a = await item(5000);
-      const b = await item(1000);
+      // Sous-total 10 100 : le seuil d'approbation (10 %) est à 1 010.
+      const a = await item(10000);
+      const b = await item(100);
       const inv = await invoice([{ itemId: a.id, quantity: 1 }, { itemId: b.id, quantity: 1 }]);
       const base = `/billing/invoices/${inv.id}`;
       const noReason = await put('caisse', `${base}/discount`, { amount: 500 });
       expect([noReason.status, noReason.body.code]).toEqual([422, 'BILLING_REASON_REQUIRED']);
-      const tooHigh = await put('caisse', `${base}/discount`, { amount: 6001, reason: 'Trop' });
+      const tooHigh = await put('caisse', `${base}/discount`, { amount: 10101, reason: 'Trop' });
       expect([tooHigh.status, tooHigh.body.code]).toEqual([422, 'BILLING_DISCOUNT_TOO_HIGH']);
-      const ok = await put('caisse', `${base}/discount`, { amount: 4000, reason: 'Personnel de l\'hôpital' });
-      expect(ok.body).toMatchObject({ discount: 4000, discountReason: 'Personnel de l\'hôpital', total: 2000 });
+      const ok = await put('caisse', `${base}/discount`, { amount: 1000, reason: 'Personnel de l\'hôpital' });
+      expect(ok.body).toMatchObject({ discount: 1000, discountReason: 'Personnel de l\'hôpital', total: 9100 });
       const [entry] = await c.w.sql.query<{ reason: string; metadata: Record<string, unknown> }>("SELECT reason, metadata FROM audit_log WHERE action = 'billing.invoice.discount' AND resource_id = $1", [inv.id]);
       expect(entry.reason).toBe('Personnel de l\'hôpital');
-      expect(entry.metadata).toMatchObject({ discount: 4000 });
+      expect(entry.metadata).toMatchObject({ discount: 1000 });
       const afterRemoval = await post('caisse', `${base}/lines/${inv.lines[0].id}/remove`);
-      expect(afterRemoval.body).toMatchObject({ discount: 0, discountReason: null, total: 1000 });
-      await put('caisse', `${base}/discount`, { amount: 300, reason: 'Fidélité' }).expect(200);
+      expect(afterRemoval.body).toMatchObject({ discount: 0, discountReason: null, total: 100 });
+      await put('caisse', `${base}/discount`, { amount: 10, reason: 'Fidélité' }).expect(200);
       expect((await put('caisse', `${base}/discount`, { amount: 0 })).body).toMatchObject({ discount: 0, discountReason: null });
       expect((await put('caisse', `${base}/discount`, { amount: -1, reason: 'x' })).status).toBe(400);
     });
@@ -230,7 +231,8 @@ describe('API facturation /api/v1/billing (HTTP réel, PostgreSQL réel)', () =>
       expect([r.status, r.body.code]).toEqual([409, 'BILLING_INVOICE_EMPTY']);
       const act = await item(1000);
       const free = await invoice([{ itemId: act.id, quantity: 1 }]);
-      await put('caisse', `/billing/invoices/${free.id}/discount`, { amount: 1000, reason: 'Gratuité' }).expect(200);
+      // Une gratuité totale dépasse le seuil d'approbation : on la pose directement en base (elle viendrait d'une demande acceptée).
+      await c.w.sql.query("UPDATE billing_invoices SET discount_amount = 1000, discount_reason = 'Gratuité' WHERE id = $1", [free.id]);
       expect((await post('caisse', `/billing/invoices/${free.id}/issue`)).body.code).toBe('BILLING_INVOICE_EMPTY');
     });
 
@@ -252,8 +254,9 @@ describe('API facturation /api/v1/billing (HTTP réel, PostgreSQL réel)', () =>
       }
     });
 
-    it('annule avec un motif, trace le motif, et verrouille la facture annulée', async () => {
-      const inv = await issued(2000);
+    it('annule un brouillon avec un motif, trace le motif, et verrouille la facture annulée', async () => {
+      const act = await item(2000);
+      const inv = await invoice([{ itemId: act.id, quantity: 1 }]);
       expect((await post('caisse', `/billing/invoices/${inv.id}/cancel`, {})).status).toBe(400);
       const blank = await post('caisse', `/billing/invoices/${inv.id}/cancel`, { reason: '   ' });
       expect([blank.status, blank.body.code]).toEqual([422, 'BILLING_REASON_REQUIRED']);
@@ -265,7 +268,14 @@ describe('API facturation /api/v1/billing (HTTP réel, PostgreSQL réel)', () =>
       expect((await post('caisse', `/billing/invoices/${inv.id}/payments`, { mode: 'CASH', amount: 100 })).body.code).toBe('BILLING_INVOICE_NOT_PAYABLE');
     });
 
-    it('annule aussi un brouillon', async () => {
+    it("n'annule pas seule une facture émise : il faut l'accord d'un responsable", async () => {
+      const inv = await issued(2000);
+      const r = await post('caisse', `/billing/invoices/${inv.id}/cancel`, { reason: 'Mauvais patient' });
+      expect([r.status, r.body.code]).toEqual([409, 'BILLING_CANCEL_APPROVAL_REQUIRED']);
+      expect((await get('caisse', `/billing/invoices/${inv.id}`)).body.status).toBe('ISSUED');
+    });
+
+    it('annule aussi un brouillon vide', async () => {
       const draft = await invoice([]);
       expect((await post('caisse', `/billing/invoices/${draft.id}/cancel`, { reason: 'Abandon' })).body.status).toBe('CANCELLED');
     });

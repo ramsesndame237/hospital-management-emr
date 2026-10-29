@@ -21,7 +21,7 @@ export function invoice(over: Partial<Invoice> = {}): Invoice {
   const paid = payments.reduce((sum, p) => sum + p.amount, 0);
   return {
     id: 'inv-1', number: 'FAC-0000123', status: 'DRAFT', currency: 'XAF', currencyDigits: 0, patient, lines, subtotal, discount, discountReason: discount > 0 ? 'Personnel' : null,
-    total, paid, balance: total - paid, note: null, cancellationReason: null, issuedAt: null, payments, ...over,
+    total, paid, balance: total - paid, note: null, cancellationReason: null, issuedAt: null, payments, approvals: [], discountApprovalPercent: 10, ...over,
   };
 }
 
