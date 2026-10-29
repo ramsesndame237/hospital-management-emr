@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { BillingGateway } from '../../../core/billing/billing.gateway';
+import { CashSessionGateway } from '../../../core/billing/cash-session.gateway';
 import { BillableItem, CollectedPayment, Invoice, InvoiceLine, Page, Payment, Receipt, isCancellable, isDraft, isPayable } from '../../../core/billing/billing.models';
 import { MoneyFormatter, fromMinorUnits, toMinorUnits } from '../../../core/billing/money';
 import { hasPermission } from '../../../core/auth/permissions';
@@ -93,13 +94,21 @@ interface PanelView {
               <button hlmBtn type="button" [class]="primary" [disabled]="inv.lines.length === 0" (click)="open({ kind: 'issue' })">{{ i18n.t('billing.detail.issue') }}</button>
             }
             @if (canCollect() && payable()) {
-              <button hlmBtn type="button" [class]="primary" (click)="open({ kind: 'collect' })">{{ i18n.t('billing.detail.collect') }}</button>
+              @if (cashOpen() === false) {
+                <a hlmBtn routerLink="/billing/session" [class]="primary">{{ i18n.t('billing.detail.openCash') }}</a>
+              } @else {
+                <button hlmBtn type="button" [class]="primary" (click)="open({ kind: 'collect' })">{{ i18n.t('billing.detail.collect') }}</button>
+              }
             }
             @if (canWrite() && cancellable()) {
               <button hlmBtn type="button" variant="outline" [class]="primary" (click)="open({ kind: 'cancel' })">{{ i18n.t('billing.detail.cancel') }}</button>
             }
           </div>
         </header>
+
+        @if (canCollect() && payable() && cashOpen() === false) {
+          <p class="border-l-4 border-status-warning bg-card p-3 text-sm leading-6" role="status">{{ i18n.t('billing.detail.noCash') }}</p>
+        }
 
         @if (actionError()) {
           <div class="flex flex-col gap-2">
@@ -265,6 +274,7 @@ interface PanelView {
 export class InvoiceDetailPage {
   protected readonly i18n = inject(Translator);
   private readonly gateway = inject(BillingGateway);
+  private readonly sessions = inject(CashSessionGateway);
   private readonly formatter = inject(MoneyFormatter);
   private readonly dates = inject(DateTimeFormatter);
   private readonly toast = inject(ToastService);
@@ -282,6 +292,8 @@ export class InvoiceDetailPage {
   protected readonly invoice = signal<Invoice | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly conflict = signal(false);
+  /** La caisse du caissier est-elle ouverte ? `null` : on ne sait pas (pas le droit d'encaisser, ou lecture en échec). Sans caisse ouverte, on n'encaisse pas. */
+  protected readonly cashOpen = signal<boolean | null>(null);
   protected readonly panel = signal<Panel | null>(null);
   protected readonly busy = signal(false);
   protected readonly items = signal<Page<BillableItem> | null>(null);
@@ -382,6 +394,10 @@ export class InvoiceDetailPage {
       this.loadError.set(failureMessage(error, this.i18n));
     } finally {
       this.loading.set(false);
+    }
+    // La caisse ouverte conditionne l'encaissement : on le sait avant que le caissier n'ouvre le panneau.
+    if (this.canCollect()) {
+      this.cashOpen.set(await this.sessions.current().then((s) => s !== null, () => null));
     }
   }
 
@@ -552,6 +568,7 @@ export class InvoiceDetailPage {
     } catch (error) {
       const api: ApiError = toApiError(error);
       this.conflict.set(api.code === 'BILLING_INVOICE_CHANGED');
+      if (api.code === 'BILLING_NO_OPEN_SESSION') this.cashOpen.set(false);
       const message = failureMessage(error, this.i18n, inPanel ? this.form() : undefined);
       if (inPanel && this.panel()) this.notice.set(message);
       else this.actionError.set(message);

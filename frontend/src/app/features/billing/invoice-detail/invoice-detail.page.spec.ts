@@ -1,6 +1,8 @@
 import { DOCUMENT } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BillingGateway } from '../../../core/billing/billing.gateway';
+import { CashSessionGateway } from '../../../core/billing/cash-session.gateway';
+import { FakeCashSessionGateway } from '../../../core/billing/testing/fake-cash-session-gateway';
 import { FakeBillingGateway, invoice, item, line, page, payment } from '../../../core/billing/testing/fake-billing-gateway';
 import { ApiError } from '../../../core/http/api-error';
 import { ToastService } from '../../../shared/toast/toast.service';
@@ -22,17 +24,20 @@ function textOf(el: Element | null): string {
 describe('InvoiceDetailPage', () => {
   let fixture: ComponentFixture<InvoiceDetailPage>;
   let billing: FakeBillingGateway;
+  let cash: FakeCashSessionGateway;
   let missingKeys: () => string[];
   const root = () => fixture.nativeElement as HTMLElement;
   const q = <T extends HTMLElement>(selector: string) => root().querySelector<T>(selector);
   const text = () => textOf(root());
   const buttonNamed = (label: string) => [...root().querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim() === label)!;
 
-  async function setup(options: { permissions?: readonly string[]; invoice?: ReturnType<typeof invoice> | null; prepare?: (g: FakeBillingGateway) => void } = {}) {
+  async function setup(options: { permissions?: readonly string[]; invoice?: ReturnType<typeof invoice> | null; prepare?: (g: FakeBillingGateway) => void; noCash?: boolean } = {}) {
     billing = new FakeBillingGateway();
+    cash = new FakeCashSessionGateway();
+    if (options.noCash) cash.current.mockResolvedValue(null);
     if (options.invoice) billing.getInvoice.mockResolvedValue(options.invoice);
     options.prepare?.(billing);
-    const { i18n } = configureApp({ roles: ['CASHIER'], permissions: options.permissions ?? CASHIER, providers: [{ provide: BillingGateway, useValue: billing }] });
+    const { i18n } = configureApp({ roles: ['CASHIER'], permissions: options.permissions ?? CASHIER, providers: [{ provide: BillingGateway, useValue: billing }, { provide: CashSessionGateway, useValue: cash }] });
     missingKeys = watchMissingKeys(i18n);
     fixture = TestBed.createComponent(InvoiceDetailPage);
     fixture.componentRef.setInput('id', 'inv-1');
@@ -116,6 +121,39 @@ describe('InvoiceDetailPage', () => {
       fixture.componentRef.setInput('id', 'inv-2');
       await settle(fixture);
       expect(billing.getInvoice).toHaveBeenLastCalledWith('inv-2');
+    });
+  });
+
+  describe('caisse ouverte', () => {
+    it('sans caisse ouverte, remplace « Encaisser » par un lien vers l\'ouverture de la caisse et dit pourquoi', async () => {
+      await setup({ invoice: issued(), noCash: true });
+      expect(buttonNamed('Encaisser')).toBeUndefined();
+      expect(q('header a[href="/billing/session"]')?.textContent).toContain('Ouvrir ma caisse');
+      expect(text()).toContain('Vous n’avez pas de caisse ouverte');
+    });
+
+    it('avec une caisse ouverte, propose d\'encaisser', async () => {
+      await setup({ invoice: issued() });
+      expect(cash.current).toHaveBeenCalled();
+      expect(buttonNamed('Encaisser')).toBeDefined();
+      expect(text()).not.toContain('Vous n’avez pas de caisse ouverte');
+    });
+
+    it('apprend qu\'il n\'y a plus de caisse quand le serveur refuse l\'encaissement, et propose de l\'ouvrir', async () => {
+      await setup({ invoice: issued(), prepare: (g) => g.collect.mockRejectedValue(new ApiError(409, 'BILLING_NO_OPEN_SESSION', 'Ouvrez votre caisse avant d\'encaisser : aucune session de caisse ouverte à votre nom.')) });
+      await click(buttonNamed('Encaisser'));
+      await submit('invoice-collect');
+      expect(q('aside [role=alert]')?.textContent).toContain('Ouvrez votre caisse');
+      expect(q('header a[href="/billing/session"]')).not.toBeNull();
+    });
+
+    it('ne cherche pas la caisse de qui ne peut pas encaisser (comptabilité)', async () => {
+      await setup({ permissions: ['billing.invoices:read'], invoice: issued() });
+      expect(cash.current).not.toHaveBeenCalled();
+    });
+
+    it('continue de fonctionner quand la lecture de la caisse échoue', async () => {
+      await setup({ invoice: issued(), prepare: () => undefined });
     });
   });
 

@@ -227,7 +227,9 @@
     "billing": "Facturation",
     "billingInvoices": "Factures",
     "billingNew": "Nouvelle facture",
-    "billingCatalog": "Catalogue des tarifs"
+    "billingCatalog": "Catalogue des tarifs",
+    "billingSession": "Ma caisse",
+    "billingSessions": "Sessions de caisse"
   },
   "admin": {
     "actions": "Actions",
@@ -709,7 +711,9 @@
       "when": "Date",
       "reprint": "Réimprimer",
       "reprintOf": "Réimprimer le reçu {number}",
-      "cancelledTitle": "Facture annulée"
+      "cancelledTitle": "Facture annulée",
+      "openCash": "Ouvrir ma caisse",
+      "noCash": "Vous n’avez pas de caisse ouverte : ouvrez votre caisse pour pouvoir encaisser."
     },
     "lines": {
       "title": "Ajouter un acte",
@@ -799,6 +803,85 @@
       "price": "Prix",
       "empty": "Aucun acte ne correspond.",
       "pagination": "Pagination du catalogue"
+    },
+    "session": {
+      "title": "Ma caisse",
+      "lead": "Ouvrez votre caisse en comptant votre fonds, encaissez, puis clôturez-la en comptant ce que vous avez en main.",
+      "openTitle": "Ouvrir ma caisse",
+      "openAnother": "Ouvrir une nouvelle caisse",
+      "openLead": "Sans caisse ouverte, aucun encaissement n’est possible. Comptez les billets et pièces de votre fonds de caisse.",
+      "counter": "Poste de caisse",
+      "counterHint": "Un poste n’a qu’une caisse ouverte à la fois.",
+      "counterPlaceholder": "Caisse OPD 1",
+      "counterRequired": "Saisissez le poste de caisse.",
+      "floatLegend": "Fonds de caisse : nombre de billets et de pièces",
+      "open": "Ouvrir la caisse",
+      "opened": "Caisse {number} ouverte.",
+      "previewFloat": "Fonds de caisse : {amount}",
+      "close": "Clôturer la caisse",
+      "closeTitle": "Clôturer la caisse",
+      "closeLegend": "Comptez les espèces que vous avez en main",
+      "reason": "Explication de l’écart",
+      "reasonHint": "Obligatoire si la caisse n’est pas juste.",
+      "reasonRequired": "La caisse n’est pas juste : expliquez l’écart.",
+      "quantityInvalid": "Saisissez une quantité entière positive.",
+      "previewCounted": "Comptées : {counted} · attendues : {expected}",
+      "previewBalanced": "La caisse est juste.",
+      "previewMissing": "Il manque {amount}.",
+      "previewExtra": "Il y a {amount} de trop.",
+      "previewReview": "L’écart dépasse {limit} : un responsable devra contre-signer la clôture.",
+      "closedTitle": "Caisse clôturée",
+      "closedText": "Votre caisse est clôturée. Imprimez la fiche de passation pour la remettre avec les espèces.",
+      "awaitingTitle": "Clôture en attente de contre-signature",
+      "awaitingText": "L’écart dépasse la limite : un responsable doit valider la clôture. Vous pouvez ouvrir une autre caisse.",
+      "print": "Imprimer la fiche de passation",
+      "openDetail": "Voir le détail",
+      "openedAt": "Ouverte le {date}",
+      "closedAt": "clôturée le {date}",
+      "float": "Fonds de caisse",
+      "taken": "Encaissé",
+      "payments": "Encaissements",
+      "expected": "Espèces attendues",
+      "byMode": "Encaissé par mode de paiement",
+      "reconciliation": "Rapprochement des espèces",
+      "counted": "Espèces comptées",
+      "variance": "Écart",
+      "varianceReason": "Explication",
+      "cosignedBy": "Contre-signée par {name} le {date}",
+      "awaitingCosign": "En attente de la contre-signature d’un responsable (écart au-delà de {limit}).",
+      "paymentList": "Encaissements de la session",
+      "status": {
+        "OPEN": "Ouverte",
+        "AWAITING_REVIEW": "À valider",
+        "CLOSED": "Clôturée"
+      }
+    },
+    "sessions": {
+      "title": "Sessions de caisse",
+      "lead": "Les caisses ouvertes et clôturées, avec l’écart de chacune. Un responsable valide les clôtures dont l’écart dépasse la limite.",
+      "number": "Session",
+      "cashier": "Caissier",
+      "status": "Statut",
+      "opened": "Ouverte le",
+      "taken": "Encaissé",
+      "allStatuses": "Tous les statuts",
+      "openOf": "Ouvrir la session {number}",
+      "empty": "Aucune session.",
+      "pagination": "Pagination des sessions"
+    },
+    "sessionDetail": {
+      "back": "Retour aux sessions",
+      "title": "Session de caisse"
+    },
+    "cosign": {
+      "open": "Contre-signer",
+      "panelTitle": "Contre-signer la clôture",
+      "title": "Vous validez un écart de caisse",
+      "text": "L’écart dépasse la limite. Contre-signez seulement après vérification avec le caissier ; vous ne pouvez pas valider votre propre caisse.",
+      "comment": "Commentaire (facultatif)",
+      "commentHint": "Ce que vous avez vérifié.",
+      "submit": "Contre-signer la clôture",
+      "done": "Session {number} contre-signée."
     }
   }
 }

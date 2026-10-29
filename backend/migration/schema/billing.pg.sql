@@ -85,6 +85,53 @@ DROP TRIGGER IF EXISTS trg_billing_payments_no_truncate ON billing_payments;
 CREATE TRIGGER trg_billing_payments_no_truncate BEFORE TRUNCATE ON billing_payments
   FOR EACH STATEMENT EXECUTE FUNCTION billing_payments_immutable();
 
+-- Sessions de caisse : un caissier ouvre sa caisse en comptant son fonds, encaisse, puis la clôture en comptant ce qu'il a en main.
+-- Elles ne se suppriment ni ne se rouvrent. Un caissier n'a qu'une session ouverte, et un poste n'est tenu que par une session ouverte.
+CREATE SEQUENCE IF NOT EXISTS billing_session_number_seq;
+
+CREATE TABLE IF NOT EXISTS billing_cash_sessions (
+  id              uuid PRIMARY KEY,
+  session_number  text NOT NULL CHECK (session_number ~ '^CAI-[0-9]{7,12}$'),
+  cashier_id      uuid NOT NULL,
+  counter         text NOT NULL CHECK (length(counter) BETWEEN 1 AND 40),
+  currency        char(3) NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
+  status          text NOT NULL CHECK (status IN ('OPEN', 'AWAITING_REVIEW', 'CLOSED')),
+  opened_at       timestamptz NOT NULL,
+  -- comptage par valeur de billet ou de pièce : {"10000": 3, "500": 2}
+  opening_count   jsonb NOT NULL DEFAULT '{}'::jsonb,
+  opening_float   bigint NOT NULL CHECK (opening_float >= 0),
+  closed_at       timestamptz,
+  closing_count   jsonb,
+  counted_cash    bigint CHECK (counted_cash IS NULL OR counted_cash >= 0),
+  expected_cash   bigint CHECK (expected_cash IS NULL OR expected_cash >= 0),
+  -- écart = espèces comptées - espèces attendues (négatif : il manque de l'argent)
+  variance        bigint,
+  variance_reason text CHECK (variance_reason IS NULL OR length(variance_reason) BETWEEN 1 AND 200),
+  requires_cosign boolean NOT NULL DEFAULT false,
+  cosigned_by     uuid,
+  cosigned_at     timestamptz,
+  cosign_comment  text CHECK (cosign_comment IS NULL OR length(cosign_comment) BETWEEN 1 AND 200),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  -- une session ouverte n'a rien de clôturé ; une session clôturée a tout
+  CHECK ((status = 'OPEN') = (closed_at IS NULL)),
+  CHECK ((status = 'OPEN') = (counted_cash IS NULL AND expected_cash IS NULL AND variance IS NULL AND closing_count IS NULL)),
+  -- un écart a toujours son explication
+  CHECK (variance IS NULL OR variance = 0 OR variance_reason IS NOT NULL),
+  -- une session close avec contre-signature requise l'a reçue ; seule une session close la porte
+  CHECK (NOT (status = 'CLOSED' AND requires_cosign AND cosigned_by IS NULL)),
+  CHECK (status <> 'OPEN' OR (cosigned_by IS NULL AND NOT requires_cosign))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_billing_sessions_number ON billing_cash_sessions (session_number);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_billing_sessions_open_cashier ON billing_cash_sessions (cashier_id) WHERE status = 'OPEN';
+CREATE UNIQUE INDEX IF NOT EXISTS ux_billing_sessions_open_counter ON billing_cash_sessions (lower(counter)) WHERE status = 'OPEN';
+CREATE INDEX IF NOT EXISTS ix_billing_sessions_cashier ON billing_cash_sessions (cashier_id, opened_at DESC);
+CREATE INDEX IF NOT EXISTS ix_billing_sessions_status ON billing_cash_sessions (status, opened_at DESC);
+
+-- Chaque encaissement appartient à la session pendant laquelle il a été perçu (vide pour les encaissements antérieurs aux sessions).
+ALTER TABLE billing_payments ADD COLUMN IF NOT EXISTS session_id uuid REFERENCES billing_cash_sessions (id);
+CREATE INDEX IF NOT EXISTS ix_billing_payments_session ON billing_payments (session_id) WHERE session_id IS NOT NULL;
+
 -- Droits. Le catalogue est lu par la caisse, la comptabilité et l'accueil (pour annoncer un prix) et tenu par l'administrateur système.
 -- Les factures : la caisse les crée et les gère, et seule elle encaisse ; la comptabilité et l'administrateur système (arbitrage) les lisent.
 -- Aucun accès aux données cliniques n'est donné ici : une facture ne porte que l'identité du patient et des montants.
@@ -102,4 +149,18 @@ UPDATE iam_roles
 
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.catalog:read', 'billing.catalog:manage', 'billing.invoices:read:all']) AS p ORDER BY p)
+ WHERE code = 'SYSTEM_ADMIN';
+
+-- Sessions de caisse : la caisse ouvre, clôture et lit ses propres sessions ; la comptabilité contre-signe les clôtures à écart élevé et lit toutes les
+-- sessions ; l'administrateur système les lit (arbitrage) mais ne tient jamais une caisse.
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.sessions:operate', 'billing.sessions:read:own']) AS p ORDER BY p)
+ WHERE code = 'CASHIER';
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.sessions:read:all', 'billing.sessions:cosign']) AS p ORDER BY p)
+ WHERE code = 'ACCOUNTANT';
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['billing.sessions:read:all']) AS p ORDER BY p)
  WHERE code = 'SYSTEM_ADMIN';

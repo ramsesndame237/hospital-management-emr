@@ -39,6 +39,7 @@ interface PaymentRow {
   reference: string | null;
   received_by: string;
   received_at: Date | string;
+  session_id: string | null;
 }
 
 const COLUMNS = 'id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, cancellation_reason, issued_at, version, created_by';
@@ -57,6 +58,7 @@ function toPayment(row: PaymentRow): Payment {
     reference: row.reference,
     receivedBy: row.received_by,
     receivedAt: requiredInstantFromDb(row.received_at),
+    sessionId: row.session_id,
   };
 }
 
@@ -85,7 +87,7 @@ function toInvoice(row: InvoiceRow, lines: LineRow[], payments: PaymentRow[]): I
 }
 
 const LINES = 'id, item_id, item_code, item_name, unit_price, quantity';
-const PAYMENTS = 'id, invoice_id, receipt_number, mode, amount, reference, received_by, received_at';
+const PAYMENTS = 'id, invoice_id, receipt_number, mode, amount, reference, received_by, received_at, session_id';
 
 export class PgInvoiceRepository implements InvoiceRepository {
   constructor(private readonly sql: SqlExecutor) {}
@@ -164,6 +166,11 @@ export class PgInvoiceRepository implements InvoiceRepository {
   async addPayment(invoice: Invoice, payment: Payment): Promise<SaveOutcome> {
     return this.sql.transaction(async (tx) => {
       // Deux caisses qui encaissent la même facture se mettent en file : la seconde relit ce que la première a déjà perçu.
+      // La session de caisse doit être encore ouverte : le verrou partagé fait attendre sa clôture (verrou exclusif) jusqu'à la fin de cet encaissement.
+      if (payment.sessionId !== null) {
+        const session = await tx.query<{ status: string }>('SELECT status FROM billing_cash_sessions WHERE id = $1 FOR SHARE', [payment.sessionId]);
+        if (session[0]?.status !== 'OPEN') return 'SESSION_CLOSED';
+      }
       const fresh = await this.load(tx, invoice.id.value, true);
       if (!fresh) return 'CHANGED';
       const status = fresh.status;
@@ -171,8 +178,8 @@ export class PgInvoiceRepository implements InvoiceRepository {
       const alreadyPaid = fresh.paid;
       if (alreadyPaid.value + payment.amount.value > fresh.total.value) return 'OVERPAYMENT';
       await tx.query(
-        'INSERT INTO billing_payments (id, invoice_id, receipt_number, mode, amount, reference, received_by, received_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz)',
-        [payment.id.value, invoice.id.value, payment.receiptNumber.value, payment.mode, payment.amount.value, payment.reference, payment.receivedBy, payment.receivedAt.toString()],
+        'INSERT INTO billing_payments (id, invoice_id, receipt_number, mode, amount, reference, received_by, received_at, session_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9)',
+        [payment.id.value, invoice.id.value, payment.receiptNumber.value, payment.mode, payment.amount.value, payment.reference, payment.receivedBy, payment.receivedAt.toString(), payment.sessionId],
       );
       const next = statusFor(fresh.total, alreadyPaid.plus(payment.amount));
       await tx.query('UPDATE billing_invoices SET status = $2, version = version + 1, updated_at = now() WHERE id = $1', [invoice.id.value, next]);
