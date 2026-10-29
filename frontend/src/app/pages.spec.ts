@@ -43,10 +43,10 @@ describe('menu de navigation', () => {
   });
 
   it("range l'organisation, les sites et la structure dans le groupe « Administration » de l'administrateur système", () => {
-    const granted = ['administration.organization:read', 'administration.facilities:read', 'administration.structure:read'];
+    const granted = ['administration.organization:read', 'administration.facilities:read', 'administration.structure:read', 'iam.users:read', 'iam.roles:read'];
     const menu = visibleNavigation(NAVIGATION, ['SYSTEM_ADMIN'], granted);
     expect(menu.map((i) => i.id)).toEqual(['dashboard', 'administration']);
-    expect(menu[1].children?.map((i) => i.id)).toEqual(['admin-organization', 'admin-sites', 'admin-structure']);
+    expect(menu[1].children?.map((i) => i.id)).toEqual(['admin-organization', 'admin-sites', 'admin-structure', 'admin-users', 'admin-roles']);
   });
 
   it("ne garde dans le groupe que les entrées permises, et masque le groupe s'il n'en reste aucune", () => {

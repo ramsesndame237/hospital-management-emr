@@ -5,6 +5,7 @@ import { provideSpartanHlm } from '@spartan-ng/helm/utils';
 import { routes } from './app.routes';
 import { AdministrationGateway, HttpAdministrationGateway } from './core/administration/administration.gateway';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
+import { HttpIdentityAdminGateway, IdentityAdminGateway } from './core/iam/identity-admin.gateway';
 import { PasswordResetGateway, UnavailablePasswordResetGateway } from './core/auth/password-reset.gateway';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { JsonTranslator } from './core/i18n/json-translator';
@@ -25,6 +26,7 @@ export const appConfig: ApplicationConfig = {
     { provide: AuthGateway, useClass: HttpAuthGateway },
     { provide: Translator, useClass: JsonTranslator },
     { provide: AdministrationGateway, useClass: HttpAdministrationGateway },
+    { provide: IdentityAdminGateway, useClass: HttpIdentityAdminGateway },
     // Réinitialisation du mot de passe : adaptateur provisoire tant que l'API n'a pas d'endpoint (voir le fichier du port).
     { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },

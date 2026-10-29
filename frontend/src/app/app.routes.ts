@@ -28,6 +28,8 @@ export const routes: Routes = [
       { path: 'admin/organization', canActivate: [permissionGuard('administration.organization:read')], title: 'nav.adminOrganization', loadComponent: () => import('./features/admin/organization/organization.page').then((m) => m.OrganizationPage) },
       { path: 'admin/sites', canActivate: [permissionGuard('administration.facilities:read')], title: 'nav.adminSites', loadComponent: () => import('./features/admin/sites/sites.page').then((m) => m.SitesPage) },
       { path: 'admin/structure', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },
+      { path: 'admin/users', canActivate: [permissionGuard('iam.users:read')], title: 'nav.adminUsers', loadComponent: () => import('./features/admin/users/users.page').then((m) => m.UsersPage) },
+      { path: 'admin/roles', canActivate: [permissionGuard('iam.roles:read')], title: 'nav.adminRoles', loadComponent: () => import('./features/admin/roles/roles.page').then((m) => m.RolesPage) },
       { path: 'admin/structure/:facilityId', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },
       { path: 'profile', title: 'profile.title', loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage) },
       { path: 'modules/:module', title: moduleTitle, loadComponent: () => import('./features/modules/module-placeholder.page').then((m) => m.ModulePlaceholderPage) },

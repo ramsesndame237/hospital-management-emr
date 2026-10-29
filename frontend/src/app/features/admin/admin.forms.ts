@@ -2,7 +2,7 @@ import { FACILITY_STATUSES, Facility, FacilityStatus, NodeKind, ReferenceOption,
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 
 /** Format du code d'un établissement (même règle que l'API) : 4 chiffres/majuscules, 3 chiffres/minuscules, 2 chiffres. */
-const FACILITY_CODE = '^[0-9A-Z]{4}-[0-9a-z]{3}-[0-9]{2}$';
+const FACILITY_CODE = '^\\s*[0-9A-Z]{4}-[0-9a-z]{3}-[0-9]{2}\\s*$';
 
 /** Statuts après lesquels l'établissement n'accueille plus normalement : le changement demande une confirmation explicite. */
 export const DISRUPTIVE_STATUSES: readonly FacilityStatus[] = [
@@ -65,7 +65,7 @@ export function facilityStatusFields(o: { readonly facility: Facility; readonly 
 const CODE_RULES = [
   { type: 'required', message: 'admin.structure.codeRequired' },
   { type: 'maxLength', value: 32 },
-  { type: 'pattern', value: '^[A-Za-z0-9_.-]+$', message: 'admin.structure.codeFormat' },
+  { type: 'pattern', value: '^\\s*[A-Za-z0-9_.-]+\\s*$', message: 'admin.structure.codeFormat' },
 ] as const;
 
 /** Création d'un service (code, nom, nature, spécialité) ou modification (nom, nature, spécialité ; le code ne change plus). */
