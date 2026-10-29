@@ -153,3 +153,90 @@ UPDATE iam_roles
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['lab.catalog:read', 'lab.catalog:manage', 'lab.requisitions:read:all']) AS p ORDER BY p)
  WHERE code = 'SYSTEM_ADMIN';
+
+-- ---- Résultats --------------------------------------------------------------------------------------------------------------
+-- Statuts de demande élargis aux résultats (le CHECK d'origine est remplacé : idempotent).
+ALTER TABLE lab_requisitions DROP CONSTRAINT IF EXISTS lab_requisitions_status_check;
+ALTER TABLE lab_requisitions ADD CONSTRAINT lab_requisitions_status_check
+  CHECK (status IN ('ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'IN_ANALYSIS', 'RESULTED', 'VERIFIED', 'RELEASED', 'CANCELLED'));
+
+-- Le résultat d'une analyse d'une demande : son état ; ses saisies successives sont dans lab_result_versions (ajout seul).
+CREATE TABLE IF NOT EXISTS lab_results (
+  requisition_id   uuid NOT NULL REFERENCES lab_requisitions (id),
+  test_id          uuid NOT NULL REFERENCES lab_tests (id),
+  status           text NOT NULL CHECK (status IN ('ENTERED', 'RETURNED', 'VERIFIED', 'RELEASED')),
+  -- dernière version publiée : celle que voit le prescripteur, même pendant un amendement
+  released_version integer CHECK (released_version IS NULL OR released_version >= 1),
+  return_reason    text CHECK (return_reason IS NULL OR length(return_reason) BETWEEN 1 AND 200),
+  verified_by      uuid,
+  verified_at      timestamptz,
+  released_by      uuid,
+  released_at      timestamptz,
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (requisition_id, test_id),
+  FOREIGN KEY (requisition_id, test_id) REFERENCES lab_requisition_tests (requisition_id, test_id),
+  CHECK (status <> 'VERIFIED' OR (verified_by IS NOT NULL AND verified_at IS NOT NULL)),
+  CHECK (status <> 'RETURNED' OR return_reason IS NOT NULL),
+  CHECK (status <> 'RELEASED' OR (released_by IS NOT NULL AND released_at IS NOT NULL AND released_version IS NOT NULL)),
+  CHECK ((released_version IS NULL) = (released_at IS NULL))
+);
+
+CREATE TABLE IF NOT EXISTS lab_result_versions (
+  requisition_id   uuid NOT NULL,
+  test_id          uuid NOT NULL,
+  version          integer NOT NULL CHECK (version >= 1),
+  value            text NOT NULL CHECK (length(value) BETWEEN 1 AND 2000),
+  value_number     numeric,
+  flag             text CHECK (flag IS NULL OR flag IN ('NORMAL', 'LOW', 'HIGH', 'CRITICAL_LOW', 'CRITICAL_HIGH')),
+  ref_low          numeric,
+  ref_high         numeric,
+  critical_low     numeric,
+  critical_high    numeric,
+  unit             text,
+  previous_value   numeric,
+  delta_alert      boolean NOT NULL DEFAULT false,
+  entered_by       uuid NOT NULL,
+  entered_at       timestamptz NOT NULL,
+  comment          text CHECK (comment IS NULL OR length(comment) <= 300),
+  amendment_reason text CHECK (amendment_reason IS NULL OR length(amendment_reason) BETWEEN 1 AND 200),
+  PRIMARY KEY (requisition_id, test_id, version),
+  FOREIGN KEY (requisition_id, test_id) REFERENCES lab_results (requisition_id, test_id)
+);
+
+-- Appel du clinicien pour une valeur critique : ajout seul ; la relecture de la valeur est obligatoire.
+CREATE TABLE IF NOT EXISTS lab_critical_notifications (
+  requisition_id uuid NOT NULL,
+  test_id        uuid NOT NULL,
+  seq            integer NOT NULL CHECK (seq >= 1),
+  version        integer NOT NULL CHECK (version >= 1),
+  notified_name  text NOT NULL CHECK (length(notified_name) BETWEEN 1 AND 100),
+  notified_role  text NOT NULL CHECK (length(notified_role) BETWEEN 1 AND 60),
+  method         text NOT NULL CHECK (method IN ('PHONE', 'IN_PERSON', 'SECURE_MESSAGE')),
+  read_back      boolean NOT NULL CHECK (read_back),
+  at             timestamptz NOT NULL,
+  by             uuid NOT NULL,
+  PRIMARY KEY (requisition_id, test_id, seq),
+  FOREIGN KEY (requisition_id, test_id) REFERENCES lab_results (requisition_id, test_id)
+);
+
+CREATE OR REPLACE FUNCTION lab_append_only() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION '% est en ajout seul : % interdit', TG_TABLE_NAME, TG_OP USING ERRCODE = 'restrict_violation';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_lab_result_versions_append_only ON lab_result_versions;
+CREATE TRIGGER trg_lab_result_versions_append_only BEFORE UPDATE OR DELETE ON lab_result_versions FOR EACH ROW EXECUTE FUNCTION lab_append_only();
+DROP TRIGGER IF EXISTS trg_lab_result_versions_no_truncate ON lab_result_versions;
+CREATE TRIGGER trg_lab_result_versions_no_truncate BEFORE TRUNCATE ON lab_result_versions FOR EACH STATEMENT EXECUTE FUNCTION lab_append_only();
+DROP TRIGGER IF EXISTS trg_lab_critical_notifications_append_only ON lab_critical_notifications;
+CREATE TRIGGER trg_lab_critical_notifications_append_only BEFORE UPDATE OR DELETE ON lab_critical_notifications FOR EACH ROW EXECUTE FUNCTION lab_append_only();
+DROP TRIGGER IF EXISTS trg_lab_critical_notifications_no_truncate ON lab_critical_notifications;
+CREATE TRIGGER trg_lab_critical_notifications_no_truncate BEFORE TRUNCATE ON lab_critical_notifications FOR EACH STATEMENT EXECUTE FUNCTION lab_append_only();
+
+CREATE INDEX IF NOT EXISTS ix_lab_results_test ON lab_results (test_id, released_at DESC) WHERE released_version IS NOT NULL;
+
+-- Droits : le laboratoire saisit, valide, publie, amende et documente les valeurs critiques (la validation et la publication par un autre que
+-- l'auteur de la saisie sont imposées par l'application). Le prescripteur ne voit que ce qui est publié.
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['lab.results:enter', 'lab.results:verify', 'lab.results:release', 'lab.results:amend', 'lab.results:notify']) AS p ORDER BY p)
+ WHERE code = 'LAB_TECHNICIAN';

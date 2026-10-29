@@ -2,6 +2,7 @@ import { AuditLog } from '../../../audit/domain/audit-log.port';
 import { Clock, IdGenerator } from '../../../../shared-kernel/ports';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { ServiceAccess } from '../../../../shared-kernel/service-access';
+import { criticalNotified, currentVersion, isCritical, ResultStatus, TestResult } from '../../domain/result';
 import { checkTests, Requisition, RequisitionStatus, specimenCount, TestToOrder } from '../../domain/requisition';
 import { PatientDirectory, PatientInfo, RequisitionRepository, TestRepository, UserDirectory } from '../../domain/ports';
 import {
@@ -56,12 +57,67 @@ export interface SpecimenView {
   readonly events: readonly SpecimenEventView[];
 }
 
+export interface ResultVersionView {
+  readonly version: number;
+  readonly value: string;
+  readonly flag: string | null;
+  readonly unit: string | null;
+  readonly refLow: number | null;
+  readonly refHigh: number | null;
+  readonly criticalLow: number | null;
+  readonly criticalHigh: number | null;
+  /** Dernier résultat publié du même patient, au moment de la saisie. */
+  readonly previousValue: number | null;
+  /** Variation importante par rapport au résultat précédent (delta check). */
+  readonly deltaAlert: boolean;
+  readonly enteredBy: UserSummary | null;
+  readonly enteredAt: string;
+  readonly comment: string | null;
+  readonly amendmentReason: string | null;
+}
+
+export interface CriticalNotificationView {
+  readonly version: number;
+  readonly notifiedName: string;
+  readonly notifiedRole: string;
+  readonly method: string;
+  readonly at: string;
+  readonly by: UserSummary | null;
+}
+
+/**
+ * Le résultat d'une analyse. Le laboratoire voit tout (toutes les versions) ; le prescripteur ne voit que ce qui est **publié** : tant qu'aucune
+ * version n'est publiée il lit `IN_PROGRESS`, sans valeur.
+ */
+export interface ResultView {
+  readonly status: ResultStatus | 'IN_PROGRESS';
+  readonly currentVersion: number | null;
+  readonly releasedVersion: number | null;
+  readonly versions: readonly ResultVersionView[];
+  readonly returnReason: string | null;
+  readonly verifiedBy: UserSummary | null;
+  readonly verifiedAt: string | null;
+  readonly releasedBy: UserSummary | null;
+  readonly releasedAt: string | null;
+  /** La version courante est une valeur critique : l'appel du clinicien conditionne sa publication. */
+  readonly criticalRequired: boolean;
+  readonly criticalNotified: boolean;
+  readonly notifications: readonly CriticalNotificationView[];
+  /** Une version amendée attend sa validation : la version publiée reste celle du prescripteur. */
+  readonly amendmentPending: boolean;
+}
+
 export interface OrderedTestView {
   readonly testId: string;
   readonly code: string;
   readonly name: string;
   readonly section: string;
   readonly specimenId: string;
+  readonly resultType: string;
+  readonly unit: string | null;
+  readonly decimals: number;
+  readonly choices: readonly string[];
+  readonly result: ResultView | null;
 }
 
 export interface RequisitionView {
@@ -93,20 +149,31 @@ export interface RequisitionDependencies {
 
 const summaryOf = (p: PatientInfo): PatientSummary => ({ id: p.id, number: p.number, lastName: p.lastName, firstName: p.firstName, sex: p.sex, birthDate: p.birthDate });
 
-async function toView(d: RequisitionDependencies, requisition: Requisition): Promise<RequisitionView> {
+export async function toView(d: RequisitionDependencies, actorId: string, requisition: Requisition): Promise<RequisitionView> {
   const s = requisition.state;
+  const reviewer = await isReviewer(d, actorId);
   const userIds = new Set<string>([s.orderedBy]);
   if (s.cancelledBy) userIds.add(s.cancelledBy);
+  for (const t of s.tests) {
+    for (const id of [t.result?.verifiedBy, t.result?.releasedBy, ...(t.result?.versions.map((v) => v.enteredBy) ?? []), ...(t.result?.notifications.map((n) => n.by) ?? [])]) if (id) userIds.add(id);
+  }
   for (const sp of s.specimens) {
     for (const id of [sp.collectedBy, sp.receivedBy, sp.rejectedBy, ...sp.events.map((e) => e.actorId)]) if (id) userIds.add(id);
   }
   const users = await d.users.find([...userIds]);
   const who = (id: string | null): UserSummary | null => (id && users.get(id) ? { id, username: users.get(id)!.username } : null);
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
+  const catalogue = new Map((await d.tests.findByIds(s.tests.map((t) => t.testId))).map((t) => [t.id.value, t.state]));
   return {
     id: s.id.value, number: s.number.value, status: requisition.status, patient: patient ? summaryOf(patient) : null, priority: s.priority, source: s.source, clinicalNotes: s.clinicalNotes,
     orderedBy: who(s.orderedBy), orderedAt: s.orderedAt.toString(),
-    tests: s.tests.map((t) => ({ testId: t.testId.value, code: t.code.value, name: t.name.value, section: t.section, specimenId: t.specimenId.value })),
+    tests: s.tests.map((t): OrderedTestView => {
+      const c = catalogue.get(t.testId.value);
+      return {
+        testId: t.testId.value, code: t.code.value, name: t.name.value, section: t.section, specimenId: t.specimenId.value, resultType: c?.resultType ?? 'TEXT', unit: c?.unit ?? null, decimals: c?.decimals ?? 0,
+        choices: c?.choices ?? [], result: t.result ? resultView(t.result, reviewer, who) : null,
+      };
+    }),
     specimens: s.specimens.map((sp): SpecimenView => ({
       id: sp.id.value, barcode: sp.barcode.value, specimenType: sp.specimenType, container: sp.container, status: sp.status, collectedBy: who(sp.collectedBy), collectedAt: sp.collectedAt?.toString() ?? null,
       receivedBy: who(sp.receivedBy), receivedAt: sp.receivedAt?.toString() ?? null, rejectionReason: sp.rejectionReason, rejectionNote: sp.rejectionNote, rejectedBy: who(sp.rejectedBy),
@@ -114,6 +181,34 @@ async function toView(d: RequisitionDependencies, requisition: Requisition): Pro
       events: sp.events.map((e) => ({ kind: e.kind, at: e.at.toString(), actor: who(e.actorId), note: e.note })),
     })),
     cancelledBy: who(s.cancelledBy), cancelledAt: s.cancelledAt?.toString() ?? null, cancellationReason: s.cancellationReason?.value ?? null,
+  };
+}
+
+function versionView(v: TestResult['versions'][number], who: (id: string | null) => UserSummary | null): ResultVersionView {
+  return {
+    version: v.version, value: v.value, flag: v.flag, unit: v.unit, refLow: v.refLow, refHigh: v.refHigh, criticalLow: v.criticalLow, criticalHigh: v.criticalHigh, previousValue: v.previousValue,
+    deltaAlert: v.deltaAlert, enteredBy: who(v.enteredBy), enteredAt: v.enteredAt.toString(), comment: v.comment, amendmentReason: v.amendmentReason,
+  };
+}
+
+function resultView(r: TestResult, reviewer: boolean, who: (id: string | null) => UserSummary | null): ResultView {
+  const current = currentVersion(r);
+  if (!reviewer) {
+    // Le prescripteur ne lit que la version publiée : ni la saisie en cours, ni une valeur non validée.
+    const released = r.versions.find((v) => v.version === r.releasedVersion);
+    if (!released) {
+      return { status: 'IN_PROGRESS', currentVersion: null, releasedVersion: null, versions: [], returnReason: null, verifiedBy: null, verifiedAt: null, releasedBy: null, releasedAt: null, criticalRequired: false, criticalNotified: false, notifications: [], amendmentPending: false };
+    }
+    return {
+      status: 'RELEASED', currentVersion: released.version, releasedVersion: released.version, versions: [versionView(released, who)], returnReason: null, verifiedBy: null, verifiedAt: null,
+      releasedBy: who(r.releasedBy), releasedAt: r.releasedAt?.toString() ?? null, criticalRequired: false, criticalNotified: false, notifications: [], amendmentPending: current.version !== released.version,
+    };
+  }
+  return {
+    status: r.status, currentVersion: current.version, releasedVersion: r.releasedVersion, versions: r.versions.map((v) => versionView(v, who)), returnReason: r.returnReason, verifiedBy: who(r.verifiedBy),
+    verifiedAt: r.verifiedAt?.toString() ?? null, releasedBy: who(r.releasedBy), releasedAt: r.releasedAt?.toString() ?? null, criticalRequired: isCritical(current.flag), criticalNotified: criticalNotified(r),
+    notifications: r.notifications.map((n) => ({ version: n.version, notifiedName: n.notifiedName, notifiedRole: n.notifiedRole, method: n.method, at: n.at.toString(), by: who(n.by) })),
+    amendmentPending: r.releasedVersion !== null && current.version !== r.releasedVersion,
   };
 }
 
@@ -196,7 +291,7 @@ export class OrderRequisitionUseCase {
     if (!requisition.ok) return err(requisition.error);
     await this.d.requisitions.insert(requisition.value);
     await record(this.d, actorId, 'lab.requisition.order', requisition.value, { priority: priority.value, source: source.value, tests: toOrder.length, specimens: count });
-    return ok(await toView(this.d, requisition.value));
+    return ok(await toView(this.d, actorId, requisition.value));
   }
 }
 
@@ -207,7 +302,7 @@ export class GetRequisitionUseCase {
     const loaded = await loadFor(this.d, actorId, id);
     if (!loaded.ok) return err(loaded.error);
     await record(this.d, actorId, 'lab.requisition.read', loaded.value);
-    return ok(await toView(this.d, loaded.value));
+    return ok(await toView(this.d, actorId, loaded.value));
   }
 }
 
@@ -222,7 +317,7 @@ export class FindBySpecimenUseCase {
     if (!found || (found.state.orderedBy !== actorId && !(await isReviewer(this.d, actorId)))) return err(SPECIMEN_NOT_FOUND);
     const specimen = found.state.specimens.find((s) => s.barcode.equals(barcode.value))!;
     await record(this.d, actorId, 'lab.specimen.find', found, { barcode: barcode.value.value });
-    return ok({ ...(await toView(this.d, found)), specimenId: specimen.id.value });
+    return ok({ ...(await toView(this.d, actorId, found)), specimenId: specimen.id.value });
   }
 }
 
@@ -251,7 +346,7 @@ export interface RequisitionSummaryView {
   readonly sections: readonly string[];
 }
 
-const STATUSES: readonly RequisitionStatus[] = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'CANCELLED'];
+const STATUSES: readonly RequisitionStatus[] = ['ORDERED', 'PARTIALLY_COLLECTED', 'COLLECTED', 'RECEIVED', 'IN_ANALYSIS', 'RESULTED', 'VERIFIED', 'RELEASED', 'CANCELLED'];
 
 export class ListRequisitionsUseCase {
   constructor(private readonly d: RequisitionDependencies) {}
@@ -313,7 +408,7 @@ export class CancelRequisitionUseCase {
     if (!done) return err(NOT_FOUND);
     if (!done.ok) return err(done.error);
     await record(this.d, actorId, 'lab.requisition.cancel', done.value, {}, reason.value.value);
-    return ok(await toView(this.d, done.value));
+    return ok(await toView(this.d, actorId, done.value));
   }
 }
 
@@ -345,7 +440,7 @@ export class SpecimenUseCases {
     if (!done) return err(CHANGED);
     if (!done.ok) return err(done.error);
     await record(this.d, actorId, 'lab.specimen.collect', done.value, { barcode: specimen.barcode.value });
-    return ok(await toView(this.d, done.value));
+    return ok(await toView(this.d, actorId, done.value));
   }
 
   async receive(actorId: string, rawSpecimenId: string): Promise<Result<RequisitionView>> {
@@ -356,7 +451,7 @@ export class SpecimenUseCases {
     if (!done) return err(CHANGED);
     if (!done.ok) return err(done.error);
     await record(this.d, actorId, 'lab.specimen.receive', done.value, { barcode: requisition.findSpecimen(specimenId)!.barcode.value });
-    return ok(await toView(this.d, done.value));
+    return ok(await toView(this.d, actorId, done.value));
   }
 
   /** Rejette l'échantillon (motif de la liste, précision obligatoire pour « autre ») ; un nouveau prélèvement est créé et le demandeur peut le suivre. */
@@ -373,6 +468,6 @@ export class SpecimenUseCases {
     if (!done) return err(CHANGED);
     if (!done.ok) return err(done.error);
     await record(this.d, actorId, 'lab.specimen.reject', done.value, { barcode: requisition.findSpecimen(specimenId)!.barcode.value, rejection: reason.value, recollection: barcode.value }, input.note?.trim() || undefined);
-    return ok(await toView(this.d, done.value));
+    return ok(await toView(this.d, actorId, done.value));
   }
 }

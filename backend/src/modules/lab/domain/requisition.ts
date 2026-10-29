@@ -1,4 +1,5 @@
 import { DomainError, err, ok, Result } from '../../../shared-kernel/result';
+import { CriticalNotification, criticalNotified, currentVersion, isCritical, NotificationMethod, ParsedValue, ResultFlag, ResultStatus, TestResult } from './result';
 import { Instant } from '../../../shared-kernel/temporal';
 import {
   Container, PatientRef, Priority, Reason, RejectionReason, RequisitionId, RequisitionNumber, Section, SpecimenBarcode, SpecimenId, SpecimenType, Source, TestCode, TestId, TestName,
@@ -43,10 +44,29 @@ export interface OrderedTest {
   readonly name: TestName;
   readonly section: Section;
   readonly specimenId: SpecimenId;
+  /** Résultat de l'analyse, une fois saisi. */
+  readonly result: TestResult | null;
 }
 
-/** `ORDERED` (rien prélevé), `PARTIALLY_COLLECTED`, `COLLECTED` (tout prélevé, pas encore reçu au laboratoire), `RECEIVED` (tout reçu), `CANCELLED`. */
-export type RequisitionStatus = 'ORDERED' | 'PARTIALLY_COLLECTED' | 'COLLECTED' | 'RECEIVED' | 'CANCELLED';
+/**
+ * `ORDERED` (rien prélevé), `PARTIALLY_COLLECTED`, `COLLECTED` (tout prélevé, pas encore reçu), `RECEIVED` (tout reçu, aucun résultat), `IN_ANALYSIS` (des résultats
+ * saisis, pas tous), `RESULTED` (tous saisis), `VERIFIED` (tous validés), `RELEASED` (tous publiés), `CANCELLED`.
+ */
+export type RequisitionStatus = 'ORDERED' | 'PARTIALLY_COLLECTED' | 'COLLECTED' | 'RECEIVED' | 'IN_ANALYSIS' | 'RESULTED' | 'VERIFIED' | 'RELEASED' | 'CANCELLED';
+
+/** Une saisie de résultat prête à être enregistrée : valeur contrôlée, position par rapport aux valeurs de référence, alerte de variation. */
+export interface ResultEntry {
+  readonly parsed: ParsedValue;
+  readonly flag: ResultFlag | null;
+  readonly refLow: number | null;
+  readonly refHigh: number | null;
+  readonly criticalLow: number | null;
+  readonly criticalHigh: number | null;
+  readonly unit: string | null;
+  readonly previousValue: number | null;
+  readonly deltaAlert: boolean;
+  readonly comment: string | null;
+}
 
 export interface RequisitionState {
   readonly id: RequisitionId;
@@ -123,7 +143,7 @@ export class Requisition {
         rejectionReason: null, rejectionNote: null, rejectedBy: null, rejectedAt: null, recollectionOf: null, events: [event('CREATED', input.orderedAt, input.orderedBy)],
       };
     });
-    const tests: OrderedTest[] = input.tests.map((t) => ({ testId: t.testId, code: t.code, name: t.name, section: t.section, specimenId: specimens[groups.indexOf(key(t))].id }));
+    const tests: OrderedTest[] = input.tests.map((t) => ({ testId: t.testId, code: t.code, name: t.name, section: t.section, specimenId: specimens[groups.indexOf(key(t))].id, result: null }));
     return ok(new Requisition({
       id: input.id, number: input.number, patientId: input.patientId, priority: input.priority, source: input.source, clinicalNotes: input.clinicalNotes, orderedBy: input.orderedBy,
       orderedAt: input.orderedAt, tests, specimens, cancelledBy: null, cancelledAt: null, cancellationReason: null, version: 0,
@@ -139,7 +159,12 @@ export class Requisition {
     const pending = active.filter((s) => s.status === 'PENDING_COLLECTION').length;
     if (pending === active.length) return 'ORDERED';
     if (pending > 0) return 'PARTIALLY_COLLECTED';
-    return active.every((s) => s.status === 'RECEIVED') ? 'RECEIVED' : 'COLLECTED';
+    if (!active.every((s) => s.status === 'RECEIVED')) return 'COLLECTED';
+    const results = this.current.tests.map((t) => t.result);
+    if (results.every((r) => r?.status === 'RELEASED')) return 'RELEASED';
+    if (results.every((r) => r?.status === 'VERIFIED' || r?.status === 'RELEASED')) return 'VERIFIED';
+    if (results.every((r) => r !== null && r.status !== 'RETURNED')) return 'RESULTED';
+    return results.some((r) => r !== null) ? 'IN_ANALYSIS' : 'RECEIVED';
   }
 
   findSpecimen(id: SpecimenId): Specimen | undefined {
@@ -186,6 +211,9 @@ export class Requisition {
     const s = this.findSpecimen(specimenId);
     if (!s) return err(NOT_FOUND_SPECIMEN);
     if (s.status === 'REJECTED') return err(new DomainError('LAB_SPECIMEN_ALREADY_REJECTED', 'Cet échantillon est déjà rejeté.'));
+    if (this.current.tests.some((t) => t.specimenId.equals(specimenId) && t.result !== null)) {
+      return err(new DomainError('LAB_SPECIMEN_HAS_RESULTS', 'Des résultats sont déjà saisis sur cet échantillon : il ne peut plus être rejeté.'));
+    }
     const text = (note ?? '').trim();
     if (text.length > 200) return err(new DomainError('LAB_REASON_REQUIRED', 'La précision ne doit pas dépasser 200 caractères.'));
     if (reason === 'OTHER' && text === '') return err(new DomainError('LAB_REJECTION_NOTE_REQUIRED', 'Précisez le motif du rejet (200 caractères au plus).'));
@@ -204,6 +232,120 @@ export class Requisition {
       ],
       tests: this.current.tests.map((t) => (t.specimenId.equals(specimenId) ? { ...t, specimenId: fresh.id } : t)),
     };
+    return ok(undefined);
+  }
+
+  // ---- Résultats -------------------------------------------------------------------------------------------------------
+
+  private testOf(testId: TestId): OrderedTest | undefined {
+    return this.current.tests.find((t) => t.testId.equals(testId));
+  }
+
+  private setResult(testId: TestId, result: TestResult): void {
+    this.current = { ...this.current, tests: this.current.tests.map((t) => (t.testId.equals(testId) ? { ...t, result } : t)) };
+  }
+
+  /** L'analyse existe dans la demande, la demande est ouverte et son échantillon est arrivé au laboratoire. */
+  private workable(testId: TestId): Result<OrderedTest> {
+    const open = this.open();
+    if (!open.ok) return open;
+    const test = this.testOf(testId);
+    if (!test) return err(new DomainError('LAB_TEST_NOT_IN_REQUISITION', "Cette analyse ne figure pas dans la demande."));
+    return ok(test);
+  }
+
+  private withResult(testId: TestId): Result<{ test: OrderedTest; result: TestResult }> {
+    const found = this.workable(testId);
+    if (!found.ok) return found;
+    if (!found.value.result) return err(new DomainError('LAB_RESULT_NOT_ENTERED', "Aucun résultat n'est saisi pour cette analyse."));
+    return ok({ test: found.value, result: found.value.result });
+  }
+
+  private version(entry: ResultEntry, by: string, now: Instant, number: number, amendmentReason: string | null) {
+    return {
+      version: number, value: entry.parsed.value, valueNumber: entry.parsed.valueNumber, flag: entry.flag, refLow: entry.refLow, refHigh: entry.refHigh, criticalLow: entry.criticalLow,
+      criticalHigh: entry.criticalHigh, unit: entry.unit, previousValue: entry.previousValue, deltaAlert: entry.deltaAlert, enteredBy: by, enteredAt: now, comment: entry.comment, amendmentReason,
+    };
+  }
+
+  /**
+   * Saisit (ou corrige, tant que rien n'est validé) le résultat d'une analyse. L'échantillon doit être arrivé au laboratoire. Chaque saisie est une
+   * nouvelle version ; un résultat validé ou publié ne se retouche pas : on le renvoie, ou on l'amende avec un motif.
+   */
+  enterResult(testId: TestId, by: string, now: Instant, entry: ResultEntry): Result<void> {
+    const found = this.workable(testId);
+    if (!found.ok) return found;
+    const test = found.value;
+    if (this.findSpecimen(test.specimenId)?.status !== 'RECEIVED') return err(new DomainError('LAB_SPECIMEN_NOT_RECEIVED', "L'échantillon n'est pas encore arrivé au laboratoire : on ne saisit pas de résultat avant sa réception."));
+    const before = test.result;
+    if (before && before.status !== 'ENTERED' && before.status !== 'RETURNED') {
+      return err(new DomainError('LAB_RESULT_LOCKED', before.status === 'VERIFIED' ? 'Ce résultat est validé : renvoyez-le pour le corriger.' : 'Ce résultat est publié : amendez-le avec un motif.', { status: before.status }));
+    }
+    const versions = [...(before?.versions ?? []), this.version(entry, by, now, (before?.versions.length ?? 0) + 1, null)];
+    this.setResult(testId, {
+      status: 'ENTERED', versions, releasedVersion: before?.releasedVersion ?? null, returnReason: null, verifiedBy: null, verifiedAt: null, releasedBy: before?.releasedBy ?? null,
+      releasedAt: before?.releasedAt ?? null, notifications: before?.notifications ?? [],
+    });
+    return ok(undefined);
+  }
+
+  /** Validation par un autre technicien que l'auteur de la saisie (quatre yeux). */
+  verifyResult(testId: TestId, by: string, now: Instant): Result<void> {
+    const found = this.withResult(testId);
+    if (!found.ok) return found;
+    const { result } = found.value;
+    if (result.status !== 'ENTERED') return err(new DomainError('LAB_RESULT_NOT_PENDING_VERIFICATION', "Ce résultat n'attend pas de validation.", { status: result.status }));
+    if (currentVersion(result).enteredBy === by) return err(new DomainError('LAB_VERIFY_SELF', 'Vous ne pouvez pas valider un résultat que vous avez saisi.'));
+    this.setResult(testId, { ...result, status: 'VERIFIED', verifiedBy: by, verifiedAt: now });
+    return ok(undefined);
+  }
+
+  /** Renvoie un résultat saisi ou validé à son auteur, avec un motif : il devra le ressaisir. */
+  returnResult(testId: TestId, reason: Reason): Result<void> {
+    const found = this.withResult(testId);
+    if (!found.ok) return found;
+    const { result } = found.value;
+    if (result.status !== 'ENTERED' && result.status !== 'VERIFIED') return err(new DomainError('LAB_RESULT_NOT_PENDING_VERIFICATION', "Ce résultat n'attend pas de validation.", { status: result.status }));
+    this.setResult(testId, { ...result, status: 'RETURNED', returnReason: reason.value, verifiedBy: null, verifiedAt: null });
+    return ok(undefined);
+  }
+
+  /** Documente l'appel du clinicien pour une valeur critique : à qui, comment, avec relecture de la valeur. Condition de la publication. */
+  documentCritical(testId: TestId, by: string, now: Instant, input: { notifiedName: string; notifiedRole: string; method: NotificationMethod; readBackConfirmed: boolean }): Result<void> {
+    const found = this.withResult(testId);
+    if (!found.ok) return found;
+    const { result } = found.value;
+    if (result.status === 'RELEASED') return err(new DomainError('LAB_RESULT_LOCKED', 'Ce résultat est déjà publié.', { status: result.status }));
+    const current = currentVersion(result);
+    if (!isCritical(current.flag)) return err(new DomainError('LAB_RESULT_NOT_CRITICAL', "Ce résultat n'est pas une valeur critique."));
+    if (!input.readBackConfirmed) return err(new DomainError('LAB_READBACK_REQUIRED', 'La relecture de la valeur par le clinicien doit être confirmée.'));
+    const notification: CriticalNotification = { version: current.version, notifiedName: input.notifiedName, notifiedRole: input.notifiedRole, method: input.method, readBackConfirmed: true, at: now, by };
+    this.setResult(testId, { ...result, notifications: [...result.notifications, notification] });
+    return ok(undefined);
+  }
+
+  /** Publie un résultat validé : par un autre que l'auteur de la saisie, et, pour une valeur critique, après l'appel du clinicien. */
+  releaseResult(testId: TestId, by: string, now: Instant): Result<void> {
+    const found = this.withResult(testId);
+    if (!found.ok) return found;
+    const { result } = found.value;
+    if (result.status !== 'VERIFIED') return err(new DomainError('LAB_RESULT_NOT_VERIFIED', "Seul un résultat validé peut être publié.", { status: result.status }));
+    const current = currentVersion(result);
+    if (current.enteredBy === by) return err(new DomainError('LAB_VERIFY_SELF', 'Vous ne pouvez pas publier un résultat que vous avez saisi.'));
+    if (isCritical(current.flag) && !criticalNotified(result)) return err(new DomainError('LAB_CRITICAL_NOT_NOTIFIED', "Valeur critique : documentez l'appel du clinicien avant de publier."));
+    this.setResult(testId, { ...result, status: 'RELEASED', releasedVersion: current.version, releasedBy: by, releasedAt: now });
+    return ok(undefined);
+  }
+
+  /** Amende un résultat publié : nouvelle version avec son motif, à valider puis publier de nouveau. Le prescripteur continue de voir la version publiée. */
+  amendResult(testId: TestId, by: string, now: Instant, entry: ResultEntry, reason: Reason): Result<void> {
+    const found = this.withResult(testId);
+    if (!found.ok) return found;
+    const { result } = found.value;
+    if (result.status !== 'RELEASED') return err(new DomainError('LAB_RESULT_NOT_RELEASED', "Seul un résultat publié s'amende.", { status: result.status }));
+    this.setResult(testId, {
+      ...result, status: 'ENTERED', versions: [...result.versions, this.version(entry, by, now, result.versions.length + 1, reason.value)], returnReason: null, verifiedBy: null, verifiedAt: null,
+    });
     return ok(undefined);
   }
 

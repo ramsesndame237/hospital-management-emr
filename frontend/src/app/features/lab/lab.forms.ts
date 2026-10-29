@@ -1,4 +1,4 @@
-import { PRIORITIES, REJECTION_REASONS, REQUISITION_STATUSES, SECTIONS, SOURCES } from '../../core/lab/lab.models';
+import { NOTIFICATION_METHODS, PRIORITIES, REJECTION_REASONS, REQUISITION_STATUSES, ResultType, SECTIONS, SOURCES } from '../../core/lab/lab.models';
 import { failureNotice } from '../../shared/failure-message';
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 
@@ -105,5 +105,60 @@ export function catalogFilterFields(): FieldSchema[] {
     { type: 'text', name: 'q', label: 'lab.catalog.search', placeholder: 'lab.catalog.searchPlaceholder', normalize: 'trim', autofocus: true, span: 6, validators: [{ type: 'maxLength', value: 100 }] },
     { type: 'select', name: 'section', label: 'lab.catalog.section', placeholder: 'lab.catalog.allSections', options: options(SECTIONS, 'lab.section'), span: 4 },
     { type: 'submit', name: 'submit', label: 'lab.catalog.apply', span: 2, class: 'sm:self-end' },
+  ];
+}
+
+/**
+ * Saisie (ou amendement) d'un résultat : un champ numérique, une liste de valeurs admises, ou un texte libre selon l'analyse. Un amendement
+ * demande en plus son motif. Le serveur calcule le drapeau (bas, haut, critique) et l'alerte de variation.
+ */
+export function resultFields(o: { readonly resultType: ResultType; readonly choices: readonly string[]; readonly value: string; readonly amend: boolean; readonly notice: string | null }): FieldSchema[] {
+  const value: FieldSchema =
+    o.resultType === 'CHOICE'
+      ? { type: 'select', name: 'value', label: 'lab.result.valueLabel', hint: 'lab.result.valueHintChoice', value: o.value, autofocus: true, options: o.choices.map((c) => ({ value: c, label: c })), validators: [{ type: 'required', message: 'lab.result.valueRequired' }] }
+      : o.resultType === 'NUMERIC'
+        ? {
+            type: 'text', name: 'value', label: 'lab.result.valueLabel', hint: 'lab.result.valueHintNumeric', value: o.value, autofocus: true, inputMode: 'decimal', inputClass: 'font-mono', normalize: 'trim',
+            validators: [{ type: 'required', message: 'lab.result.valueRequired' }, { type: 'pattern', value: '^\\s*-?\\d{1,9}([.,]\\d{1,6})?\\s*$', message: 'lab.result.valueInvalid' }],
+          }
+        : { type: 'textarea', name: 'value', label: 'lab.result.valueLabel', hint: 'lab.result.valueHintText', value: o.value, autofocus: true, rows: 3, normalize: 'trim', validators: [{ type: 'required', message: 'lab.result.valueRequired' }, { type: 'maxLength', value: 2000 }] };
+  return [
+    ...failureNotice(o.notice),
+    ...(o.amend ? ([{ type: 'message', name: 'warning', tone: 'warning', appearance: 'outlined', title: 'lab.result.amendWarningTitle', text: 'lab.result.amendWarningText' }] as const) : []),
+    value,
+    { type: 'text', name: 'comment', label: 'lab.result.comment', hint: 'lab.result.commentHint', normalize: 'trim', validators: [{ type: 'maxLength', value: 300 }] },
+    ...(o.amend ? ([{ type: 'text', name: 'reason', label: 'lab.result.amendReason', normalize: 'trim', validators: [{ type: 'required', message: 'lab.result.returnReasonRequired' }, { type: 'maxLength', value: 200 }] }] as const) : []),
+    { type: 'paragraph', name: 'audit', text: 'lab.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: o.amend ? 'lab.result.amendSubmit' : 'lab.result.submit', busyLabel: 'lab.saving' },
+    { type: 'button', name: 'cancel', label: 'lab.cancel', variant: 'outline' },
+  ];
+}
+
+/** Renvoi d'un résultat à son auteur : le motif est obligatoire. */
+export function returnFields(o: { readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'message', name: 'warning', tone: 'warning', appearance: 'outlined', title: 'lab.result.returnWarningTitle', text: 'lab.result.returnWarningText' },
+    { type: 'text', name: 'reason', label: 'lab.result.returnReason', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'lab.result.returnReasonRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'paragraph', name: 'audit', text: 'lab.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: 'lab.result.returnSubmit', busyLabel: 'lab.saving' },
+    { type: 'button', name: 'cancel', label: 'lab.cancel', variant: 'outline' },
+  ];
+}
+
+/** Appel du clinicien pour une valeur critique : à qui, sa fonction, le moyen, et la relecture de la valeur (obligatoire). */
+export function notifyFields(o: { readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'message', name: 'warning', tone: 'critical', appearance: 'outlined', title: 'lab.result.notifyWarningTitle', text: 'lab.result.notifyWarningText' },
+    { type: 'text', name: 'notifiedName', label: 'lab.result.notifiedName', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'lab.collect.required' }, { type: 'maxLength', value: 100 }] },
+    { type: 'text', name: 'notifiedRole', label: 'lab.result.notifiedRole', hint: 'lab.result.notifiedRoleHint', normalize: 'trim', validators: [{ type: 'required', message: 'lab.collect.required' }, { type: 'maxLength', value: 60 }] },
+    {
+      type: 'select', name: 'method', label: 'lab.result.method_label', value: 'PHONE', options: NOTIFICATION_METHODS.map((m) => ({ value: m, label: `lab.result.method.${m}` })), validators: [{ type: 'required', message: 'lab.collect.required' }],
+    },
+    { type: 'checkbox', name: 'readBack', label: 'lab.result.readBack', validators: [{ type: 'required', message: 'lab.result.readBackRequired' }] },
+    { type: 'paragraph', name: 'audit', text: 'lab.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: 'lab.result.notifySubmit', busyLabel: 'lab.saving' },
+    { type: 'button', name: 'cancel', label: 'lab.cancel', variant: 'outline' },
   ];
 }
