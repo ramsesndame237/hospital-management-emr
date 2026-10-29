@@ -223,7 +223,11 @@
     "adminSites": "Sites",
     "adminStructure": "Structure des sites",
     "adminUsers": "Utilisateurs",
-    "adminRoles": "Rôles"
+    "adminRoles": "Rôles",
+    "billing": "Facturation",
+    "billingInvoices": "Factures",
+    "billingNew": "Nouvelle facture",
+    "billingCatalog": "Catalogue des tarifs"
   },
   "admin": {
     "actions": "Actions",
@@ -592,5 +596,209 @@
     "codes": "{count} codes de récupération conservés",
     "open": "Accéder à mon espace",
     "note": "Une vérification en deux étapes sera demandée avant le choix de votre contexte de travail."
+  },
+  "billing": {
+    "actions": "Actions",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "saving": "Enregistrement…",
+    "searching": "Recherche…",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "range": "{from} à {to} sur {total}",
+    "auditNote": "Cette action est inscrite au journal d’audit avec votre identité.",
+    "status": {
+      "DRAFT": "Brouillon",
+      "ISSUED": "Émise",
+      "PARTIALLY_PAID": "Payée en partie",
+      "PAID": "Payée",
+      "CANCELLED": "Annulée"
+    },
+    "mode": {
+      "CASH": "Espèces",
+      "CARD": "Carte bancaire",
+      "MOBILE_MONEY": "Mobile money",
+      "CHEQUE": "Chèque",
+      "BANK_TRANSFER": "Virement"
+    },
+    "category": {
+      "CONSULTATION": "Consultation",
+      "LABORATORY": "Laboratoire",
+      "RADIOLOGY": "Radiologie",
+      "PHARMACY": "Pharmacie",
+      "PROCEDURE": "Acte médical",
+      "HOSPITALIZATION": "Hospitalisation",
+      "OTHER": "Autre"
+    },
+    "amount": {
+      "required": "Saisissez un montant.",
+      "invalid": "Montant invalide : saisissez des chiffres (ex. 5000)."
+    },
+    "reason": {
+      "required": "Le motif est obligatoire."
+    },
+    "filter": {
+      "number": "Numéro de facture",
+      "numberPlaceholder": "FAC-0000123",
+      "status": "Statut",
+      "allStatuses": "Tous les statuts",
+      "apply": "Filtrer"
+    },
+    "invoices": {
+      "title": "Factures",
+      "lead": "Les factures des patients : ce qui est dû, ce qui est encaissé, ce qui reste à payer.",
+      "new": "Nouvelle facture",
+      "number": "Numéro",
+      "patient": "Patient",
+      "status": "Statut",
+      "total": "Total",
+      "balance": "Reste à payer",
+      "date": "Créée le",
+      "open": "Ouvrir",
+      "openOf": "Ouvrir la facture {number}",
+      "empty": "Aucune facture ne correspond.",
+      "pagination": "Pagination des factures"
+    },
+    "new": {
+      "title": "Nouvelle facture",
+      "lead": "Retrouvez le patient, puis ajoutez les actes à facturer.",
+      "query": "Patient",
+      "queryHint": "Numéro de dossier (PAT-0000123) ou nom et prénom (2 lettres au moins par mot).",
+      "queryPlaceholder": "Mbarga Élisabeth",
+      "queryRequired": "Saisissez un numéro de dossier ou un nom.",
+      "queryTooShort": "Saisissez au moins 2 caractères.",
+      "search": "Rechercher",
+      "results": "Patients trouvés",
+      "patient": "Patient",
+      "birth": "Naissance",
+      "age": "{age} ans",
+      "deceased": "Décédé",
+      "choose": "Facturer",
+      "chooseOf": "Facturer {name}",
+      "none": "Aucun dossier ne correspond.",
+      "refine": "{shown} dossiers affichés sur {total} : précisez la recherche pour affiner.",
+      "back": "Retour aux factures"
+    },
+    "detail": {
+      "back": "Retour aux factures",
+      "issuedOn": "Émise le {date}",
+      "addLine": "Ajouter un acte",
+      "discount": "Remise",
+      "issue": "Émettre la facture",
+      "collect": "Encaisser",
+      "cancel": "Annuler la facture",
+      "reload": "Recharger la facture",
+      "lines": "Actes facturés",
+      "item": "Acte",
+      "unitPrice": "Prix unitaire",
+      "quantity": "Qté",
+      "lineTotal": "Total",
+      "noLines": "Aucun acte pour le moment : ajoutez-en pour pouvoir émettre la facture.",
+      "remove": "Retirer",
+      "removeOf": "Retirer {name}",
+      "subtotal": "Sous-total",
+      "discountOf": "Remise ({reason})",
+      "total": "Total à payer",
+      "paid": "Déjà encaissé",
+      "balance": "Reste à payer",
+      "payments": "Encaissements",
+      "noPayments": "Aucun encaissement.",
+      "receipt": "Reçu",
+      "mode": "Mode",
+      "amount": "Montant",
+      "when": "Date",
+      "reprint": "Réimprimer",
+      "reprintOf": "Réimprimer le reçu {number}",
+      "cancelledTitle": "Facture annulée"
+    },
+    "lines": {
+      "title": "Ajouter un acte",
+      "search": "Rechercher un acte",
+      "searchPlaceholder": "Consultation, échographie…",
+      "quantity": "Quantité",
+      "quantityInvalid": "La quantité est un entier de 1 à 9999.",
+      "searchSubmit": "Rechercher",
+      "add": "Ajouter",
+      "addOf": "Ajouter {name}",
+      "added": "« {name} » ajouté à la facture.",
+      "none": "Aucun acte ne correspond."
+    },
+    "discount": {
+      "title": "Remise",
+      "amount": "Montant de la remise",
+      "amountHint": "Sur toute la facture ; elle ne peut pas dépasser le total.",
+      "reason": "Motif de la remise",
+      "reasonHint": "Obligatoire (ex. personnel de l’hôpital).",
+      "apply": "Appliquer la remise",
+      "remove": "Retirer la remise",
+      "removed": "Remise retirée.",
+      "applied": "Remise appliquée."
+    },
+    "issue": {
+      "title": "Émettre la facture",
+      "warningTitle": "La facture sera verrouillée",
+      "warningText": "Une fois émise, ses actes et sa remise ne peuvent plus être modifiés : elle peut alors être encaissée.",
+      "submit": "Émettre la facture",
+      "keep": "Continuer à la préparer",
+      "done": "Facture {number} émise."
+    },
+    "cancelInvoice": {
+      "title": "Annuler la facture",
+      "warningTitle": "Cette facture sera annulée",
+      "warningText": "Une facture annulée est verrouillée et n’est plus due. Une facture déjà encaissée ne peut pas être annulée : il faut la rembourser.",
+      "submit": "Annuler la facture",
+      "reason": "Motif de l’annulation",
+      "keep": "Garder la facture",
+      "done": "Facture {number} annulée."
+    },
+    "collect": {
+      "title": "Encaisser",
+      "mode": "Mode de paiement",
+      "amount": "Montant encaissé",
+      "amountHint": "Par défaut le solde ; saisissez moins pour un paiement partiel.",
+      "tendered": "Espèces remises (facultatif)",
+      "tenderedHint": "Pour calculer la monnaie à rendre.",
+      "reference": "Référence (facultatif)",
+      "referenceHint": "N° de transaction mobile, de chèque ou de virement.",
+      "referenceInvalid": "Lettres, chiffres, espaces, « . », « / » ou « - » seulement.",
+      "submit": "Encaisser",
+      "tooMuch": "Le montant dépasse le solde ({balance}).",
+      "remaining": "Il restera {left} à payer après cet encaissement.",
+      "tenderedLow": "Le montant remis est inférieur au montant encaissé ({amount}).",
+      "change": "Monnaie à rendre : {change}"
+    },
+    "reprint": {
+      "title": "Une copie, pas un original",
+      "text": "Le reçu réimprimé porte la mention « DUPLICATA ». La réimpression est inscrite au journal d’audit avec son motif.",
+      "reason": "Motif de la réimpression",
+      "submit": "Réimprimer le reçu",
+      "panelTitle": "Réimprimer le reçu {number}"
+    },
+    "receipt": {
+      "title": "Reçu d’encaissement",
+      "copyTitle": "Reçu (copie)",
+      "duplicate": "Duplicata",
+      "invoice": "Facture",
+      "patient": "Patient",
+      "mode": "Mode",
+      "date": "Date",
+      "amount": "Montant encaissé",
+      "change": "Monnaie rendue",
+      "balance": "Reste à payer",
+      "print": "Imprimer le reçu"
+    },
+    "catalog": {
+      "title": "Catalogue des tarifs",
+      "lead": "Les actes facturables et leur prix. La modification des tarifs se fait côté administration.",
+      "search": "Rechercher",
+      "searchPlaceholder": "Code ou libellé",
+      "category": "Catégorie",
+      "allCategories": "Toutes les catégories",
+      "code": "Code",
+      "name": "Libellé",
+      "price": "Prix",
+      "empty": "Aucun acte ne correspond.",
+      "pagination": "Pagination du catalogue"
+    }
   }
 }

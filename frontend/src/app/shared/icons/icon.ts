@@ -29,6 +29,7 @@ export const ICON_GLYPHS = {
   add: '+',
   user: '◉',
   shield: '◈',
+  invoice: '▭',
 } as const;
 
 export type IconName = keyof typeof ICON_GLYPHS;

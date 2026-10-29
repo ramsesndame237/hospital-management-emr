@@ -64,6 +64,25 @@ describe('menu de navigation', () => {
   });
 });
 
+describe('menu de la caisse', () => {
+  const granted = ['billing.invoices:read', 'billing.invoices:write', 'billing.payments:collect', 'billing.catalog:read'];
+
+  it('range factures, nouvelle facture et catalogue dans le groupe « Facturation »', () => {
+    const menu = visibleNavigation(NAVIGATION, ['CASHIER'], granted);
+    expect(menu.map((i) => i.id)).toEqual(['dashboard', 'billing']);
+    expect(menu[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-new', 'billing-catalog']);
+  });
+
+  it("adapte le groupe aux droits : la comptabilité lit sans créer, l'accueil ne voit que le catalogue", () => {
+    expect(visibleNavigation(NAVIGATION, ['ACCOUNTANT'], ['billing.invoices:read', 'billing.catalog:read'])[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-catalog']);
+    expect(visibleNavigation(NAVIGATION, ['RECEPTIONIST'], ['billing.catalog:read'])[1].children?.map((i) => i.id)).toEqual(['billing-catalog']);
+  });
+
+  it('ne montre rien de la facturation aux profils cliniques', () => {
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], ['files.clinical:read:department']).some((i) => i.id === 'billing')).toBe(false);
+  });
+});
+
 describe("accueil de l'administrateur système", () => {
   const home = () => TestBed.runInInjectionContext(() => homeGuard({} as never, {} as never));
 
@@ -75,6 +94,11 @@ describe("accueil de l'administrateur système", () => {
   it('laisse le tableau de bord à qui cumule un rôle clinique', () => {
     configureApp({ roles: ['SYSTEM_ADMIN', 'DOCTOR'], permissions: ['administration.organization:read'] });
     expect(home()).toBe(true);
+  });
+
+  it("envoie la caisse sur ses factures, faute de patients à suivre", () => {
+    configureApp({ roles: ['CASHIER'], permissions: ['billing.invoices:read'] });
+    expect(String(home())).toBe('/billing/invoices');
   });
 
   it("laisse le tableau de bord à qui n'a pas le droit de lire l'organisation", () => {

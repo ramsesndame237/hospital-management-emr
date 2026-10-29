@@ -9,7 +9,7 @@ import { FormBuilderComponent } from '../../../shared/form-builder/form-builder'
 import { FieldSchema, FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag, StatusTone } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
-import { failureMessage } from '../admin-failure';
+import { failureMessage } from '../../../shared/failure-message';
 import { failureNotice } from '../admin.forms';
 import { grantsText } from '../permission-text';
 import { RoleChoice, confirmFields, createUserFields, createdUserFields, editRolesFields, roleChoices, roleName, selectedRoles } from './users.forms';

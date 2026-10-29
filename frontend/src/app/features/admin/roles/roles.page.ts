@@ -5,7 +5,7 @@ import { PermissionGroup, RoleInfo, groupPermissions } from '../../../core/iam/i
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
 import { FieldSchema } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
-import { failureMessage } from '../admin-failure';
+import { failureMessage } from '../../../shared/failure-message';
 import { failureNotice } from '../admin.forms';
 import { grantsText } from '../permission-text';
 import { roleName } from '../users/users.forms';

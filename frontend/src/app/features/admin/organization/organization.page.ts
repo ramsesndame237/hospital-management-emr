@@ -9,7 +9,7 @@ import { FormBuilderComponent } from '../../../shared/form-builder/form-builder'
 import { FieldSchema } from '../../../shared/form-builder/form-schema';
 import { PanelCard } from '../../../shared/panel-card';
 import { ToastService } from '../../../shared/toast/toast.service';
-import { failureMessage } from '../admin-failure';
+import { failureMessage } from '../../../shared/failure-message';
 import { failureNotice, organizationFields } from '../admin.forms';
 
 /** ADM-31 — Organisation : le nom de l'installation et un résumé de ses sites. Sans organisation, l'écran sert à la créer. */

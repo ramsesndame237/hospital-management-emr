@@ -25,6 +25,11 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', canActivate: [homeGuard], title: 'nav.dashboard', loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage) },
       // Administration de l'installation (administrateur système) : organisation, sites, structure des sites.
+      // Facturation (caisse) : « new » avant « :id », sinon « new » serait pris pour un identifiant de facture.
+      { path: 'billing/invoices', canActivate: [permissionGuard('billing.invoices:read')], title: 'nav.billingInvoices', loadComponent: () => import('./features/billing/invoices/invoices.page').then((m) => m.InvoicesPage) },
+      { path: 'billing/invoices/new', canActivate: [permissionGuard('billing.invoices:write')], title: 'nav.billingNew', loadComponent: () => import('./features/billing/invoice-new/new-invoice.page').then((m) => m.NewInvoicePage) },
+      { path: 'billing/invoices/:id', canActivate: [permissionGuard('billing.invoices:read')], title: 'nav.billingInvoices', loadComponent: () => import('./features/billing/invoice-detail/invoice-detail.page').then((m) => m.InvoiceDetailPage) },
+      { path: 'billing/catalog', canActivate: [permissionGuard('billing.catalog:read')], title: 'nav.billingCatalog', loadComponent: () => import('./features/billing/catalog/catalog.page').then((m) => m.BillingCatalogPage) },
       { path: 'admin/organization', canActivate: [permissionGuard('administration.organization:read')], title: 'nav.adminOrganization', loadComponent: () => import('./features/admin/organization/organization.page').then((m) => m.OrganizationPage) },
       { path: 'admin/sites', canActivate: [permissionGuard('administration.facilities:read')], title: 'nav.adminSites', loadComponent: () => import('./features/admin/sites/sites.page').then((m) => m.SitesPage) },
       { path: 'admin/structure', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },

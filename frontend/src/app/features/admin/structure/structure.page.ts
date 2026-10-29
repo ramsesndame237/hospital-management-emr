@@ -9,7 +9,7 @@ import { Translator } from '../../../core/i18n/translator';
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
 import { FieldSchema, FormAction } from '../../../shared/form-builder/form-schema';
 import { ToastService } from '../../../shared/toast/toast.service';
-import { failureMessage } from '../admin-failure';
+import { failureMessage } from '../../../shared/failure-message';
 import { childFields, deactivateFields, failureNotice, serviceFields } from '../admin.forms';
 
 type Panel =

@@ -10,7 +10,7 @@ import { FormBuilderComponent } from '../../../shared/form-builder/form-builder'
 import { FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
-import { failureMessage } from '../admin-failure';
+import { failureMessage } from '../../../shared/failure-message';
 import { facilityFields, facilityStatusFields, failureNotice } from '../admin.forms';
 
 type Panel =

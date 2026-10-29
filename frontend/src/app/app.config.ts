@@ -4,6 +4,8 @@ import { TitleStrategy, provideRouter, withComponentInputBinding, withNavigation
 import { provideSpartanHlm } from '@spartan-ng/helm/utils';
 import { routes } from './app.routes';
 import { AdministrationGateway, HttpAdministrationGateway } from './core/administration/administration.gateway';
+import { BillingGateway, HttpBillingGateway } from './core/billing/billing.gateway';
+import { HttpPatientSearchGateway, PatientSearchGateway } from './core/patients/patient-search.gateway';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
 import { HttpIdentityAdminGateway, IdentityAdminGateway } from './core/iam/identity-admin.gateway';
 import { PasswordResetGateway, UnavailablePasswordResetGateway } from './core/auth/password-reset.gateway';
@@ -27,6 +29,8 @@ export const appConfig: ApplicationConfig = {
     { provide: Translator, useClass: JsonTranslator },
     { provide: AdministrationGateway, useClass: HttpAdministrationGateway },
     { provide: IdentityAdminGateway, useClass: HttpIdentityAdminGateway },
+    { provide: BillingGateway, useClass: HttpBillingGateway },
+    { provide: PatientSearchGateway, useClass: HttpPatientSearchGateway },
     // Réinitialisation du mot de passe : adaptateur provisoire tant que l'API n'a pas d'endpoint (voir le fichier du port).
     { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },
