@@ -213,11 +213,11 @@ function resultView(r: TestResult, reviewer: boolean, who: (id: string | null) =
 }
 
 /** Le laboratoire (et l'administrateur système) voit toutes les demandes (portée « all ») ; un prescripteur, seulement les siennes. */
-async function isReviewer(d: RequisitionDependencies, actorId: string): Promise<boolean> {
+export async function isReviewer(d: RequisitionDependencies, actorId: string): Promise<boolean> {
   return (await d.access.visibleServices(actorId, 'lab.requisitions:read')) === 'ALL';
 }
 
-async function loadFor(d: RequisitionDependencies, actorId: string, rawId: string): Promise<Result<Requisition>> {
+export async function loadFor(d: RequisitionDependencies, actorId: string, rawId: string): Promise<Result<Requisition>> {
   const id = RequisitionId.create(rawId);
   if (!id.ok) return err(NOT_FOUND);
   const found = await d.requisitions.findById(id.value);

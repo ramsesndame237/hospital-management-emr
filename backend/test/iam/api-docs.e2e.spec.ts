@@ -47,7 +47,7 @@ describe('documentation interactive de l\'API (OpenAPI)', () => {
 
   it('documente TOUS les endpoints de la nouvelle API (résumé, groupe, réponse de succès)', () => {
     const v1 = ops().filter((o) => o.path.startsWith('/api/v1/'));
-    expect(v1.length).toBe(124); // 7 d'authentification + 11 d'administration des comptes et de droits d'accès + 7 d'organisation et d'établissements + 7 de structure + 6 de référentiels + 8 de personnel + 5 d'affectations + 2 d'audit + 7 de patients + 6 de rendez-vous + 8 d'admissions + 6 de catalogue des actes + 10 de factures et d'encaissements + 7 de sessions de caisse + 6 d'approbations + 7 de catalogue des analyses + 8 de demandes et échantillons + 6 de résultats
+    expect(v1.length).toBe(127); // 7 d'authentification + 11 d'administration des comptes et de droits d'accès + 7 d'organisation et d'établissements + 7 de structure + 6 de référentiels + 8 de personnel + 5 d'affectations + 2 d'audit + 7 de patients + 6 de rendez-vous + 8 d'admissions + 6 de catalogue des actes + 10 de factures et d'encaissements + 7 de sessions de caisse + 6 d'approbations + 7 de catalogue des analyses + 8 de demandes et échantillons + 9 de résultats (dont lots et rapport)
     for (const { path, method, op } of v1) {
       expect({ path, method, summary: !!op.summary?.trim() }).toEqual({ path, method, summary: true });
       expect({ path, method, tags: (op.tags ?? []).length }).toEqual({ path, method, tags: 1 });

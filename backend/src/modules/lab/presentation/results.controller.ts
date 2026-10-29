@@ -1,11 +1,12 @@
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
 import { DocGroup, DocOperation } from '../../api-docs';
 import type { DocParam } from '../../api-docs';
 import { CurrentUser, RequirePermissions } from '../../iam/presentation/decorators';
 import type { AuthUser } from '../../iam/presentation/decorators';
+import { GetReportUseCase } from '../application/use-cases/reports';
 import { ResultUseCases } from '../application/use-cases/results';
 import { RequisitionDto } from './dto/requisitions.dto';
-import { AmendResultDto, CriticalNotificationInputDto, EnterResultDto, ReturnResultDto } from './dto/results.dto';
+import { AmendResultDto, BatchResultDto, CriticalNotificationInputDto, EnterResultDto, ReportDto, ReturnResultDto } from './dto/results.dto';
 import { unwrap } from './http-errors';
 
 const ID: DocParam = { name: 'id', description: "Identifiant de la demande d'analyses.", example: '2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d', format: 'uuid' };
@@ -26,7 +27,48 @@ const TEST: DocParam = { name: 'testId', description: "Identifiant de l'analyse 
 )
 @Controller('api/v1/lab/requisitions')
 export class LabResultsController {
-  constructor(private readonly results: ResultUseCases) {}
+  constructor(private readonly results: ResultUseCases, private readonly report: GetReportUseCase) {}
+
+  @DocOperation({
+    summary: 'Rapport de la demande',
+    description:
+      "Rapport imprimable : les résultats **publiés** (valeur, unité, position, valeurs de référence, validateur et publicateur, amendements) et, pour les autres analyses, `PENDING`. Jamais une valeur non publiée. Le prescripteur l'obtient pour ses demandes, le laboratoire pour toutes ; chaque édition est inscrite au journal.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Le rapport.', type: ReportDto }],
+    errors: [400, 404],
+    params: [ID],
+  })
+  @RequirePermissions('lab.requisitions:read:own') @Get(':id/report')
+  async getReport(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string): Promise<ReportDto> {
+    return unwrap(await this.report.execute(actor.userId, id));
+  }
+
+  @DocOperation({
+    summary: 'Valider tous les résultats saisis',
+    description: "Valide d'un coup les résultats saisis de la demande, sauf ceux de l'appelant (quatre yeux) : ils sont listés dans `skipped`. Renvoie le nombre de résultats traités.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'La demande et le détail du traitement.', type: BatchResultDto }],
+    errors: [400, 404],
+    params: [ID],
+  })
+  @RequirePermissions('lab.results:verify') @HttpCode(200) @Post(':id/results/verify')
+  async verifyAll(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string): Promise<BatchResultDto> {
+    return unwrap(await this.results.verifyAll(actor.userId, id));
+  }
+
+  @DocOperation({
+    summary: 'Publier tous les résultats validés',
+    description:
+      "Publie d'un coup les résultats validés de la demande, sauf ceux de l'appelant et les valeurs critiques dont l'appel du clinicien n'est pas documenté : ils sont listés dans `skipped` avec leur raison.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'La demande et le détail du traitement.', type: BatchResultDto }],
+    errors: [400, 404],
+    params: [ID],
+  })
+  @RequirePermissions('lab.results:release') @HttpCode(200) @Post(':id/results/release')
+  async releaseAll(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string): Promise<BatchResultDto> {
+    return unwrap(await this.results.releaseAll(actor.userId, id));
+  }
 
   @DocOperation({
     summary: 'Saisir ou corriger un résultat',
