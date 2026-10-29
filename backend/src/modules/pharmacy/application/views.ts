@@ -15,6 +15,8 @@ export interface PharmacyDependencies {
   readonly calendar: Calendar;
   /** Un lot « bientôt périmé » périme dans ce nombre de jours au plus. */
   readonly expiryAlertDays: number;
+  /** Devise de l'installation (ISO 4217) : les montants sont des entiers dans sa plus petite unité. */
+  readonly currency: string;
 }
 
 export interface UserSummary {
@@ -40,16 +42,17 @@ export interface DrugView {
   readonly atcCode: string | null;
   readonly unit: string;
   readonly unitPrice: number;
+  readonly currency: string;
   readonly reorderLevel: number;
   readonly notes: string | null;
   readonly active: boolean;
 }
 
-export function toDrugView(drug: Drug): DrugView {
+export function toDrugView(drug: Drug, currency: string): DrugView {
   const s = drug.state;
   return {
     id: s.id.value, code: s.code.value, name: s.name.value, genericName: s.genericName.value, strength: s.strength, form: s.form, schedule: s.schedule, storage: s.storage, atcCode: s.atcCode,
-    unit: s.unit, unitPrice: s.unitPrice.value, reorderLevel: s.reorderLevel, notes: s.notes, active: s.active,
+    unit: s.unit, unitPrice: s.unitPrice.value, currency, reorderLevel: s.reorderLevel, notes: s.notes, active: s.active,
   };
 }
 

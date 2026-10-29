@@ -67,7 +67,7 @@ export class CreateDrugUseCase {
     if (!drug.ok) return err(drug.error);
     if (!(await this.d.drugs.insert(drug.value))) return err(CODE_TAKEN);
     await record(this.d, actorId, 'pharmacy.drug.create', drug.value, { form: form.value, schedule: schedule.value, unitPrice: price.value.value });
-    return ok(toDrugView(drug.value));
+    return ok(toDrugView(drug.value, this.d.currency));
   }
 }
 
@@ -116,22 +116,22 @@ export class ManageDrugUseCases {
     if (!done.ok) return err(done.error);
     const after = drug.state;
     const changed = (Object.keys(before) as (keyof typeof before)[]).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k])).map(String);
-    if (changed.length === 0) return ok(toDrugView(drug));
+    if (changed.length === 0) return ok(toDrugView(drug, this.d.currency));
     await this.d.drugs.update(drug);
     const priceChange: Record<string, number> = before.unitPrice.value !== after.unitPrice.value ? { priceFrom: before.unitPrice.value, priceTo: after.unitPrice.value } : {};
     await record(this.d, actorId, 'pharmacy.drug.update', drug, { changed: changed.join(','), ...priceChange });
-    return ok(toDrugView(drug));
+    return ok(toDrugView(drug, this.d.currency));
   }
 
   async setActive(actorId: string, id: string, active: boolean): Promise<Result<DrugView>> {
     const loaded = await loadDrug(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const drug = loaded.value;
-    if (drug.active === active) return ok(toDrugView(drug));
+    if (drug.active === active) return ok(toDrugView(drug, this.d.currency));
     drug.setActive(active);
     await this.d.drugs.update(drug);
     await record(this.d, actorId, active ? 'pharmacy.drug.activate' : 'pharmacy.drug.deactivate', drug);
-    return ok(toDrugView(drug));
+    return ok(toDrugView(drug, this.d.currency));
   }
 }
 
@@ -140,7 +140,7 @@ export class GetDrugUseCase {
 
   async execute(id: string): Promise<Result<DrugView>> {
     const loaded = await loadDrug(this.d, id);
-    return loaded.ok ? ok(toDrugView(loaded.value)) : err(loaded.error);
+    return loaded.ok ? ok(toDrugView(loaded.value, this.d.currency)) : err(loaded.error);
   }
 }
 
@@ -156,13 +156,13 @@ export interface DrugListInput {
 export class ListDrugsUseCase {
   constructor(private readonly d: PharmacyDependencies) {}
 
-  async execute(input: DrugListInput): Promise<Result<{ items: DrugView[]; total: number; offset: number; limit: number }>> {
+  async execute(input: DrugListInput): Promise<Result<{ items: DrugView[]; total: number; offset: number; limit: number; currency: string }>> {
     const form = input.form?.trim() ? parseForm(input.form) : ok(undefined);
     if (!form.ok) return err(form.error);
     const schedule = input.schedule?.trim() ? parseSchedule(input.schedule) : ok(undefined);
     if (!schedule.ok) return err(schedule.error);
     const { offset, limit } = pageOf(input.offset, input.limit);
     const page = await this.d.drugs.list({ search: input.search?.trim() || undefined, form: form.value, schedule: schedule.value, includeInactive: input.includeInactive }, offset, limit);
-    return ok({ items: page.items.map(toDrugView), total: page.total, offset, limit });
+    return ok({ items: page.items.map((d) => toDrugView(d, this.d.currency)), total: page.total, offset, limit, currency: this.d.currency });
   }
 }

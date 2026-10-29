@@ -77,6 +77,9 @@ export class StockPageDto {
   @DocProperty({ description: 'Taille de page appliquée (1 à 200).', example: 50 })
   limit!: number;
 
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
+
   @DocProperty({ description: 'Fenêtre d’alerte de péremption, en jours.', example: 90 })
   expiryAlertDays!: number;
 }
@@ -105,6 +108,9 @@ export class StockSummaryDto {
 
   @DocProperty({ description: 'Valeur totale du stock au coût d’achat.', example: 1250000 })
   value!: number;
+
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
 
   @DocProperty({ description: 'Fenêtre d’alerte de péremption, en jours.', example: 90 })
   expiryAlertDays!: number;
@@ -185,6 +191,9 @@ export class DrugStockDto {
   @DocProperty({ description: 'Fenêtre d’alerte de péremption, en jours.', example: 90 })
   expiryAlertDays!: number;
 
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
+
   @DocProperty({ description: 'Lots en stock, ceux qui périment le plus tôt d’abord.', type: BatchDto, itemType: BatchDto })
   batches!: readonly BatchDto[];
 }
@@ -234,6 +243,9 @@ export class ExpiryPageDto {
 
   @DocProperty({ description: 'Taille de page appliquée (1 à 200).', example: 50 })
   limit!: number;
+
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
 
   @DocProperty({ description: 'Fenêtre d’alerte de péremption, en jours.', example: 90 })
   expiryAlertDays!: number;

@@ -96,6 +96,9 @@ export class ReceiptDto {
   @DocProperty({ description: 'Valeur de la livraison au coût d’achat.', example: 1000 })
   value!: number;
 
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
+
   @DocProperty({ description: 'Lignes de la livraison.', type: ReceiptLineDto, itemType: ReceiptLineDto })
   lines!: readonly ReceiptLineDto[];
 }
@@ -135,6 +138,9 @@ export class ReceiptPageDto {
 
   @DocProperty({ description: 'Nombre total de réceptions correspondantes.', example: 12 })
   total!: number;
+
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
 
   @DocProperty({ description: 'Décalage appliqué.', example: 0 })
   offset!: number;

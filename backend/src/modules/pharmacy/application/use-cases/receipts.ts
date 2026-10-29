@@ -27,6 +27,7 @@ export interface ReceiptView {
   readonly receivedAt: string;
   readonly units: number;
   readonly value: number;
+  readonly currency: string;
   readonly lines: ReceiptLineView[];
 }
 
@@ -40,7 +41,7 @@ async function toView(d: PharmacyDependencies, receipt: GoodsReceipt, known?: Ma
   }));
   return {
     id: s.id.value, number: s.number.value, supplier: s.supplier, deliveryNote: s.deliveryNote, notes: s.notes, receivedBy: who(s.receivedBy), receivedAt: s.receivedAt.toString(),
-    units: lines.reduce((n, l) => n + l.quantity, 0), value: lines.reduce((n, l) => n + l.value, 0), lines,
+    units: lines.reduce((n, l) => n + l.quantity, 0), value: lines.reduce((n, l) => n + l.value, 0), currency: d.currency, lines,
   };
 }
 
@@ -130,14 +131,14 @@ export interface ReceiptSummaryView {
 export class ListReceiptsUseCase {
   constructor(private readonly d: PharmacyDependencies) {}
 
-  async execute(input: { supplier?: string; drugId?: string; offset: number; limit: number }): Promise<Result<{ items: ReceiptSummaryView[]; total: number; offset: number; limit: number }>> {
+  async execute(input: { supplier?: string; drugId?: string; offset: number; limit: number }): Promise<Result<{ items: ReceiptSummaryView[]; total: number; offset: number; limit: number; currency: string }>> {
     const drugId = input.drugId ? DrugId.create(input.drugId) : ok(undefined);
     if (!drugId.ok) return err(new DomainError('PHARMACY_DRUG_NOT_FOUND', 'Médicament introuvable.'));
     const { offset, limit } = pageOf(input.offset, input.limit);
     const page = await this.d.stock.listReceipts({ supplier: input.supplier?.trim() || undefined, drugId: drugId.value }, offset, limit);
     const who = await userSummaries(this.d, page.items.map((r) => r.receivedBy));
     return ok({
-      total: page.total, offset, limit,
+      total: page.total, offset, limit, currency: this.d.currency,
       items: page.items.map((r) => ({ id: r.id, number: r.number, supplier: r.supplier, deliveryNote: r.deliveryNote, receivedBy: who(r.receivedBy), receivedAt: r.receivedAt.toString(), lines: r.lines, units: r.units, value: r.value })),
     });
   }

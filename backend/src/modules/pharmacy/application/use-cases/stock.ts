@@ -21,7 +21,7 @@ export interface StockListInput {
 export class ListStockUseCase {
   constructor(private readonly d: PharmacyDependencies) {}
 
-  async execute(input: StockListInput): Promise<Result<{ items: StockRowView[]; total: number; offset: number; limit: number; expiryAlertDays: number }>> {
+  async execute(input: StockListInput): Promise<Result<{ items: StockRowView[]; total: number; offset: number; limit: number; expiryAlertDays: number; currency: string }>> {
     const level = input.level?.trim() ? LEVELS.find((l) => l === input.level!.trim().toUpperCase()) : undefined;
     if (input.level?.trim() && !level) return err(new DomainError('PHARMACY_STOCK_LEVEL_INVALID', `Niveau de stock invalide : « ${input.level} ».`, { value: input.level }));
     const { offset, limit } = pageOf(input.offset, input.limit);
@@ -29,19 +29,20 @@ export class ListStockUseCase {
       { search: input.search?.trim() || undefined, level, expiring: input.expiring || undefined, hasExpired: input.hasExpired || undefined, includeInactive: input.includeInactive },
       this.d.calendar.today(), this.d.expiryAlertDays, offset, limit,
     );
-    return ok({ items: page.items.map(toStockRowView), total: page.total, offset, limit, expiryAlertDays: this.d.expiryAlertDays });
+    return ok({ items: page.items.map(toStockRowView), total: page.total, offset, limit, expiryAlertDays: this.d.expiryAlertDays, currency: this.d.currency });
   }
 }
 
 export interface StockSummaryView extends StockSummary {
   readonly expiryAlertDays: number;
+  readonly currency: string;
 }
 
 export class StockSummaryUseCase {
   constructor(private readonly d: PharmacyDependencies) {}
 
   async execute(): Promise<StockSummaryView> {
-    return { ...(await this.d.stock.summary(this.d.calendar.today(), this.d.expiryAlertDays)), expiryAlertDays: this.d.expiryAlertDays };
+    return { ...(await this.d.stock.summary(this.d.calendar.today(), this.d.expiryAlertDays)), expiryAlertDays: this.d.expiryAlertDays, currency: this.d.currency };
   }
 }
 
@@ -55,6 +56,7 @@ export interface DrugStockView {
   readonly level: StockLevel;
   readonly value: number;
   readonly expiryAlertDays: number;
+  readonly currency: string;
   /** Lots en stock, ceux qui périment le plus tôt d'abord. */
   readonly batches: BatchView[];
 }
@@ -75,9 +77,9 @@ export class GetDrugStockUseCase {
     const dispensable = sum((v) => v.dispensable);
     const usable = views.filter((v) => v.dispensable);
     return ok({
-      drug: toDrugView(drug), dispensable, quarantined: sum((v) => v.status === 'QUARANTINED'), expired: sum((v) => v.status === 'AVAILABLE' && v.expired), expiringSoon: sum((v) => v.dispensable && v.expiringSoon),
+      drug: toDrugView(drug, this.d.currency), dispensable, quarantined: sum((v) => v.status === 'QUARANTINED'), expired: sum((v) => v.status === 'AVAILABLE' && v.expired), expiringSoon: sum((v) => v.dispensable && v.expiringSoon),
       nextExpiry: usable[0]?.expiry ?? null, level: stockLevel(dispensable, drug.state.reorderLevel), value: views.reduce((n, v) => n + v.quantity * v.unitCost, 0),
-      expiryAlertDays: this.d.expiryAlertDays, batches: views,
+      expiryAlertDays: this.d.expiryAlertDays, currency: this.d.currency, batches: views,
     });
   }
 }
@@ -117,7 +119,7 @@ export class ListExpiryUseCase {
   constructor(private readonly d: PharmacyDependencies) {}
 
   /** Lots en stock qui périment dans `days` jours au plus (par défaut la fenêtre d'alerte), périmés compris ; `quarantinedOnly` : lots mis de côté. */
-  async execute(input: { days?: number; quarantinedOnly?: boolean; offset: number; limit: number }): Promise<Result<{ items: ExpiryRowView[]; total: number; offset: number; limit: number; expiryAlertDays: number }>> {
+  async execute(input: { days?: number; quarantinedOnly?: boolean; offset: number; limit: number }): Promise<Result<{ items: ExpiryRowView[]; total: number; offset: number; limit: number; expiryAlertDays: number; currency: string }>> {
     const days = input.days ?? this.d.expiryAlertDays;
     if (!Number.isInteger(days) || days < 0 || days > 3650) return err(new DomainError('PHARMACY_DAYS_INVALID', 'Le nombre de jours doit être un entier de 0 à 3 650.'));
     const { offset, limit } = pageOf(input.offset, input.limit);
@@ -125,7 +127,7 @@ export class ListExpiryUseCase {
     const page = await this.d.stock.listBatches({ expiresBy: input.quarantinedOnly ? undefined : today.add({ days }), quarantinedOnly: input.quarantinedOnly || undefined }, offset, limit);
     const who = await userSummaries(this.d, page.items.map((i) => i.batch.state.quarantinedBy));
     return ok({
-      total: page.total, offset, limit, expiryAlertDays: this.d.expiryAlertDays,
+      total: page.total, offset, limit, expiryAlertDays: this.d.expiryAlertDays, currency: this.d.currency,
       items: page.items.map((i) => ({ ...toBatchView(i.batch, today, this.d.expiryAlertDays, who), drug: { id: i.drug.id, code: i.drug.code, name: i.drug.name, genericName: i.drug.genericName, strength: i.drug.strength, unit: i.drug.unit } })),
     });
   }

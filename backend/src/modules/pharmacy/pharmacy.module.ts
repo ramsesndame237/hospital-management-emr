@@ -10,7 +10,7 @@ import {
 } from './application/use-cases/stock';
 import { PharmacyDependencies } from './application/views';
 import {
-  ADJUSTMENT_REPOSITORY, AdjustmentRepository, DRUG_REPOSITORY, DrugRepository, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS, STOCK_REPOSITORY, StockRepository, UserDirectory,
+  ADJUSTMENT_REPOSITORY, AdjustmentRepository, DRUG_REPOSITORY, DrugRepository, PHARMACY_CURRENCY, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS, STOCK_REPOSITORY, StockRepository, UserDirectory,
 } from './domain/ports';
 import { PgAdjustmentRepository } from './infrastructure/persistence/pg-adjustment.repository';
 import { PgDrugRepository } from './infrastructure/persistence/pg-drug.repository';
@@ -38,9 +38,9 @@ export class PharmacyModule {
         { provide: ADJUSTMENT_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgAdjustmentRepository(sql) },
         {
           provide: DEPENDENCIES,
-          inject: [DRUG_REPOSITORY, STOCK_REPOSITORY, ADJUSTMENT_REPOSITORY, PHARMACY_USERS, AUDIT_LOG, CLOCK, CALENDAR, PHARMACY_EXPIRY_ALERT_DAYS],
-          useFactory: (drugs: DrugRepository, stock: StockRepository, adjustments: AdjustmentRepository, users: UserDirectory, audit: AuditLog, clock: Clock, calendar: Calendar, expiryAlertDays: number): PharmacyDependencies => ({
-            drugs, stock, adjustments, users, audit, clock, calendar, expiryAlertDays,
+          inject: [DRUG_REPOSITORY, STOCK_REPOSITORY, ADJUSTMENT_REPOSITORY, PHARMACY_USERS, AUDIT_LOG, CLOCK, CALENDAR, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_CURRENCY],
+          useFactory: (drugs: DrugRepository, stock: StockRepository, adjustments: AdjustmentRepository, users: UserDirectory, audit: AuditLog, clock: Clock, calendar: Calendar, expiryAlertDays: number, currency: string): PharmacyDependencies => ({
+            drugs, stock, adjustments, users, audit, clock, calendar, expiryAlertDays, currency,
           }),
         },
         { provide: CreateDrugUseCase, ...use((d, ids) => new CreateDrugUseCase(d, ids)) },

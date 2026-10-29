@@ -63,7 +63,7 @@ describe('API pharmacie : catalogue, réceptions, stock, ajustements', () => {
   describe('catalogue', () => {
     it('crée, lit, normalise le code et refuse un code déjà pris', async () => {
       const r = await post('pharmacien', '/pharmacy/drugs', { code: ' amox-500 ', name: 'Clamoxyl', genericName: 'Amoxicilline', strength: '500 mg', form: 'CAPSULE', schedule: 'PRESCRIPTION', storage: 'COOL', atcCode: 'J01CA04', unit: 'gélule', unitPrice: 150, reorderLevel: 300, notes: 'Conserver au frais' }).expect(201);
-      expect(r.body).toMatchObject({ code: 'AMOX-500', genericName: 'Amoxicilline', storage: 'COOL', atcCode: 'J01CA04', unitPrice: 150, reorderLevel: 300, active: true });
+      expect(r.body).toMatchObject({ code: 'AMOX-500', genericName: 'Amoxicilline', storage: 'COOL', atcCode: 'J01CA04', unitPrice: 150, currency: 'XAF', reorderLevel: 300, active: true });
       expect((await get('medecin', `/pharmacy/drugs/${r.body.id}`).expect(200)).body.notes).toBe('Conserver au frais');
       expect((await post('pharmacien', '/pharmacy/drugs', { code: 'amox-500', name: 'Autre', genericName: 'Autre', form: 'TABLET', schedule: 'OTC', unit: 'cp' })).status).toBe(409);
       expect((await audit('pharmacy.drug.create', r.body.id))[0].metadata).toMatchObject({ code: 'AMOX-500', form: 'CAPSULE', schedule: 'PRESCRIPTION', unitPrice: 150 });
@@ -183,7 +183,7 @@ describe('API pharmacie : catalogue, réceptions, stock, ajustements', () => {
       expect((await get('pharmacien', '/pharmacy/stock?level=low').expect(200)).body.items.map((i: { code: string }) => i.code)).toContain(low.code);
       expect((await get('pharmacien', '/pharmacy/stock?level=NOPE')).status).toBe(422);
       const summary = (await get('pharmacien', '/pharmacy/stock/summary').expect(200)).body;
-      expect(summary).toMatchObject({ expiryAlertDays: 90 });
+      expect(summary).toMatchObject({ expiryAlertDays: 90, currency: 'XAF' });
       expect(summary.out).toBeGreaterThanOrEqual(1);
       expect(summary.low).toBeGreaterThanOrEqual(1);
       expect(summary.value).toBeGreaterThan(0);

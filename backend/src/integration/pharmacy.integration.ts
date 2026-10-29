@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS } from '../modules/pharmacy/domain/ports';
+import { PHARMACY_CURRENCY, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS } from '../modules/pharmacy/domain/ports';
 import type { UserDirectory } from '../modules/pharmacy/domain/ports';
 import { USER_REPOSITORY } from '../modules/iam/domain/ports';
 import type { UserRepository } from '../modules/iam/domain/ports';
@@ -34,8 +34,10 @@ export class PharmacyIntegrationModule {
       providers: [
         { provide: PHARMACY_USERS, inject: [USER_REPOSITORY], useFactory: (u: UserRepository) => new UsersForPharmacy(u) },
         { provide: PHARMACY_EXPIRY_ALERT_DAYS, inject: [ConfigService], useFactory: (cfg: ConfigService): number => cfg.get<number>('PHARMACY_EXPIRY_ALERT_DAYS') ?? 90 },
+        // La devise est celle de l'installation, déjà réglée pour la facturation : un seul réglage, une seule monnaie.
+        { provide: PHARMACY_CURRENCY, inject: [ConfigService], useFactory: (cfg: ConfigService): string => cfg.get<string>('BILLING_CURRENCY') ?? 'XAF' },
       ],
-      exports: [PHARMACY_USERS, PHARMACY_EXPIRY_ALERT_DAYS],
+      exports: [PHARMACY_USERS, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_CURRENCY],
     };
   }
 }

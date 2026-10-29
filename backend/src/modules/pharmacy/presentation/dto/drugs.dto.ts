@@ -164,6 +164,9 @@ export class DrugDto {
   @DocProperty({ description: 'Prix de vente d’une unité, en plus petite unité monétaire.', example: 25 })
   unitPrice!: number;
 
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217) : les montants sont des entiers dans sa plus petite unité.', example: 'XAF' })
+  currency!: string;
+
   @DocProperty({ description: 'Seuil de réapprovisionnement.', example: 200 })
   reorderLevel!: number;
 
@@ -180,6 +183,9 @@ export class DrugPageDto {
 
   @DocProperty({ description: 'Nombre total de médicaments correspondants (toutes pages).', example: 120 })
   total!: number;
+
+  @DocProperty({ description: 'Devise de l’installation (ISO 4217).', example: 'XAF' })
+  currency!: string;
 
   @DocProperty({ description: 'Décalage appliqué.', example: 0 })
   offset!: number;
