@@ -231,6 +231,8 @@ export interface Receipt {
   readonly notes: string | null;
   readonly receivedBy: UserRef | null;
   readonly receivedAt: string;
+  /** Bon de commande auquel la livraison s'impute. */
+  readonly order: { readonly id: string; readonly number: string } | null;
   readonly units: number;
   readonly value: number;
   readonly currency: string;
@@ -244,6 +246,7 @@ export interface ReceiptSummary {
   readonly deliveryNote: string | null;
   readonly receivedBy: UserRef | null;
   readonly receivedAt: string;
+  readonly orderNumber: string | null;
   readonly lines: number;
   readonly units: number;
   readonly value: number;
@@ -267,7 +270,9 @@ export interface ReceiptLineInput {
 }
 
 export interface ReceiptInput {
-  readonly supplier: string;
+  /** Libre quand la livraison s'impute sur un bon de commande (c'est alors le fournisseur du bon). */
+  readonly supplier?: string;
+  readonly purchaseOrderId?: string;
   readonly deliveryNote?: string | null;
   readonly notes?: string | null;
   readonly lines: readonly ReceiptLineInput[];
@@ -304,4 +309,128 @@ export interface AdjustmentInput {
   readonly quantity: number;
   readonly reason: AdjustmentReason;
   readonly note?: string | null;
+}
+
+export const ORDER_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED', 'CANCELLED'] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export interface Supplier {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly contactName: string | null;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly address: string | null;
+  /** Délai de paiement convenu, en jours (0 : comptant). */
+  readonly paymentTermsDays: number;
+  readonly notes: string | null;
+  readonly active: boolean;
+}
+
+export interface SupplierFilter {
+  readonly search?: string;
+  readonly includeInactive?: boolean;
+}
+
+export interface SupplierInput {
+  readonly code: string;
+  readonly name: string;
+  readonly contactName?: string | null;
+  readonly phone?: string | null;
+  readonly email?: string | null;
+  readonly address?: string | null;
+  readonly paymentTermsDays?: number;
+  readonly notes?: string | null;
+}
+
+/** Champs modifiables : le code ne change jamais ; `null` efface contact, téléphone, e-mail, adresse ou remarques. */
+export type SupplierChanges = Partial<Omit<SupplierInput, 'code'>>;
+
+export interface OrderLine {
+  readonly drug: DrugSummary | null;
+  readonly quantity: number;
+  readonly unitCost: number;
+  readonly received: number;
+  readonly outstanding: number;
+  readonly value: number;
+}
+
+export interface Order {
+  readonly id: string;
+  readonly number: string;
+  readonly supplier: { readonly id: string; readonly code: string; readonly name: string } | null;
+  readonly status: OrderStatus;
+  readonly expectedOn: string | null;
+  readonly notes: string | null;
+  readonly createdBy: UserRef | null;
+  readonly createdAt: string;
+  readonly submittedAt: string | null;
+  readonly approvedBy: UserRef | null;
+  readonly approvedAt: string | null;
+  /** Dernier refus : le bon est alors revenu en brouillon. */
+  readonly rejectionReason: string | null;
+  readonly closedBy: UserRef | null;
+  readonly closedAt: string | null;
+  readonly closedReason: string | null;
+  readonly units: number;
+  readonly receivedUnits: number;
+  readonly value: number;
+  readonly currency: string;
+  readonly lines: readonly OrderLine[];
+}
+
+export interface OrderSummary {
+  readonly id: string;
+  readonly number: string;
+  readonly supplier: { readonly id: string; readonly name: string };
+  readonly status: OrderStatus;
+  readonly createdBy: UserRef | null;
+  readonly createdAt: string;
+  readonly expectedOn: string | null;
+  readonly lines: number;
+  readonly units: number;
+  readonly receivedUnits: number;
+  readonly value: number;
+}
+
+export interface OrderPage extends Page<OrderSummary> {
+  readonly currency: string;
+}
+
+export interface OrderFilter {
+  readonly status?: OrderStatus;
+  readonly supplierId?: string;
+  readonly drugId?: string;
+  /** Seulement les bons de l'appelant. */
+  readonly mine?: boolean;
+}
+
+export interface OrderLineInput {
+  readonly drugId: string;
+  readonly quantity: number;
+  /** Absent : le coût du dernier lot reçu (0 si jamais reçu). */
+  readonly unitCost?: number;
+}
+
+export interface OrderInput {
+  readonly supplierId: string;
+  readonly expectedOn?: string | null;
+  readonly notes?: string | null;
+  readonly lines: readonly OrderLineInput[];
+}
+
+export interface Suggestion {
+  readonly drug: DrugSummary;
+  readonly level: 'OUT' | 'LOW';
+  readonly dispensable: number;
+  readonly reorderLevel: number;
+  readonly onOrder: number;
+  readonly suggested: number;
+  readonly lastUnitCost: number | null;
+}
+
+export interface SuggestionList {
+  readonly items: readonly Suggestion[];
+  readonly currency: string;
 }

@@ -171,3 +171,39 @@ export function parseOptionalText(raw: string | null | undefined, max: number, c
   if (raw === undefined || raw === null || raw.trim() === '') return ok(null);
   return raw.trim().length <= max ? ok(raw.trim()) : err(new DomainError(code, `Le texte ne doit pas dépasser ${max} caractères.`, { max }));
 }
+
+export class SupplierId extends ValueObject<string> {
+  static create(raw: string): Result<SupplierId> {
+    const r = uuid(raw, 'PHARMACY_SUPPLIER_ID_INVALID', "L'identifiant de ce fournisseur est invalide.");
+    return r.ok ? ok(new SupplierId(r.value)) : err(r.error);
+  }
+}
+
+export class PurchaseOrderId extends ValueObject<string> {
+  static create(raw: string): Result<PurchaseOrderId> {
+    const r = uuid(raw, 'PHARMACY_ORDER_ID_INVALID', "L'identifiant de ce bon de commande est invalide.");
+    return r.ok ? ok(new PurchaseOrderId(r.value)) : err(r.error);
+  }
+}
+
+/** Code d'un fournisseur : 1 à 20 caractères (lettres, chiffres, « _ », « - », « . »), en majuscules. */
+export class SupplierCode extends ValueObject<string> {
+  static create(raw: string): Result<SupplierCode> {
+    const normalized = (raw ?? '').trim().toUpperCase();
+    return /^[A-Z0-9][A-Z0-9_.-]{0,19}$/.test(normalized)
+      ? ok(new SupplierCode(normalized))
+      : err(new DomainError('PHARMACY_SUPPLIER_CODE_INVALID', `Code de fournisseur invalide : « ${String(raw ?? '')} » (1 à 20 caractères : lettres, chiffres, « _ », « - », « . »).`, { value: String(raw ?? '') }));
+  }
+}
+
+/** Numéro de bon de commande, attribué par le système. */
+export class PurchaseOrderNumber extends ValueObject<string> {
+  static create(raw: string): Result<PurchaseOrderNumber> {
+    const normalized = (raw ?? '').trim().toUpperCase();
+    return /^PO-\d{7,12}$/.test(normalized) ? ok(new PurchaseOrderNumber(normalized)) : err(new DomainError('PHARMACY_ORDER_NUMBER_INVALID', 'Numéro de bon de commande invalide.'));
+  }
+
+  static fromSequence(n: number): Result<PurchaseOrderNumber> {
+    return PurchaseOrderNumber.create(`PO-${String(n).padStart(7, '0')}`);
+  }
+}

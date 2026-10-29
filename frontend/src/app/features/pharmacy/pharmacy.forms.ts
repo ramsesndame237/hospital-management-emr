@@ -1,4 +1,4 @@
-import { ADJUSTMENT_REASONS, AdjustmentReason, Direction, Drug, FORMS, LEVELS, REASONS_BY_DIRECTION, SCHEDULES, STORAGES } from '../../core/pharmacy/pharmacy.models';
+import { ADJUSTMENT_REASONS, AdjustmentReason, Direction, Drug, FORMS, LEVELS, ORDER_STATUSES, REASONS_BY_DIRECTION, SCHEDULES, STORAGES, Supplier } from '../../core/pharmacy/pharmacy.models';
 import { failureNotice } from '../../shared/failure-message';
 import { FieldSchema, OptionSpec, ValidatorSpec } from '../../shared/form-builder/form-schema';
 import { amountPattern } from '../billing/billing.forms';
@@ -136,11 +136,11 @@ export function decisionFields(o: { readonly reject: boolean; readonly notice: s
 }
 
 /** En-tête d'une réception de marchandises : fournisseur, bon de livraison, remarques. Les lignes se saisissent à côté. */
-export function receiptHeaderFields(o: { readonly notice: string | null }): FieldSchema[] {
+export function receiptHeaderFields(o: { readonly notice: string | null; /** Livraison contre un bon de commande : le fournisseur est celui du bon. */ readonly forOrder?: boolean }): FieldSchema[] {
   return [
     ...failureNotice(o.notice),
-    { type: 'text', name: 'supplier', label: 'pharmacy.receipt.supplier', autofocus: true, normalize: 'trim', span: 6, validators: [{ type: 'required', message: 'pharmacy.receipt.supplierRequired' }, { type: 'maxLength', value: 120 }] },
-    { type: 'text', name: 'deliveryNote', label: 'pharmacy.receipt.deliveryNote', hint: 'pharmacy.receipt.deliveryNoteHint', normalize: 'trim', inputClass: 'font-mono', span: 6, validators: [{ type: 'maxLength', value: 60 }] },
+    ...(o.forOrder ? [] : ([{ type: 'text', name: 'supplier', label: 'pharmacy.receipt.supplier', autofocus: true, normalize: 'trim', span: 6, validators: [{ type: 'required', message: 'pharmacy.receipt.supplierRequired' }, { type: 'maxLength', value: 120 }] }] as const)),
+    { type: 'text', name: 'deliveryNote', label: 'pharmacy.receipt.deliveryNote', hint: 'pharmacy.receipt.deliveryNoteHint', normalize: 'trim', inputClass: 'font-mono', span: o.forOrder ? 12 : 6, validators: [{ type: 'maxLength', value: 60 }] },
     { type: 'text', name: 'notes', label: 'pharmacy.receipt.notes', normalize: 'trim', validators: [{ type: 'maxLength', value: 200 }] },
     { type: 'paragraph', name: 'audit', text: 'pharmacy.auditNote', tone: 'muted' },
     { type: 'submit', name: 'submit', label: 'pharmacy.receipt.submit', busyLabel: 'pharmacy.saving' },
@@ -171,5 +171,79 @@ export function adjustmentFilterFields(): FieldSchema[] {
     },
     { type: 'checkbox', name: 'mine', label: 'pharmacy.adjustments.mine', span: 5 },
     { type: 'submit', name: 'submit', label: 'pharmacy.apply', span: 3, class: 'sm:self-end' },
+  ];
+}
+
+/** Filtres des fournisseurs : texte, et pour qui les tient, les fournisseurs écartés. */
+export function supplierFilterFields(manage: boolean): FieldSchema[] {
+  return [
+    { type: 'text', name: 'q', label: 'pharmacy.suppliers.search', placeholder: 'pharmacy.suppliers.searchPlaceholder', normalize: 'trim', autofocus: true, span: 8, validators: [{ type: 'maxLength', value: 100 }] },
+    { type: 'submit', name: 'submit', label: 'pharmacy.apply', span: 4, class: 'sm:self-end' },
+    ...(manage ? ([{ type: 'checkbox', name: 'inactive', label: 'pharmacy.suppliers.showInactive', span: 12 }] as const) : []),
+  ];
+}
+
+/** Création ou modification d'un fournisseur. À la création on choisit le code (il ne changera plus). */
+export function supplierFormFields(o: { readonly supplier: Supplier | null; readonly notice: string | null }): FieldSchema[] {
+  const s = o.supplier;
+  const required: ValidatorSpec[] = [{ type: 'required', message: 'pharmacy.suppliers.required' }];
+  const fields: FieldSchema[] = [...failureNotice(o.notice)];
+  if (s === null) {
+    fields.push({
+      type: 'text', name: 'code', label: 'pharmacy.suppliers.code', hint: 'pharmacy.suppliers.codeHint', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono',
+      validators: [...required, { type: 'maxLength', value: 20 }, { type: 'pattern', value: '^[A-Za-z0-9][A-Za-z0-9_.-]*$', message: 'pharmacy.suppliers.codeHint' }],
+    });
+  }
+  fields.push({ type: 'text', name: 'name', label: 'pharmacy.suppliers.name', value: s?.name ?? '', autofocus: s !== null, normalize: 'trim', validators: [...required, { type: 'maxLength', value: 120 }] });
+  fields.push({ type: 'text', name: 'contactName', label: 'pharmacy.suppliers.contact', value: s?.contactName ?? '', normalize: 'trim', span: 6, validators: [{ type: 'maxLength', value: 100 }] });
+  fields.push({ type: 'tel', name: 'phone', label: 'pharmacy.suppliers.phone', value: s?.phone ?? '', normalize: 'trim', span: 6, validators: [{ type: 'minLength', value: 3 }, { type: 'maxLength', value: 30 }] });
+  fields.push({ type: 'email', name: 'email', label: 'pharmacy.suppliers.email', value: s?.email ?? '', normalize: 'trim', validators: [{ type: 'maxLength', value: 120 }, { type: 'email' }] });
+  fields.push({ type: 'text', name: 'address', label: 'pharmacy.suppliers.address', value: s?.address ?? '', normalize: 'trim', validators: [{ type: 'maxLength', value: 200 }] });
+  fields.push({
+    type: 'number', name: 'paymentTermsDays', label: 'pharmacy.suppliers.terms', hint: 'pharmacy.suppliers.termsHint', value: s?.paymentTermsDays ?? 30, inputMode: 'numeric',
+    validators: [...required, { type: 'min', value: 0 }, { type: 'max', value: 365 }],
+  });
+  fields.push({ type: 'textarea', name: 'notes', label: 'pharmacy.suppliers.notes', value: s?.notes ?? '', rows: 3, normalize: 'trim', validators: [{ type: 'maxLength', value: 500 }] });
+  fields.push({ type: 'paragraph', name: 'audit', text: 'pharmacy.auditNote', tone: 'muted' });
+  fields.push({ type: 'submit', name: 'submit', label: 'pharmacy.suppliers.submit', busyLabel: 'pharmacy.saving' });
+  fields.push({ type: 'button', name: 'cancel', label: 'pharmacy.cancel', variant: 'outline' });
+  return fields;
+}
+
+/** Filtres des bons de commande : statut, et « mes bons ». */
+export function orderFilterFields(): FieldSchema[] {
+  return [
+    { type: 'select', name: 'status', label: 'pharmacy.orders.status', placeholder: 'pharmacy.orders.allStatuses', options: options(ORDER_STATUSES, 'pharmacy.orderStatus'), span: 4 },
+    { type: 'checkbox', name: 'mine', label: 'pharmacy.orders.mine', span: 5 },
+    { type: 'submit', name: 'submit', label: 'pharmacy.apply', span: 3, class: 'sm:self-end' },
+  ];
+}
+
+/** Motif d'un refus, d'une annulation ou d'une clôture de bon de commande : toujours obligatoire. */
+export function orderReasonFields(o: { readonly kind: 'reject' | 'cancel' | 'close'; readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    ...(o.kind === 'reject' ? [] : ([{ type: 'message', name: 'warning', tone: 'warning', appearance: 'outlined', title: `pharmacy.orders.${o.kind}WarningTitle`, text: `pharmacy.orders.${o.kind}WarningText` }] as const)),
+    { type: 'text', name: 'reason', label: `pharmacy.orders.${o.kind}Reason`, autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'pharmacy.orders.reasonRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'paragraph', name: 'audit', text: 'pharmacy.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: `pharmacy.orders.${o.kind}Submit`, busyLabel: 'pharmacy.saving' },
+    { type: 'button', name: 'cancel', label: 'pharmacy.cancel', variant: 'outline' },
+  ];
+}
+
+/** En-tête d'un bon de commande : fournisseur (parmi les actifs), date de livraison attendue, remarques. Les lignes se saisissent à côté. */
+export function orderHeaderFields(o: {
+  readonly suppliers: readonly Supplier[]; readonly supplierId: string; readonly expectedOn: string; readonly notes: string; readonly notice: string | null; readonly submitLabel: string;
+}): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    {
+      type: 'select', name: 'supplierId', label: 'pharmacy.orders.supplier', placeholder: 'pharmacy.orders.supplierPlaceholder', value: o.supplierId, autofocus: true,
+      options: o.suppliers.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })), validators: [{ type: 'required', message: 'pharmacy.orders.supplierRequired' }],
+    },
+    { type: 'text', name: 'expectedOn', label: 'pharmacy.orders.expectedOn', hint: 'pharmacy.orders.expectedOnHint', value: o.expectedOn, normalize: 'trim', inputClass: 'font-mono', validators: [{ type: 'pattern', value: '^(\\d{4}-\\d{2}-\\d{2})?$', message: 'pharmacy.orders.expectedOnInvalid' }] },
+    { type: 'text', name: 'notes', label: 'pharmacy.orders.notes', value: o.notes, normalize: 'trim', validators: [{ type: 'maxLength', value: 300 }] },
+    { type: 'paragraph', name: 'audit', text: 'pharmacy.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: o.submitLabel, busyLabel: 'pharmacy.saving' },
   ];
 }
