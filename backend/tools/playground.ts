@@ -22,6 +22,7 @@ const PROFILES: { username: string; role: string; mfa: boolean; label: string }[
   { username: 'doctor', role: 'DOCTOR', mfa: true, label: 'Médecin' },
   { username: 'nurse', role: 'NURSE', mfa: true, label: 'Infirmier(ère)' },
   { username: 'pharmacist', role: 'PHARMACIST', mfa: true, label: 'Pharmacien(ne)' },
+  { username: 'pharmacist2', role: 'PHARMACIST', mfa: true, label: 'Pharmacien(ne) (second : approuve les ajustements)' },
   { username: 'lab_technician', role: 'LAB_TECHNICIAN', mfa: true, label: 'Technicien(ne) de laboratoire' },
   { username: 'radiologist', role: 'RADIOLOGIST', mfa: true, label: 'Radiologue' },
   { username: 'dpo_auditor', role: 'DPO_AUDITOR', mfa: true, label: 'DPO / Auditeur' },

@@ -17,6 +17,7 @@ import { AdmissionsIntegrationModule } from '../../src/integration/admissions.in
 import { AppointmentsIntegrationModule } from '../../src/integration/appointments.integration';
 import { BillingIntegrationModule } from '../../src/integration/billing.integration';
 import { LabIntegrationModule } from '../../src/integration/lab.integration';
+import { PharmacyIntegrationModule } from '../../src/integration/pharmacy.integration';
 import { ServiceAccessIntegrationModule } from '../../src/integration/service-access.integration';
 import { AuthorizationIntegrationModule } from '../../src/integration/authorization.integration';
 import { ApiDocsIntegrationModule } from '../../src/integration/api-docs.integration';
@@ -28,6 +29,7 @@ import { AppointmentsModule } from '../../src/modules/appointments/appointments.
 import { AuditModule } from '../../src/modules/audit/audit.module';
 import { BillingModule } from '../../src/modules/billing/billing.module';
 import { LabModule } from '../../src/modules/lab/lab.module';
+import { PharmacyModule } from '../../src/modules/pharmacy/pharmacy.module';
 import { IamModule } from '../../src/modules/iam/iam.module';
 import { PatientsModule } from '../../src/modules/patients/patients.module';
 import { ReferentialsModule } from '../../src/modules/referentials/referentials.module';
@@ -48,7 +50,7 @@ import { PgliteSql } from './pglite-sql';
 import { must } from './fakes';
 
 // Même ordre qu'au démarrage du conteneur : l'administration complète les rôles système créés par l'IAM.
-const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql', 'patients.pg.sql', 'appointments.pg.sql', 'admissions.pg.sql', 'billing.pg.sql', 'lab.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
+const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql', 'patients.pg.sql', 'appointments.pg.sql', 'admissions.pg.sql', 'billing.pg.sql', 'lab.pg.sql', 'pharmacy.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
 
 // otplib v13 exige ≥ 16 octets ; 32 caractères base32 = 20 octets (taille standard RFC 4226).
 export const TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -114,6 +116,8 @@ export async function createTestWorld(options: {
       BillingModule.register(),
       LabIntegrationModule.register(),
       LabModule.register(),
+      PharmacyIntegrationModule.register(),
+      PharmacyModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)
