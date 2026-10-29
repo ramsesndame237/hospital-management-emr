@@ -13,7 +13,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "inventory": "node tools/inventory-endpoints.mjs && node tools/inventory-sps.mjs && node tools/inventory-entities.mjs && node tools/generate-entities.mjs && node tools/report.mjs",
     "migration:report": "node tools/report.mjs",
-    "db:iam": "node tools/apply-sql.mjs migration/schema/iam.pg.sql migration/schema/administration.pg.sql migration/schema/referentials.pg.sql migration/schema/staff.pg.sql migration/schema/patients.pg.sql migration/schema/appointments.pg.sql migration/schema/admissions.pg.sql migration/schema/billing.pg.sql migration/schema/lab.pg.sql",
+    "db:iam": "node tools/apply-sql.mjs migration/schema/iam.pg.sql migration/schema/administration.pg.sql migration/schema/referentials.pg.sql migration/schema/staff.pg.sql migration/schema/patients.pg.sql migration/schema/appointments.pg.sql migration/schema/admissions.pg.sql migration/schema/billing.pg.sql migration/schema/lab.pg.sql migration/schema/pharmacy.pg.sql",
     "iam:bootstrap-admin": "node dist/cli/bootstrap-admin.js",
     "playground": "node --require ts-node/register/transpile-only tools/playground.ts",
     "demo:dsi": "node tools/demo-dsi.mjs"
