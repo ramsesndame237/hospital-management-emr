@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { PgliteSql } from '../iam/pglite-sql';
 
 /** Les migrations dans l'ordre où le conteneur les applique. */
-export const MIGRATIONS = ['iam', 'administration', 'referentials', 'staff', 'patients', 'appointments', 'admissions'].map((f) =>
+export const MIGRATIONS = ['iam', 'administration', 'referentials', 'staff', 'patients', 'appointments', 'admissions', 'billing'].map((f) =>
   fs.readFileSync(path.join(__dirname, '../../migration/schema', `${f}.pg.sql`), 'utf8'),
 );
 
