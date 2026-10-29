@@ -52,6 +52,16 @@ export const NAVIGATION: readonly NavItem[] = [
       { id: 'billing-catalog', labelKey: 'nav.billingCatalog', icon: 'consultations', route: '/billing/catalog', permission: 'billing.catalog:read' },
     ],
   },
+  {
+    id: 'lab',
+    labelKey: 'nav.lab',
+    icon: 'ward',
+    children: [
+      { id: 'lab-worklist', labelKey: 'nav.labWorklist', icon: 'agenda', route: '/lab/worklist', permission: 'lab.requisitions:read:own' },
+      { id: 'lab-new', labelKey: 'nav.labNew', icon: 'add', route: '/lab/requisitions/new', permission: 'lab.requisitions:order' },
+      { id: 'lab-catalog', labelKey: 'nav.labCatalog', icon: 'consultations', route: '/lab/catalog', permission: 'lab.catalog:read' },
+    ],
+  },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/modules/agenda', roles: DOCTOR },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/modules/consultations', roles: DOCTOR },
   { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },

@@ -7,6 +7,7 @@ import { SessionStore } from '../auth/session.store';
 const HOMES: Readonly<Record<string, { readonly permission: string; readonly route: string }>> = {
   SYSTEM_ADMIN: { permission: 'administration.organization:read', route: '/admin/organization' },
   CASHIER: { permission: 'billing.invoices:read', route: '/billing/invoices' },
+  LAB_TECHNICIAN: { permission: 'lab.requisitions:read:all', route: '/lab/worklist' },
 };
 
 /**

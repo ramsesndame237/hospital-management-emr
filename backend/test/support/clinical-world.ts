@@ -7,7 +7,7 @@ export const api = (path: string) => `/api/v1${path}`;
 
 export interface ClinicalWorld {
   w: TestWorld;
-  /** Jetons d'accès par profil : admin, accueil, medecin (service PED), infirmier (service CHI), comptable, caisse, patient. */
+  /** Jetons d'accès par profil : admin, accueil, medecin (service PED), infirmier (service CHI), comptable, caisse, labo (technicien de laboratoire), patient. */
   token: Record<string, string>;
   http: () => request.Agent;
   bearer: (who: string) => { Authorization: string };
@@ -34,7 +34,7 @@ export async function buildClinicalWorld(): Promise<ClinicalWorld> {
   const token: Record<string, string> = {};
   const bearer = (who: string) => ({ Authorization: `Bearer ${token[who]}` });
   const accounts: [string, string, boolean][] = [
-    ['admin', 'SYSTEM_ADMIN', true], ['accueil', 'RECEPTIONIST', false], ['medecin', 'DOCTOR', true], ['infirmier', 'NURSE', true], ['comptable', 'ACCOUNTANT', false], ['caisse', 'CASHIER', false], ['patient', 'PATIENT', false],
+    ['admin', 'SYSTEM_ADMIN', true], ['accueil', 'RECEPTIONIST', false], ['medecin', 'DOCTOR', true], ['infirmier', 'NURSE', true], ['comptable', 'ACCOUNTANT', false], ['caisse', 'CASHIER', false], ['labo', 'LAB_TECHNICIAN', true], ['patient', 'PATIENT', false],
   ];
   const userIds: Record<string, string> = {};
   for (const [username, role, mfa] of accounts) userIds[username] = (await w.seed({ username, password: PWD, roles: [role], mfa })).id.value;
