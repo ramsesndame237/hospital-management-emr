@@ -4,7 +4,9 @@ import { AdjustmentStatus, StockAdjustment } from './adjustment';
 import { Batch, MovementDraft, MovementType, StockLevel } from './batch';
 import { Drug } from './drug';
 import { GoodsReceipt } from './receipt';
-import { AdjustmentId, AdjustmentNumber, BatchId, DrugCode, DrugForm, DrugId, ReceiptId, ReceiptNumber, Schedule } from './values';
+import { OrderStatus, PurchaseOrder } from './purchase-order';
+import { Supplier } from './supplier';
+import { AdjustmentId, AdjustmentNumber, BatchId, DrugCode, DrugForm, DrugId, PurchaseOrderId, PurchaseOrderNumber, ReceiptId, ReceiptNumber, Schedule, SupplierCode, SupplierId } from './values';
 
 export interface DrugFilter {
   /** Texte cherché dans le code, le nom et la dénomination commune (insensible à la casse). */
@@ -121,6 +123,8 @@ export interface ReceiptSummary {
   readonly deliveryNote: string | null;
   readonly receivedBy: string;
   readonly receivedAt: Instant;
+  /** Numéro du bon de commande auquel la livraison s'impute. */
+  readonly orderNumber: string | null;
   readonly lines: number;
   readonly units: number;
   /** Valeur de la livraison au coût d'achat. */
@@ -138,7 +142,9 @@ export interface StockRepository {
    * Inscrit la réception et met à jour les lots dans une seule transaction : un lot existant s'augmente (même péremption exigée), sinon il
    * est créé. Rien n'est écrit si une ligne est refusée. Renvoie la réception telle qu'elle est enregistrée (avec les lots réels).
    */
-  postReceipt(receipt: GoodsReceipt): Promise<Result<GoodsReceipt>>;
+  postReceipt(receipt: GoodsReceipt, link?: OrderLink): Promise<Result<GoodsReceipt>>;
+  /** Coût d'achat du lot le plus récemment reçu de chaque médicament (ceux qui n'ont jamais été reçus sont absents). */
+  lastUnitCosts(drugIds: readonly DrugId[]): Promise<Map<string, number>>;
   findReceipt(id: ReceiptId): Promise<GoodsReceipt | null>;
   listReceipts(filter: ReceiptFilter, offset: number, limit: number): Promise<{ items: ReceiptSummary[]; total: number }>;
   findBatch(id: BatchId): Promise<Batch | null>;
@@ -150,6 +156,65 @@ export interface StockRepository {
   movements(filter: MovementFilter, offset: number, limit: number): Promise<{ items: MovementRecord[]; total: number }>;
   overview(filter: StockFilter, today: PlainDate, soonDays: number, offset: number, limit: number): Promise<{ items: StockRow[]; total: number }>;
   summary(today: PlainDate, soonDays: number): Promise<StockSummary>;
+}
+
+/**
+ * Imputation d'une réception sur son bon de commande : le dépôt verrouille le bon, `apply` applique la règle du domaine, et le bon est écrit dans la
+ * même transaction que les lots. Rien n'est écrit si le bon refuse la livraison.
+ */
+export interface OrderLink {
+  apply(order: PurchaseOrder): Result<void>;
+}
+
+export interface SupplierFilter {
+  /** Texte cherché dans le code et le nom (insensible à la casse). */
+  readonly search?: string;
+  readonly includeInactive: boolean;
+}
+
+export interface SupplierRepository {
+  findById(id: SupplierId): Promise<Supplier | null>;
+  findByCode(code: SupplierCode): Promise<Supplier | null>;
+  findByIds(ids: readonly SupplierId[]): Promise<Supplier[]>;
+  /** Refuse (`false`) un code déjà pris ; la vérification et l'écriture se font ensemble (index unique). */
+  insert(supplier: Supplier): Promise<boolean>;
+  update(supplier: Supplier): Promise<void>;
+  list(filter: SupplierFilter, offset: number, limit: number): Promise<{ items: Supplier[]; total: number }>;
+}
+
+export interface OrderFilter {
+  readonly status?: OrderStatus;
+  readonly supplierId?: SupplierId;
+  /** Bons qui commandent ce médicament. */
+  readonly drugId?: DrugId;
+  readonly createdBy?: string;
+}
+
+export interface OrderSummary {
+  readonly id: string;
+  readonly number: string;
+  readonly supplierId: string;
+  readonly supplierName: string;
+  readonly status: OrderStatus;
+  readonly createdBy: string;
+  readonly createdAt: Instant;
+  readonly expectedOn: PlainDate | null;
+  readonly lines: number;
+  readonly units: number;
+  readonly received: number;
+  readonly value: number;
+}
+
+export interface PurchaseOrderRepository {
+  nextNumber(): Promise<PurchaseOrderNumber>;
+  insert(order: PurchaseOrder): Promise<void>;
+  findById(id: PurchaseOrderId): Promise<PurchaseOrder | null>;
+  /** Les bons à décider d'abord (les plus anciens), puis les plus récents. */
+  list(filter: OrderFilter, offset: number, limit: number): Promise<{ items: OrderSummary[]; total: number }>;
+  /** Modifie un bon sous verrou ; rien n'est écrit si la règle refuse. `null` : bon introuvable. */
+  mutate(id: PurchaseOrderId, mutate: (order: PurchaseOrder) => Result<void>): Promise<Result<PurchaseOrder> | null>;
+  /** Quantité encore attendue par médicament, sur les bons approuvés ou partiellement reçus. */
+  onOrder(): Promise<Map<string, number>>;
 }
 
 export interface AdjustmentFilter {
@@ -182,6 +247,8 @@ export interface UserDirectory {
 export const DRUG_REPOSITORY = Symbol('PHARMACY_DRUG_REPOSITORY');
 export const STOCK_REPOSITORY = Symbol('PHARMACY_STOCK_REPOSITORY');
 export const ADJUSTMENT_REPOSITORY = Symbol('PHARMACY_ADJUSTMENT_REPOSITORY');
+export const SUPPLIER_REPOSITORY = Symbol('PHARMACY_SUPPLIER_REPOSITORY');
+export const ORDER_REPOSITORY = Symbol('PHARMACY_ORDER_REPOSITORY');
 export const PHARMACY_USERS = Symbol('PHARMACY_USERS');
 export const PHARMACY_EXPIRY_ALERT_DAYS = Symbol('PHARMACY_EXPIRY_ALERT_DAYS');
 export const PHARMACY_CURRENCY = Symbol('PHARMACY_CURRENCY');

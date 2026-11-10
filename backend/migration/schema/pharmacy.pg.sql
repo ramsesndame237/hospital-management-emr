@@ -1,5 +1,5 @@
--- Module Pharmacie (tranche 1) : catalogue des médicaments, stock par lot, réceptions de marchandises, ajustements approuvés et grand livre
--- des mouvements. Idempotent : peut être rejoué à chaque déploiement. À appliquer APRÈS iam, administration (clés étrangères) ; les
+-- Module Pharmacie (tranches 1 et 2) : catalogue des médicaments, stock par lot, réceptions de marchandises, ajustements approuvés, grand livre,
+-- fournisseurs et bons de commande. Idempotent : peut être rejoué à chaque déploiement. À appliquer APRÈS iam, administration (clés étrangères) ; les
 -- permissions du module sont ajoutées en fin de script, après que iam.pg.sql a recréé les rôles système.
 
 CREATE SEQUENCE IF NOT EXISTS pharmacy_receipt_number_seq;
@@ -152,4 +152,78 @@ UPDATE iam_roles
 
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['pharmacy.catalog:read', 'pharmacy.catalog:manage', 'pharmacy.stock:read']) AS p ORDER BY p)
+ WHERE code = 'SYSTEM_ADMIN';
+
+-- ---- Approvisionnement : fournisseurs et bons de commande --------------------------------------------------------------------
+
+CREATE SEQUENCE IF NOT EXISTS pharmacy_order_number_seq;
+
+-- Fournisseurs. Le code ne change jamais ; rien n'est supprimé (un fournisseur écarté se désactive).
+CREATE TABLE IF NOT EXISTS pharmacy_suppliers (
+  id                  uuid PRIMARY KEY,
+  code                text NOT NULL CHECK (code ~ '^[A-Z0-9][A-Z0-9_.-]{0,19}$'),
+  name                text NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+  contact_name        text CHECK (contact_name IS NULL OR length(contact_name) BETWEEN 1 AND 100),
+  phone               text CHECK (phone IS NULL OR length(phone) BETWEEN 3 AND 30),
+  email               text CHECK (email IS NULL OR (length(email) <= 120 AND email ~ '^[^@\s]+@[^@\s]+$')),
+  address             text CHECK (address IS NULL OR length(address) BETWEEN 1 AND 200),
+  payment_terms_days  integer NOT NULL DEFAULT 30 CHECK (payment_terms_days BETWEEN 0 AND 365),
+  notes               text CHECK (notes IS NULL OR length(notes) <= 500),
+  active              boolean NOT NULL DEFAULT true,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pharmacy_suppliers_code ON pharmacy_suppliers (code);
+
+-- Bons de commande : brouillon → à approuver → approuvé → reçu (en partie, puis en totalité) ou clos / annulé. Celui qui l'a établi ne l'approuve pas.
+CREATE TABLE IF NOT EXISTS pharmacy_purchase_orders (
+  id                uuid PRIMARY KEY,
+  order_number      text NOT NULL CHECK (order_number ~ '^PO-[0-9]{7,12}$'),
+  supplier_id       uuid NOT NULL REFERENCES pharmacy_suppliers (id),
+  status            text NOT NULL CHECK (status IN ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED', 'CANCELLED')),
+  expected_on       date,
+  notes             text CHECK (notes IS NULL OR length(notes) <= 300),
+  created_by        uuid NOT NULL,
+  created_at        timestamptz NOT NULL,
+  submitted_at      timestamptz,
+  approved_by       uuid,
+  approved_at       timestamptz,
+  rejection_reason  text CHECK (rejection_reason IS NULL OR length(rejection_reason) BETWEEN 1 AND 200),
+  closed_by         uuid,
+  closed_at         timestamptz,
+  closed_reason     text CHECK (closed_reason IS NULL OR length(closed_reason) BETWEEN 1 AND 200),
+  version           integer NOT NULL DEFAULT 0,
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  CHECK ((approved_by IS NULL) = (approved_at IS NULL)),
+  CHECK (approved_by IS NULL OR approved_by <> created_by),
+  CHECK (status NOT IN ('APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED') OR approved_at IS NOT NULL),
+  CHECK (status NOT IN ('PENDING_APPROVAL', 'APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED') OR submitted_at IS NOT NULL),
+  CHECK ((status IN ('CANCELLED', 'CLOSED')) = (closed_at IS NOT NULL AND closed_by IS NOT NULL AND closed_reason IS NOT NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pharmacy_orders_number ON pharmacy_purchase_orders (order_number);
+CREATE INDEX IF NOT EXISTS ix_pharmacy_orders_status ON pharmacy_purchase_orders (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_pharmacy_orders_supplier ON pharmacy_purchase_orders (supplier_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS pharmacy_purchase_order_lines (
+  order_id   uuid NOT NULL REFERENCES pharmacy_purchase_orders (id) ON DELETE CASCADE,
+  position   smallint NOT NULL CHECK (position >= 0),
+  drug_id    uuid NOT NULL REFERENCES pharmacy_drugs (id),
+  quantity   integer NOT NULL CHECK (quantity BETWEEN 1 AND 1000000),
+  unit_cost  bigint NOT NULL CHECK (unit_cost BETWEEN 0 AND 1000000000000),
+  received   integer NOT NULL DEFAULT 0 CHECK (received >= 0),
+  PRIMARY KEY (order_id, position),
+  UNIQUE (order_id, drug_id),
+  CHECK (received <= quantity)
+);
+
+-- Une réception peut se faire contre un bon de commande : la quantité reçue y est reportée dans la même transaction.
+ALTER TABLE pharmacy_receipts ADD COLUMN IF NOT EXISTS purchase_order_id uuid REFERENCES pharmacy_purchase_orders (id);
+CREATE INDEX IF NOT EXISTS ix_pharmacy_receipts_order ON pharmacy_receipts (purchase_order_id) WHERE purchase_order_id IS NOT NULL;
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['pharmacy.procurement:read', 'pharmacy.procurement:manage', 'pharmacy.procurement:approve']) AS p ORDER BY p)
+ WHERE code = 'PHARMACIST';
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['pharmacy.procurement:read']) AS p ORDER BY p)
  WHERE code = 'SYSTEM_ADMIN';

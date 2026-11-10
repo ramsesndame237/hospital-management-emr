@@ -22,15 +22,19 @@ export class ReceiptLineInputDto {
   @IsInt() @Min(1) @Max(1_000_000)
   quantity!: number;
 
-  @DocProperty({ description: 'Coût d’achat d’une unité, en plus petite unité monétaire (0 par défaut).', example: 10, optional: true })
+  @DocProperty({ description: 'Coût d’achat d’une unité, en plus petite unité monétaire (0 par défaut ; le coût convenu du bon de commande si la livraison s’y impute).', example: 10, optional: true })
   @IsOptional() @IsInt() @Min(0) @Max(1_000_000_000_000)
   unitCost?: number;
 }
 
 export class PostReceiptDto {
-  @DocProperty({ description: 'Fournisseur (1 à 120 caractères).', example: 'Pharma Distrib', minLength: 1, maxLength: 120 })
-  @IsString() @MinLength(1) @MaxLength(120)
-  supplier!: string;
+  @DocProperty({ description: 'Fournisseur (1 à 120 caractères). Obligatoire hors bon de commande ; avec `purchaseOrderId`, c’est le fournisseur du bon et cette valeur est ignorée.', example: 'Pharma Distrib', minLength: 1, maxLength: 120, optional: true })
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(120)
+  supplier?: string;
+
+  @DocProperty({ description: 'Bon de commande **approuvé** auquel la livraison s’impute : les quantités reçues y sont reportées, jamais au-delà du commandé, et le coût d’achat par défaut est le coût convenu.', example: '5b0f2b8e-2f5d-4a8c-8f0e-7d9c1a3b4e60', format: 'uuid', optional: true })
+  @IsOptional() @IsUUID()
+  purchaseOrderId?: string;
 
   @DocProperty({ description: 'Référence du bon de livraison du fournisseur.', example: 'BL-2026-0412', maxLength: 60, optional: true, nullable: true })
   @IsOptional() @IsString() @MaxLength(60)
@@ -68,6 +72,14 @@ export class ReceiptLineDto {
   value!: number;
 }
 
+export class ReceiptOrderDto {
+  @DocProperty({ description: 'Identifiant du bon de commande.', example: ID_EXAMPLE, format: 'uuid' })
+  id!: string;
+
+  @DocProperty({ description: 'Numéro du bon de commande.', example: 'PO-0000001' })
+  number!: string;
+}
+
 export class ReceiptDto {
   @DocProperty({ description: 'Identifiant de la réception.', example: ID_EXAMPLE, format: 'uuid' })
   id!: string;
@@ -89,6 +101,9 @@ export class ReceiptDto {
 
   @DocProperty({ description: 'Reçu le (ISO 8601, UTC).', example: '2026-11-02T08:00:00Z', format: 'date-time' })
   receivedAt!: string;
+
+  @DocProperty({ description: 'Bon de commande auquel la livraison s’impute.', type: ReceiptOrderDto, nullable: true })
+  order!: ReceiptOrderDto | null;
 
   @DocProperty({ description: 'Total des unités reçues.', example: 100 })
   units!: number;
@@ -121,6 +136,9 @@ export class ReceiptSummaryDto {
 
   @DocProperty({ description: 'Reçu le (ISO 8601, UTC).', example: '2026-11-02T08:00:00Z', format: 'date-time' })
   receivedAt!: string;
+
+  @DocProperty({ description: 'Numéro du bon de commande auquel la livraison s’impute.', example: 'PO-0000001', nullable: true })
+  orderNumber!: string | null;
 
   @DocProperty({ description: 'Nombre de lignes.', example: 2 })
   lines!: number;

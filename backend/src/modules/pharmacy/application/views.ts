@@ -3,12 +3,14 @@ import { Calendar, Clock } from '../../../shared-kernel/ports';
 import { PlainDate } from '../../../shared-kernel/temporal';
 import { Batch, StockLevel } from '../domain/batch';
 import { Drug } from '../domain/drug';
-import { AdjustmentRepository, DrugRepository, StockRepository, StockRow, UserDirectory } from '../domain/ports';
+import { AdjustmentRepository, DrugRepository, PurchaseOrderRepository, StockRepository, StockRow, SupplierRepository, UserDirectory } from '../domain/ports';
 
 export interface PharmacyDependencies {
   readonly drugs: DrugRepository;
   readonly stock: StockRepository;
   readonly adjustments: AdjustmentRepository;
+  readonly suppliers: SupplierRepository;
+  readonly orders: PurchaseOrderRepository;
   readonly users: UserDirectory;
   readonly audit: AuditLog;
   readonly clock: Clock;

@@ -4,7 +4,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
 import {
-  Adjustment, AdjustmentFilter, AdjustmentInput, Batch, Drug, DrugChanges, DrugFilter, DrugInput, DrugPage, DrugStock, ExpiryFilter, ExpiryPage, Movement, MovementFilter, Page, Receipt, ReceiptFilter,
+  Adjustment, AdjustmentFilter, AdjustmentInput, Batch, Drug, Order, OrderFilter, OrderInput, OrderPage, SuggestionList, Supplier, SupplierChanges, SupplierFilter, SupplierInput, DrugChanges, DrugFilter, DrugInput, DrugPage, DrugStock, ExpiryFilter, ExpiryPage, Movement, MovementFilter, Page, Receipt, ReceiptFilter,
   ReceiptInput, ReceiptPage, StockFilter, StockPage, StockSummary,
 } from './pharmacy.models';
 
@@ -34,6 +34,25 @@ export abstract class PharmacyGateway {
   abstract listAdjustments(filter: AdjustmentFilter, offset: number, limit: number): Promise<Page<Adjustment>>;
   abstract approveAdjustment(id: string, comment: string | null): Promise<Adjustment>;
   abstract rejectAdjustment(id: string, comment: string): Promise<Adjustment>;
+  abstract listSuppliers(filter: SupplierFilter, offset: number, limit: number): Promise<Page<Supplier>>;
+  abstract createSupplier(input: SupplierInput): Promise<Supplier>;
+  abstract updateSupplier(id: string, changes: SupplierChanges): Promise<Supplier>;
+  abstract setSupplierActive(id: string, active: boolean): Promise<Supplier>;
+  abstract listOrders(filter: OrderFilter, offset: number, limit: number): Promise<OrderPage>;
+  abstract getOrder(id: string): Promise<Order>;
+  /** Établit un brouillon : rien n'est commandé tant qu'il n'est pas soumis puis approuvé par un AUTRE pharmacien. */
+  abstract createOrder(input: OrderInput): Promise<Order>;
+  /** Remplace le contenu d'un brouillon (celui d'un bon refusé aussi). */
+  abstract updateOrder(id: string, input: OrderInput): Promise<Order>;
+  abstract submitOrder(id: string): Promise<Order>;
+  /** Approuve un bon : jamais par son auteur (409 `PHARMACY_ORDER_SELF_APPROVAL`). */
+  abstract approveOrder(id: string): Promise<Order>;
+  /** Refuse un bon : il revient en brouillon avec ce motif. */
+  abstract rejectOrder(id: string, comment: string): Promise<Order>;
+  abstract cancelOrder(id: string, reason: string): Promise<Order>;
+  /** Clôt un bon partiellement reçu dont le solde ne viendra pas. */
+  abstract closeOrder(id: string, reason: string): Promise<Order>;
+  abstract getSuggestions(): Promise<SuggestionList>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/pharmacy`. */
@@ -119,6 +138,62 @@ export class HttpPharmacyGateway extends PharmacyGateway {
 
   override rejectAdjustment(id: string, comment: string): Promise<Adjustment> {
     return this.call(this.http.post<Adjustment>(`${this.base}/adjustments/${id}/reject`, { comment }));
+  }
+
+  override listSuppliers(filter: SupplierFilter, offset: number, limit: number): Promise<Page<Supplier>> {
+    return this.call(this.http.get<Page<Supplier>>(`${this.base}/suppliers`, { params: this.params(filter, offset, limit) }));
+  }
+
+  override createSupplier(input: SupplierInput): Promise<Supplier> {
+    return this.call(this.http.post<Supplier>(`${this.base}/suppliers`, input));
+  }
+
+  override updateSupplier(id: string, changes: SupplierChanges): Promise<Supplier> {
+    return this.call(this.http.patch<Supplier>(`${this.base}/suppliers/${id}`, changes));
+  }
+
+  override setSupplierActive(id: string, active: boolean): Promise<Supplier> {
+    return this.call(this.http.post<Supplier>(`${this.base}/suppliers/${id}/${active ? 'activate' : 'deactivate'}`, null));
+  }
+
+  override listOrders(filter: OrderFilter, offset: number, limit: number): Promise<OrderPage> {
+    return this.call(this.http.get<OrderPage>(`${this.base}/orders`, { params: this.params(filter, offset, limit) }));
+  }
+
+  override getOrder(id: string): Promise<Order> {
+    return this.call(this.http.get<Order>(`${this.base}/orders/${id}`));
+  }
+
+  override createOrder(input: OrderInput): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders`, input));
+  }
+
+  override updateOrder(id: string, input: OrderInput): Promise<Order> {
+    return this.call(this.http.put<Order>(`${this.base}/orders/${id}`, input));
+  }
+
+  override submitOrder(id: string): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders/${id}/submit`, null));
+  }
+
+  override approveOrder(id: string): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders/${id}/approve`, null));
+  }
+
+  override rejectOrder(id: string, comment: string): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders/${id}/reject`, { comment }));
+  }
+
+  override cancelOrder(id: string, reason: string): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders/${id}/cancel`, { reason }));
+  }
+
+  override closeOrder(id: string, reason: string): Promise<Order> {
+    return this.call(this.http.post<Order>(`${this.base}/orders/${id}/close`, { reason }));
+  }
+
+  override getSuggestions(): Promise<SuggestionList> {
+    return this.call(this.http.get<SuggestionList>(`${this.base}/orders/suggestions`));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {
