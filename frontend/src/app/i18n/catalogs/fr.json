@@ -1860,5 +1860,175 @@
       "draftUpdated": "Brouillon {number} mis à jour ({total}).",
       "addOf": "Ajouter {name} au bon"
     }
+  },
+  "clinical": {
+    "actions": "Actions",
+    "saving": "Enregistrement…",
+    "cancelAction": "Annuler",
+    "reasonRequired": "Le motif est obligatoire.",
+    "auditNote": "Cette action est tracée dans le journal d’audit (qui, quand) ; son contenu médical n’y figure pas.",
+    "status": {
+      "IN_PROGRESS": "En cours",
+      "SIGNED": "Signée",
+      "CANCELLED": "Annulée"
+    },
+    "severity": {
+      "MILD": "Légère",
+      "MODERATE": "Modérée",
+      "SEVERE": "Sévère"
+    },
+    "sex": {
+      "MALE": "Homme",
+      "FEMALE": "Femme",
+      "OTHER": "Autre",
+      "UNKNOWN": "Non précisé"
+    },
+    "age": {
+      "years": "{n} ans",
+      "months": "{n} mois",
+      "days": "{n} jours"
+    },
+    "queue": {
+      "title": "Consultations",
+      "lead": "Les patients arrivés dans vos services et pas encore vus, les plus anciens d’abord. Les urgences sont signalées.",
+      "refresh": "Actualiser",
+      "waiting": "Patients en attente",
+      "recent": "Mes consultations récentes",
+      "patient": "Patient",
+      "type": "Type",
+      "arrival": "Arrivée",
+      "state": "État",
+      "number": "Numéro",
+      "diagnosis": "Diagnostic principal",
+      "types": {
+        "OUTPATIENT": "Consultation externe",
+        "EMERGENCY": "Urgence"
+      },
+      "inProgress": "En cours",
+      "toSee": "À voir",
+      "empty": "Aucun patient n’attend dans vos services.",
+      "noRecent": "Aucune consultation récente.",
+      "start": "Commencer",
+      "startOf": "Commencer la consultation de {name}",
+      "resume": "Reprendre",
+      "resumeOf": "Reprendre la consultation {number}",
+      "open": "Ouvrir",
+      "openOf": "Ouvrir la consultation {number}",
+      "waitedMinutes": "attend depuis {minutes} min",
+      "waitedHours": "attend depuis {hours} h {minutes}"
+    },
+    "encounter": {
+      "back": "Retour aux consultations",
+      "born": "né(e) le {date}",
+      "signedNotice": "Consultation signée par {who} le {when}. Elle ne peut plus être modifiée : complétez-la par un addendum.",
+      "cancelledNotice": "Consultation annulée par {who} : {reason}",
+      "readOnly": "Cette consultation est conduite par {who} : vous la consultez en lecture seule."
+    },
+    "vitals": {
+      "title": "Constantes",
+      "none": "Aucune constante relevée.",
+      "recordedBy": "Relevées par {who} le {when}",
+      "saved": "Constantes enregistrées ({number}).",
+      "submit": "Enregistrer les constantes",
+      "decimalInvalid": "Saisissez un nombre avec au plus une décimale.",
+      "integerInvalid": "Saisissez un nombre entier.",
+      "temperature": "Température (°C)",
+      "pulse": "Pouls (/min)",
+      "systolic": "Tension systolique (mmHg)",
+      "diastolic": "Tension diastolique (mmHg)",
+      "respiratoryRate": "Fréquence respiratoire (/min)",
+      "spo2": "Saturation en oxygène (%)",
+      "weightKg": "Poids (kg)",
+      "heightCm": "Taille (cm)",
+      "bmi": "IMC (kg/m²)"
+    },
+    "note": {
+      "title": "Note de consultation",
+      "chiefComplaint": "Motif de consultation",
+      "history": "Histoire de la maladie",
+      "examination": "Examen clinique",
+      "assessment": "Évaluation",
+      "assessmentHint": "Obligatoire pour signer la consultation.",
+      "plan": "Conduite à tenir",
+      "submit": "Enregistrer la note",
+      "saved": "Note de la consultation {number} enregistrée."
+    },
+    "diagnoses": {
+      "title": "Diagnostics (CIM-10)",
+      "none": "Aucun diagnostic.",
+      "code": "Code",
+      "label": "Libellé",
+      "kind": "Rang",
+      "certainty": "Certitude",
+      "kinds": {
+        "PRIMARY": "Principal",
+        "SECONDARY": "Secondaire"
+      },
+      "certainties": {
+        "PROVISIONAL": "Provisoire",
+        "CONFIRMED": "Confirmé"
+      },
+      "add": "Ajouter un diagnostic",
+      "remove": "Retirer",
+      "removeOf": "Retirer le diagnostic {n}",
+      "rowOf": "Diagnostic {n}",
+      "save": "Enregistrer les diagnostics",
+      "saved": "Diagnostics de la consultation {number} enregistrés.",
+      "codeInvalid": "Diagnostic {n} : code CIM-10 invalide (par exemple J18.9).",
+      "labelRequired": "Diagnostic {n} : le libellé est obligatoire."
+    },
+    "sign": {
+      "title": "Signature",
+      "lead": "Enregistrez la note et les diagnostics avant de signer. Une consultation signée est verrouillée.",
+      "missing": {
+        "PRIMARY_DIAGNOSIS": "Un diagnostic principal est requis.",
+        "ASSESSMENT": "L’évaluation de la note est requise."
+      },
+      "submit": "Signer la consultation",
+      "done": "Consultation {number} signée."
+    },
+    "addendum": {
+      "title": "Addenda",
+      "none": "Aucun addendum.",
+      "by": "Addendum {n} · {who} · {when}",
+      "text": "Addendum",
+      "hint": "Complète ou corrige la consultation signée ; daté et signé, il ne peut plus être modifié.",
+      "required": "Le texte de l’addendum est obligatoire.",
+      "submit": "Ajouter l’addendum",
+      "done": "Addendum ajouté à la consultation {number}."
+    },
+    "cancel": {
+      "open": "Annuler la consultation",
+      "title": "Annuler la consultation",
+      "warningTitle": "Annulation définitive",
+      "warningText": "À utiliser pour une consultation ouverte par erreur. Elle ne pourra plus être reprise.",
+      "reason": "Motif de l’annulation",
+      "submit": "Annuler la consultation",
+      "keep": "Garder la consultation",
+      "done": "Consultation {number} annulée."
+    },
+    "allergy": {
+      "title": "Allergies",
+      "none": "Aucune allergie connue",
+      "add": "Ajouter une allergie",
+      "addTitle": "Nouvelle allergie",
+      "substance": "Substance",
+      "substanceHint": "Médicament, aliment, latex…",
+      "substanceRequired": "La substance est obligatoire.",
+      "severity": "Gravité",
+      "severityPlaceholder": "Choisir la gravité",
+      "severityRequired": "La gravité est obligatoire.",
+      "reaction": "Réaction (facultatif)",
+      "submit": "Enregistrer l’allergie",
+      "done": "Allergie enregistrée.",
+      "void": "Saisie erronée",
+      "voidOf": "Déclarer {substance} saisie par erreur",
+      "voidTitle": "Saisie erronée : {substance}",
+      "voidWarningTitle": "L’allergie quitte la liste active",
+      "voidWarningText": "Elle reste au dossier, marquée comme saisie par erreur.",
+      "voidReason": "Motif",
+      "voidSubmit": "Déclarer saisie par erreur",
+      "voided": "Allergie « {substance} » retirée de la liste active."
+    }
   }
 }

@@ -79,7 +79,7 @@ export const NAVIGATION: readonly NavItem[] = [
     ],
   },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/modules/agenda', roles: DOCTOR },
-  { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/modules/consultations', roles: DOCTOR },
+  { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/clinical/queue', permission: 'clinical.encounters:read:department' },
   { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },
   { id: 'emergency', labelKey: 'nav.emergency', icon: 'emergency', route: '/modules/emergency', roles: DOCTOR },
   { id: 'results', labelKey: 'nav.results', icon: 'dashboard', route: '/modules/results', roles: DOCTOR },

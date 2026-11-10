@@ -32,7 +32,7 @@ async function type(fixture: ComponentFixture<unknown>, selector: string, value:
 
 describe('menu de navigation', () => {
   it('montre au médecin son menu complet et aux autres rôles seulement ce qui leur est commun', () => {
-    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], []).length).toBe(13);
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], ['clinical.encounters:read:department']).length).toBe(13);
     expect(visibleNavigation(NAVIGATION, ['CASHIER'], []).map((i) => i.id)).toEqual(['dashboard']);
   });
 
@@ -305,7 +305,7 @@ describe('ShellLayout', () => {
   const links = () => [...(fixture.nativeElement as HTMLElement).querySelectorAll('nav a')].map((a) => a.textContent?.replace(/\s+/g, ' ').trim());
 
   it('montre au médecin ses 13 entrées et son identité (rôle, établissement)', async () => {
-    const { missing } = await setup(['DOCTOR']);
+    const { missing } = await setup(['DOCTOR'], ['clinical.encounters:read:department']);
     expect(links()).toHaveLength(13);
     expect(links()).toContain('Hospitalisation (tournées)');
     expect(text(fixture)).toContain('Médecin');

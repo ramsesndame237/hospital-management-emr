@@ -25,6 +25,8 @@ export class AdmissionsModule {
   static register(): DynamicModule {
     return {
       module: AdmissionsModule,
+      // Global : la racine de composition (`src/integration`) en consomme le dépôt (la consultation s'ouvre pour un patient arrivé) sans réimporter le module.
+      global: true,
       controllers: [AdmissionsController],
       providers: [
         { provide: ADMISSION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgAdmissionRepository(sql) },
@@ -42,6 +44,7 @@ export class AdmissionsModule {
         { provide: ListAdmissionsUseCase, inject: [DEPENDENCIES], useFactory: (d: Dependencies) => new ListAdmissionsUseCase(d) },
         { provide: GetOccupancyUseCase, inject: [DEPENDENCIES], useFactory: (d: Dependencies) => new GetOccupancyUseCase(d) },
       ],
+      exports: [ADMISSION_REPOSITORY],
     };
   }
 }
