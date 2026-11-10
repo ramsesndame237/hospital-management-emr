@@ -2,7 +2,8 @@ import { Result } from '../../../shared-kernel/result';
 import { Instant } from '../../../shared-kernel/temporal';
 import { Addendum, Encounter, EncounterStatus } from './encounter';
 import { Allergy } from './allergy';
-import { AllergyId, EncounterId, EncounterNumber, PatientRef } from './values';
+import { Prescription } from './prescription';
+import { AllergyId, EncounterId, EncounterNumber, PatientRef, PrescriptionId, PrescriptionNumber } from './values';
 
 export interface EncounterFilter {
   readonly patientId?: PatientRef;
@@ -61,6 +62,19 @@ export interface AllergyRepository {
   listOf(patientId: PatientRef, includeVoided: boolean): Promise<Allergy[]>;
 }
 
+export interface PrescriptionRepository {
+  nextNumber(): Promise<PrescriptionNumber>;
+  /** Écrit l'ordonnance et ses lignes ensemble. */
+  insert(prescription: Prescription): Promise<void>;
+  findById(id: PrescriptionId): Promise<Prescription | null>;
+  /** Modifie une ordonnance sous verrou (annulation) ; rien n'est écrit si la règle refuse. `null` : introuvable. */
+  mutate(id: PrescriptionId, mutate: (prescription: Prescription) => Result<void>): Promise<Result<Prescription> | null>;
+  /** Les ordonnances d'une consultation, dans l'ordre d'émission. */
+  listOfEncounter(encounterId: EncounterId): Promise<Prescription[]>;
+  /** Nombre d'ordonnances en cours (non annulées) d'une consultation. */
+  countIssued(encounterId: EncounterId): Promise<number>;
+}
+
 export interface PatientInfo {
   readonly id: string;
   readonly number: string;
@@ -98,8 +112,30 @@ export interface VisitDirectory {
   waiting(serviceIds: readonly string[] | null, limit: number): Promise<VisitInfo[]>;
 }
 
+/** Un médicament du formulaire de la pharmacie, tel que la prescription le montre. */
+export interface DrugInfo {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly genericName: string;
+  readonly strength: string | null;
+  readonly form: string;
+  readonly schedule: string;
+  readonly unit: string;
+  readonly active: boolean;
+}
+
+/** Les médicaments appartiennent au module Pharmacie : la racine de composition branche ce port dessus. */
+export interface DrugDirectory {
+  find(ids: readonly string[]): Promise<Map<string, DrugInfo>>;
+  /** Médicaments actifs dont le code, le nom ou la dénomination commune contient ce texte. */
+  search(text: string, limit: number): Promise<DrugInfo[]>;
+}
+
 export const ENCOUNTER_REPOSITORY = Symbol('CLINICAL_ENCOUNTER_REPOSITORY');
 export const ALLERGY_REPOSITORY = Symbol('CLINICAL_ALLERGY_REPOSITORY');
 export const CLINICAL_PATIENTS = Symbol('CLINICAL_PATIENTS');
 export const CLINICAL_USERS = Symbol('CLINICAL_USERS');
 export const CLINICAL_VISITS = Symbol('CLINICAL_VISITS');
+export const PRESCRIPTION_REPOSITORY = Symbol('CLINICAL_PRESCRIPTION_REPOSITORY');
+export const CLINICAL_DRUGS = Symbol('CLINICAL_DRUGS');

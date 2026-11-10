@@ -72,11 +72,14 @@ export class EncounterActionUseCases {
 
   private async act(
     actorId: string, rawId: string, permission: string, action: string, apply: (e: Encounter) => Result<void>, extra?: (e: Encounter) => Record<string, string | number | boolean | null>,
+    guard?: (e: Encounter) => Promise<DomainError | null>,
   ): Promise<Result<EncounterView>> {
     const id = EncounterId.create(rawId);
     if (!id.ok) return err(NOT_FOUND);
     const found = await this.d.encounters.findById(id.value);
     if (!found || !(await this.d.access.canAccess(actorId, permission, found.state.serviceId))) return err(NOT_FOUND);
+    const refused = await guard?.(found);
+    if (refused) return err(refused);
     const done = await this.d.encounters.mutate(id.value, apply);
     if (!done) return err(NOT_FOUND);
     if (!done.ok) return err(done.error);
@@ -118,7 +121,12 @@ export class EncounterActionUseCases {
   }
 
   cancel(actorId: string, id: string, reason: string): Promise<Result<EncounterView>> {
-    return this.act(actorId, id, 'clinical.encounters:write', 'clinical.encounter.cancel', (e) => e.cancel(reason, actorId, this.d.clock.now()));
+    // Une consultation qui a des ordonnances en cours ne s'annule pas : on annule d'abord les ordonnances (ce que le médecin a prescrit ne disparaît pas en silence).
+    const guard = async (e: Encounter): Promise<DomainError | null> =>
+      e.state.doctorId === actorId && e.status === 'IN_PROGRESS' && (await this.d.prescriptions.countIssued(e.id)) > 0
+        ? new DomainError('CLINICAL_ENCOUNTER_HAS_PRESCRIPTIONS', 'Cette consultation a des ordonnances en cours : annulez-les d’abord.')
+        : null;
+    return this.act(actorId, id, 'clinical.encounters:write', 'clinical.encounter.cancel', (e) => e.cancel(reason, actorId, this.d.clock.now()), undefined, guard);
   }
 
   /** Complète une consultation signée sans la modifier. Réservé au médecin de la consultation. */

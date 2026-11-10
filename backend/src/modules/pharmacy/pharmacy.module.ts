@@ -38,6 +38,9 @@ export class PharmacyModule {
     const use = <T>(factory: (d: PharmacyDependencies, ids: IdGenerator) => T) => ({ inject: [DEPENDENCIES, ID_GENERATOR], useFactory: factory });
     return {
       module: PharmacyModule,
+      // Global, et n'exporte que le formulaire : la racine de composition le branche au module Clinique (prescription).
+      global: true,
+      exports: [DRUG_REPOSITORY],
       controllers: [PharmacyDrugsController, PharmacyStockController, PharmacyReceiptsController, PharmacyAdjustmentsController, PharmacySuppliersController, PharmacyOrdersController],
       providers: [
         { provide: DRUG_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgDrugRepository(sql) },
