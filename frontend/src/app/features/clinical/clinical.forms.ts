@@ -90,3 +90,15 @@ export function voidAllergyFields(o: { readonly notice: string | null }): FieldS
     { type: 'button', name: 'cancel', label: 'clinical.cancelAction', variant: 'outline' },
   ];
 }
+
+/** Annulation d'une ordonnance : elle reste au dossier, le motif est obligatoire. */
+export function cancelPrescriptionFields(o: { readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'message', name: 'warning', tone: 'warning', appearance: 'outlined', title: 'clinical.rx.cancelWarningTitle', text: 'clinical.rx.cancelWarningText' },
+    { type: 'text', name: 'reason', label: 'clinical.rx.cancelReason', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'clinical.reasonRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'paragraph', name: 'audit', text: 'clinical.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: 'clinical.rx.cancelSubmit', busyLabel: 'clinical.saving' },
+    { type: 'button', name: 'cancel', label: 'clinical.rx.cancelKeep', variant: 'outline' },
+  ];
+}

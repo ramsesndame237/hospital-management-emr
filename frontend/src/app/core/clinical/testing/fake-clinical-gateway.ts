@@ -1,6 +1,7 @@
 import { ClinicalGateway } from '../clinical.gateway';
 import {
-  Addendum, Allergy, AllergyChanges, AllergyInput, Diagnosis, DiagnosisInput, Encounter, EncounterFilter, EncounterSummary, NoteInput, Page, PatientSummary, QueueItem, VitalsInput,
+  Addendum, Allergy, AllergyChanges, AllergyInput, Diagnosis, DiagnosisInput, DrugSuggestion, DrugSummary, Encounter, EncounterFilter, EncounterSummary, NoteInput, Page, PatientSummary, Prescription, PrescriptionInput,
+  QueueItem, VitalsInput,
 } from '../clinical.models';
 
 export const doctor = { id: 'u-doc', username: 'medecin' };
@@ -34,6 +35,19 @@ export const summary = (over: Partial<EncounterSummary> = {}): EncounterSummary 
 
 export const queueItem = (over: Partial<QueueItem> = {}): QueueItem => ({
   admission: { id: 'adm-1', number: 'ADM-0000012', type: 'OUTPATIENT', admittedAt: '2026-10-24T11:15:00Z', serviceId: 'svc-1' }, patient, encounter: null, ...over,
+});
+
+export const drug = (over: Partial<DrugSummary> = {}): DrugSummary => ({
+  id: 'd-1', code: 'AMOX500', name: 'Amoxicilline Biogaran', genericName: 'Amoxicilline', strength: '500 mg', form: 'CAPSULE', schedule: 'PRESCRIPTION', unit: 'gélule', active: true, ...over,
+});
+
+export const suggestion = (over: Partial<DrugSuggestion> = {}): DrugSuggestion => ({ ...drug(), allergyAlerts: [], ...over });
+
+/** Une ordonnance en cours d'une ligne (amoxicilline), émise par `medecin` pendant la consultation `e-1`. */
+export const prescription = (over: Partial<Prescription> = {}): Prescription => ({
+  id: 'rx-1', number: 'RX-0000001', encounterId: 'e-1', patient, serviceId: 'svc-1', doctor, status: 'ISSUED', issuedAt: '2026-10-24T08:20:00Z', notes: null,
+  lines: [{ position: 0, drug: drug(), dose: '1 gélule', frequency: '3 fois par jour', durationDays: 7, quantity: 21, instructions: null, allergyOverride: null }],
+  cancelledBy: null, cancelledAt: null, cancellationReason: null, ...over,
 });
 
 /** Double de test du port `ClinicalGateway` : chaque méthode est un mock Vitest que le test configure. */
@@ -70,5 +84,17 @@ export class FakeClinicalGateway extends ClinicalGateway {
   override updateAllergy = vi.fn<(id: string, changes: AllergyChanges) => Promise<Allergy>>().mockImplementation((id, changes) => Promise.resolve(allergy({ id, ...changes } as Partial<Allergy>)));
   override voidAllergy = vi.fn<(id: string, reason: string) => Promise<Allergy>>().mockImplementation((id, reason) =>
     Promise.resolve(allergy({ id, status: 'ENTERED_IN_ERROR', voidedBy: doctor, voidedAt: '2026-10-24T09:00:00Z', voidReason: reason })),
+  );
+  override searchDrugs = vi.fn<(encounterId: string, text: string) => Promise<readonly DrugSuggestion[]>>().mockResolvedValue([suggestion()]);
+  override listPrescriptions = vi.fn<(encounterId: string) => Promise<readonly Prescription[]>>().mockResolvedValue([]);
+  override issuePrescription = vi.fn<(encounterId: string, input: PrescriptionInput) => Promise<Prescription>>().mockImplementation((encounterId, input) =>
+    Promise.resolve(prescription({
+      encounterId,
+      notes: input.notes ?? null,
+      lines: input.lines.map((l, position) => ({ position, drug: drug({ id: l.drugId }), dose: l.dose, frequency: l.frequency, durationDays: l.durationDays ?? null, quantity: l.quantity, instructions: l.instructions ?? null, allergyOverride: l.allergyOverride ?? null })),
+    })),
+  );
+  override cancelPrescription = vi.fn<(id: string, reason: string) => Promise<Prescription>>().mockImplementation((id, reason) =>
+    Promise.resolve(prescription({ id, status: 'CANCELLED', cancelledBy: doctor, cancelledAt: '2026-10-24T08:30:00Z', cancellationReason: reason })),
   );
 }

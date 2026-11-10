@@ -14,6 +14,7 @@ import { FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { ageText, encounterTag, patientName, severityTag } from '../clinical-status';
+import { PrescriptionsSection } from './prescriptions.section';
 import { addendumFields, allergyFields, cancelFields, noteFields, VITAL_FIELDS, vitalsFields, voidAllergyFields } from '../clinical.forms';
 
 const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50';
@@ -38,7 +39,7 @@ interface Row {
  */
 @Component({
   selector: 'app-encounter-page',
-  imports: [RouterLink, FormBuilderComponent, StatusTag],
+  imports: [RouterLink, FormBuilderComponent, StatusTag, PrescriptionsSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -180,6 +181,10 @@ interface Row {
               }
             </section>
 
+            @if (canReadRx()) {
+              <app-prescriptions-section [encounterId]="e.id" [canIssue]="canWrite(e) && canWriteRx()" />
+            }
+
             @if (canWrite(e)) {
               <section class="flex flex-col gap-3 border border-border bg-card p-4" aria-labelledby="sign-title">
                 <h2 id="sign-title" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('clinical.sign.title') }}</h2>
@@ -265,6 +270,8 @@ export class EncounterPage implements OnInit {
   private readonly notices = signal<Record<'vitals' | 'note' | 'addendum' | 'panel', string | null>>({ vitals: null, note: null, addendum: null, panel: null });
 
   private readonly permissions = computed(() => this.user()?.permissions ?? []);
+  protected readonly canReadRx = computed(() => hasPermission(this.permissions(), 'clinical.prescriptions:read:department'));
+  protected readonly canWriteRx = computed(() => hasPermission(this.permissions(), 'clinical.prescriptions:write:department'));
   protected readonly canAllergy = computed(() => hasPermission(this.permissions(), 'clinical.allergies:write'));
   protected readonly failure = computed(() => failureNotice(this.error()));
   protected readonly layoutClass = computed(() => (this.panel() ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]' : 'grid items-start gap-6'));
