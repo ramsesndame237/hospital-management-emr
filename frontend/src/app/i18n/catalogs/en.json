@@ -1860,5 +1860,175 @@
       "draftUpdated": "Draft {number} updated ({total}).",
       "addOf": "Add {name} to the order"
     }
+  },
+  "clinical": {
+    "actions": "Actions",
+    "saving": "Saving…",
+    "cancelAction": "Cancel",
+    "reasonRequired": "The reason is required.",
+    "auditNote": "This action is recorded in the audit log (who, when); its medical content is not.",
+    "status": {
+      "IN_PROGRESS": "In progress",
+      "SIGNED": "Signed",
+      "CANCELLED": "Cancelled"
+    },
+    "severity": {
+      "MILD": "Mild",
+      "MODERATE": "Moderate",
+      "SEVERE": "Severe"
+    },
+    "sex": {
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other",
+      "UNKNOWN": "Not stated"
+    },
+    "age": {
+      "years": "{n} years",
+      "months": "{n} months",
+      "days": "{n} days"
+    },
+    "queue": {
+      "title": "Consultations",
+      "lead": "Patients who arrived in your services and have not been seen yet, oldest first. Emergencies are flagged.",
+      "refresh": "Refresh",
+      "waiting": "Waiting patients",
+      "recent": "My recent consultations",
+      "patient": "Patient",
+      "type": "Type",
+      "arrival": "Arrival",
+      "state": "Status",
+      "number": "Number",
+      "diagnosis": "Primary diagnosis",
+      "types": {
+        "OUTPATIENT": "Outpatient",
+        "EMERGENCY": "Emergency"
+      },
+      "inProgress": "In progress",
+      "toSee": "To be seen",
+      "empty": "No patient is waiting in your services.",
+      "noRecent": "No recent consultation.",
+      "start": "Start",
+      "startOf": "Start the consultation of {name}",
+      "resume": "Resume",
+      "resumeOf": "Resume consultation {number}",
+      "open": "Open",
+      "openOf": "Open consultation {number}",
+      "waitedMinutes": "waiting for {minutes} min",
+      "waitedHours": "waiting for {hours} h {minutes}"
+    },
+    "encounter": {
+      "back": "Back to consultations",
+      "born": "born on {date}",
+      "signedNotice": "Consultation signed by {who} on {when}. It can no longer be edited: complete it with an addendum.",
+      "cancelledNotice": "Consultation cancelled by {who}: {reason}",
+      "readOnly": "This consultation is conducted by {who}: you are viewing it read-only."
+    },
+    "vitals": {
+      "title": "Vital signs",
+      "none": "No vital signs recorded.",
+      "recordedBy": "Recorded by {who} on {when}",
+      "saved": "Vital signs saved ({number}).",
+      "submit": "Save vital signs",
+      "decimalInvalid": "Enter a number with at most one decimal.",
+      "integerInvalid": "Enter a whole number.",
+      "temperature": "Temperature (°C)",
+      "pulse": "Pulse (/min)",
+      "systolic": "Systolic pressure (mmHg)",
+      "diastolic": "Diastolic pressure (mmHg)",
+      "respiratoryRate": "Respiratory rate (/min)",
+      "spo2": "Oxygen saturation (%)",
+      "weightKg": "Weight (kg)",
+      "heightCm": "Height (cm)",
+      "bmi": "BMI (kg/m²)"
+    },
+    "note": {
+      "title": "Consultation note",
+      "chiefComplaint": "Chief complaint",
+      "history": "History of present illness",
+      "examination": "Clinical examination",
+      "assessment": "Assessment",
+      "assessmentHint": "Required to sign the consultation.",
+      "plan": "Plan",
+      "submit": "Save the note",
+      "saved": "Note of consultation {number} saved."
+    },
+    "diagnoses": {
+      "title": "Diagnoses (ICD-10)",
+      "none": "No diagnosis.",
+      "code": "Code",
+      "label": "Label",
+      "kind": "Rank",
+      "certainty": "Certainty",
+      "kinds": {
+        "PRIMARY": "Primary",
+        "SECONDARY": "Secondary"
+      },
+      "certainties": {
+        "PROVISIONAL": "Provisional",
+        "CONFIRMED": "Confirmed"
+      },
+      "add": "Add a diagnosis",
+      "remove": "Remove",
+      "removeOf": "Remove diagnosis {n}",
+      "rowOf": "Diagnosis {n}",
+      "save": "Save the diagnoses",
+      "saved": "Diagnoses of consultation {number} saved.",
+      "codeInvalid": "Diagnosis {n}: invalid ICD-10 code (for example J18.9).",
+      "labelRequired": "Diagnosis {n}: the label is required."
+    },
+    "sign": {
+      "title": "Signature",
+      "lead": "Save the note and the diagnoses before signing. A signed consultation is locked.",
+      "missing": {
+        "PRIMARY_DIAGNOSIS": "A primary diagnosis is required.",
+        "ASSESSMENT": "The note assessment is required."
+      },
+      "submit": "Sign the consultation",
+      "done": "Consultation {number} signed."
+    },
+    "addendum": {
+      "title": "Addenda",
+      "none": "No addendum.",
+      "by": "Addendum {n} · {who} · {when}",
+      "text": "Addendum",
+      "hint": "Completes or corrects the signed consultation; dated and signed, it can no longer be edited.",
+      "required": "The addendum text is required.",
+      "submit": "Add the addendum",
+      "done": "Addendum added to consultation {number}."
+    },
+    "cancel": {
+      "open": "Cancel the consultation",
+      "title": "Cancel the consultation",
+      "warningTitle": "Permanent cancellation",
+      "warningText": "Use it for a consultation opened by mistake. It cannot be resumed.",
+      "reason": "Reason for cancelling",
+      "submit": "Cancel the consultation",
+      "keep": "Keep the consultation",
+      "done": "Consultation {number} cancelled."
+    },
+    "allergy": {
+      "title": "Allergies",
+      "none": "No known allergy",
+      "add": "Add an allergy",
+      "addTitle": "New allergy",
+      "substance": "Substance",
+      "substanceHint": "Drug, food, latex…",
+      "substanceRequired": "The substance is required.",
+      "severity": "Severity",
+      "severityPlaceholder": "Choose the severity",
+      "severityRequired": "The severity is required.",
+      "reaction": "Reaction (optional)",
+      "submit": "Save the allergy",
+      "done": "Allergy saved.",
+      "void": "Entered in error",
+      "voidOf": "Mark {substance} as entered in error",
+      "voidTitle": "Entered in error: {substance}",
+      "voidWarningTitle": "The allergy leaves the active list",
+      "voidWarningText": "It stays in the record, marked as entered in error.",
+      "voidReason": "Reason",
+      "voidSubmit": "Mark as entered in error",
+      "voided": "Allergy “{substance}” removed from the active list."
+    }
   }
 }

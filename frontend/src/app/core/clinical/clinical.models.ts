@@ -1,0 +1,157 @@
+/** Les codes sont stables, l'interface les traduit (`clinical.severity.<CODE>`, `clinical.status.<CODE>`…). */
+export const ENCOUNTER_STATUSES = ['IN_PROGRESS', 'SIGNED', 'CANCELLED'] as const;
+export type EncounterStatus = (typeof ENCOUNTER_STATUSES)[number];
+
+export const SEVERITIES = ['MILD', 'MODERATE', 'SEVERE'] as const;
+export type Severity = (typeof SEVERITIES)[number];
+
+export const DIAGNOSIS_KINDS = ['PRIMARY', 'SECONDARY'] as const;
+export type DiagnosisKind = (typeof DIAGNOSIS_KINDS)[number];
+
+export const CERTAINTIES = ['PROVISIONAL', 'CONFIRMED'] as const;
+export type Certainty = (typeof CERTAINTIES)[number];
+
+export interface Page<T> {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly offset: number;
+  readonly limit: number;
+}
+
+export interface UserRef {
+  readonly id: string;
+  readonly username: string;
+}
+
+export interface PatientSummary {
+  readonly id: string;
+  readonly number: string;
+  readonly lastName: string;
+  readonly firstName: string;
+  readonly sex: string;
+  /** `AAAA-MM-JJ`. */
+  readonly birthDate: string;
+}
+
+export interface Allergy {
+  readonly id: string;
+  readonly patientId: string;
+  readonly substance: string;
+  readonly reaction: string | null;
+  readonly severity: Severity;
+  readonly status: 'ACTIVE' | 'ENTERED_IN_ERROR';
+  readonly recordedBy: UserRef | null;
+  readonly recordedAt: string;
+  readonly voidedBy: UserRef | null;
+  readonly voidedAt: string | null;
+  readonly voidReason: string | null;
+}
+
+export interface AllergyInput {
+  readonly substance: string;
+  readonly reaction?: string | null;
+  readonly severity: Severity;
+}
+
+export interface AllergyChanges {
+  readonly reaction?: string | null;
+  readonly severity?: Severity;
+}
+
+export interface Vitals {
+  readonly temperature: number | null;
+  readonly pulse: number | null;
+  readonly systolic: number | null;
+  readonly diastolic: number | null;
+  readonly respiratoryRate: number | null;
+  readonly spo2: number | null;
+  readonly weightKg: number | null;
+  readonly heightCm: number | null;
+  /** Calculé par le serveur quand le poids et la taille sont connus. */
+  readonly bmi: number | null;
+  readonly recordedBy: UserRef | null;
+  readonly recordedAt: string;
+}
+
+export type VitalsInput = { readonly [K in keyof Omit<Vitals, 'bmi' | 'recordedBy' | 'recordedAt'>]?: number | null };
+
+export interface Note {
+  readonly chiefComplaint: string | null;
+  readonly history: string | null;
+  readonly examination: string | null;
+  readonly assessment: string | null;
+  readonly plan: string | null;
+}
+
+export type NoteInput = { readonly [K in keyof Note]?: string | null };
+
+export interface Diagnosis {
+  readonly code: string;
+  readonly label: string;
+  readonly kind: DiagnosisKind;
+  readonly certainty: Certainty;
+}
+
+export interface Addendum {
+  readonly seq: number;
+  readonly text: string;
+  readonly by: UserRef | null;
+  readonly at: string;
+}
+
+export interface Encounter {
+  readonly id: string;
+  readonly number: string;
+  readonly status: EncounterStatus;
+  readonly patient: PatientSummary | null;
+  readonly serviceId: string;
+  readonly admissionId: string | null;
+  readonly doctor: UserRef | null;
+  readonly startedAt: string;
+  readonly vitals: Vitals | null;
+  readonly note: Note;
+  readonly diagnoses: readonly Diagnosis[];
+  /** `PRIMARY_DIAGNOSIS`, `ASSESSMENT` : ce qu'il manque pour signer (vide : on peut signer). */
+  readonly missingForSignature: readonly ('PRIMARY_DIAGNOSIS' | 'ASSESSMENT')[];
+  readonly signedBy: UserRef | null;
+  readonly signedAt: string | null;
+  readonly addenda: readonly Addendum[];
+  readonly cancelledBy: UserRef | null;
+  readonly cancelledAt: string | null;
+  readonly cancellationReason: string | null;
+  /** Allergies actives du patient, en bandeau. */
+  readonly allergies: readonly Allergy[];
+}
+
+export interface EncounterSummary {
+  readonly id: string;
+  readonly number: string;
+  readonly patient: PatientSummary | null;
+  readonly serviceId: string;
+  readonly doctor: UserRef | null;
+  readonly status: EncounterStatus;
+  readonly startedAt: string;
+  readonly signedAt: string | null;
+  readonly primaryDiagnosis: { readonly code: string; readonly label: string } | null;
+}
+
+export interface EncounterFilter {
+  readonly status?: EncounterStatus;
+  readonly patientId?: string;
+  /** Seulement les consultations de l'appelant. */
+  readonly mine?: boolean;
+}
+
+export interface QueueItem {
+  readonly admission: { readonly id: string; readonly number: string; readonly type: 'OUTPATIENT' | 'EMERGENCY'; readonly admittedAt: string; readonly serviceId: string };
+  readonly patient: PatientSummary | null;
+  /** Consultation en cours pour cette admission ; absente : le patient attend. */
+  readonly encounter: { readonly id: string; readonly number: string; readonly doctor: UserRef | null; readonly mine: boolean } | null;
+}
+
+export interface DiagnosisInput {
+  readonly code: string;
+  readonly label: string;
+  readonly kind: DiagnosisKind;
+  readonly certainty?: Certainty;
+}
