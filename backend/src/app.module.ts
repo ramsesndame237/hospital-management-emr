@@ -27,6 +27,7 @@ import { LabIntegrationModule } from './integration/lab.integration';
 import { PharmacyIntegrationModule } from './integration/pharmacy.integration';
 import { ClinicalIntegrationModule } from './integration/clinical.integration';
 import { DispensingIntegrationModule } from './integration/dispensing.integration';
+import { VisitLinksIntegrationModule } from './integration/visit-links.integration';
 import { ServiceAccessIntegrationModule } from './integration/service-access.integration';
 import { AuthorizationIntegrationModule } from './integration/authorization.integration';
 import { ApiDocsIntegrationModule } from './integration/api-docs.integration';
@@ -72,7 +73,7 @@ export class AppModule {
       }),
     );
     // Les modules métier exigent la base (comptes, audit) : sans elle (`DB_ENABLED=false`) seule la sonde de santé répond.
-    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), ReferentialsModule.register(), AdministrationIntegrationModule.register(), AdministrationModule.register(), StaffIntegrationModule.register(), StaffModule.register(), AuthorizationIntegrationModule.register(), AuditModule.register(), PatientsModule.register(), ServiceAccessIntegrationModule.register(), AppointmentsIntegrationModule.register(), AppointmentsModule.register(), AdmissionsIntegrationModule.register(), AdmissionsModule.register(), BillingIntegrationModule.register(), BillingModule.register(), LabIntegrationModule.register(), LabModule.register(), PharmacyIntegrationModule.register(), PharmacyModule.register(), ClinicalIntegrationModule.register(), ClinicalModule.register(), DispensingIntegrationModule.register());
+    if (useDb) imports.push(PlatformModule.register(), IamModule.register(), ReferentialsModule.register(), AdministrationIntegrationModule.register(), AdministrationModule.register(), StaffIntegrationModule.register(), StaffModule.register(), AuthorizationIntegrationModule.register(), AuditModule.register(), PatientsModule.register(), ServiceAccessIntegrationModule.register(), AppointmentsIntegrationModule.register(), AppointmentsModule.register(), AdmissionsIntegrationModule.register(), AdmissionsModule.register(), BillingIntegrationModule.register(), BillingModule.register(), LabIntegrationModule.register(), LabModule.register(), PharmacyIntegrationModule.register(), PharmacyModule.register(), ClinicalIntegrationModule.register(), ClinicalModule.register(), DispensingIntegrationModule.register(), VisitLinksIntegrationModule.register());
     // Toujours présent (accès `null` sans base) : voir `ApiDocsIntegrationModule`.
     imports.push(ApiDocsIntegrationModule.register({ identity: useDb }));
     return {

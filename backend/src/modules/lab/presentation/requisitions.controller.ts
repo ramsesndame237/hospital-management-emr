@@ -52,6 +52,7 @@ export class LabRequisitionsController {
       { name: 'patientId', description: 'Un patient.', example: '3f2b8c1e-7a4d-4e5f-9b60-1c2d3e4f5a6b' },
       { name: 'number', description: 'Un numéro de demande.', example: 'LAB-0000123' },
       { name: 'barcode', description: 'Demande qui porte cet échantillon.', example: 'SPC-0000042' },
+      { name: 'encounterId', description: 'Demandes prescrites pendant cette consultation.', example: '5b0f2b8e-2f5d-4a8c-8f0e-7d9c1a3b4e60' },
       { name: 'offset', description: 'Nombre de demandes à sauter (pagination).', example: 0 },
       { name: 'limit', description: 'Nombre de demandes par page (1 à 200).', example: 50 },
     ],
@@ -66,10 +67,11 @@ export class LabRequisitionsController {
     @Query('patientId') patientId: string | undefined,
     @Query('number') number: string | undefined,
     @Query('barcode') barcode: string | undefined,
+    @Query('encounterId') encounterId: string | undefined,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
   ): Promise<RequisitionPageDto> {
-    return unwrap(await this.listAll.execute(actor.userId, { status, priority, source, section, patientId, number, barcode, offset, limit }));
+    return unwrap(await this.listAll.execute(actor.userId, { status, priority, source, section, patientId, number, barcode, encounterId, offset, limit }));
   }
 
   @DocOperation({

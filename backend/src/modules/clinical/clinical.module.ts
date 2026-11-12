@@ -33,7 +33,7 @@ export class ClinicalModule {
       module: ClinicalModule,
       // Global : la racine de composition relie la pharmacie aux ordonnances et aux allergies (délivrance) sans que la Pharmacie connaisse la Clinique.
       global: true,
-      exports: [PRESCRIPTION_REPOSITORY, ALLERGY_REPOSITORY],
+      exports: [PRESCRIPTION_REPOSITORY, ALLERGY_REPOSITORY, ENCOUNTER_REPOSITORY],
       controllers: [ClinicalEncountersController, ClinicalAllergiesController, ClinicalPrescriptionsController],
       providers: [
         { provide: ENCOUNTER_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgEncounterRepository(sql) },

@@ -108,6 +108,10 @@ export class CreateInvoiceDto {
   @IsUUID()
   patientId!: string;
 
+  @DocProperty({ description: 'L’admission que cette facture règle (facultatif) : elle doit concerner le même patient.', example: '8b9c0d1e-2f3a-4b4c-8d5e-6f7081920a1b', format: 'uuid', optional: true, nullable: true })
+  @IsOptional() @IsUUID()
+  admissionId?: string | null;
+
   @DocProperty({ description: 'Lignes initiales (facultatif : on peut les ajouter ensuite).', type: LineInputDto, itemType: LineInputDto, optional: true })
   @IsOptional() @IsArray() @ArrayMaxSize(100) @ValidateNested({ each: true }) @Type(() => LineInputDto)
   lines?: LineInputDto[];
@@ -217,6 +221,9 @@ export class InvoiceDto {
 
   @DocProperty({ description: '`DRAFT` (en préparation), `ISSUED` (émise), `PARTIALLY_PAID`, `PAID` ou `CANCELLED`.', example: 'ISSUED', enum: STATUSES })
   status!: string;
+
+  @DocProperty({ description: 'L’admission que cette facture règle.', example: null, format: 'uuid', nullable: true })
+  admissionId!: string | null;
 
   @DocProperty({ description: 'Devise (ISO 4217).', example: 'XAF' })
   currency!: string;

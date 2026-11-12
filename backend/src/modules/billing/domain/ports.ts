@@ -40,6 +40,8 @@ export interface InvoiceSummary {
 
 export interface InvoiceFilter {
   readonly patientId?: PatientRef;
+  /** Seulement les factures rattachées à cette admission. */
+  readonly admissionId?: string;
   readonly status?: InvoiceStatus;
   readonly number?: InvoiceNumber;
   /** Bornes sur la date de création : début inclus, fin exclue. */
@@ -80,6 +82,18 @@ export interface PatientInfo {
 /** Les patients appartiennent au module Patients : la racine de composition branche ce port dessus. */
 export interface PatientDirectory {
   find(ids: readonly string[]): Promise<Map<string, PatientInfo>>;
+}
+
+/** Une admission, telle que la facturation a besoin de la connaître pour y rattacher une facture. */
+export interface AdmissionInfo {
+  readonly id: string;
+  readonly patientId: string;
+  readonly number: string;
+}
+
+/** Les admissions appartiennent au module Admissions : la racine de composition branche ce port dessus. */
+export interface AdmissionDirectory {
+  find(id: string): Promise<AdmissionInfo | null>;
 }
 
 export interface ServiceInfo {
@@ -192,5 +206,6 @@ export const BILLING_VARIANCE_LIMIT = Symbol('BILLING_VARIANCE_LIMIT');
 export const ITEM_REPOSITORY = Symbol('BILLING_ITEM_REPOSITORY');
 export const INVOICE_REPOSITORY = Symbol('BILLING_INVOICE_REPOSITORY');
 export const BILLING_PATIENTS = Symbol('BILLING_PATIENTS');
+export const BILLING_ADMISSIONS = Symbol('BILLING_ADMISSIONS');
 export const BILLING_SERVICES = Symbol('BILLING_SERVICES');
 export const BILLING_CURRENCY = Symbol('BILLING_CURRENCY');

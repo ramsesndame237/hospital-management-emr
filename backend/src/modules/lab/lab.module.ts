@@ -10,7 +10,7 @@ import {
   CancelRequisitionUseCase, FindBySpecimenUseCase, GetRequisitionUseCase, ListRequisitionsUseCase, OrderRequisitionUseCase, RequisitionDependencies, SpecimenUseCases,
 } from './application/use-cases/requisitions';
 import {
-  LAB_PATIENTS, LAB_USERS, PatientDirectory, REQUISITION_REPOSITORY, RequisitionRepository, TEST_REPOSITORY, TestRepository, UserDirectory,
+  EncounterDirectory, LAB_ENCOUNTERS, LAB_PATIENTS, LAB_USERS, PatientDirectory, REQUISITION_REPOSITORY, RequisitionRepository, TEST_REPOSITORY, TestRepository, UserDirectory,
 } from './domain/ports';
 import { PgRequisitionRepository } from './infrastructure/persistence/pg-requisition.repository';
 import { PgTestRepository } from './infrastructure/persistence/pg-test.repository';
@@ -41,9 +41,9 @@ export class LabModule {
         },
         {
           provide: REQUISITION_DEPENDENCIES,
-          inject: [REQUISITION_REPOSITORY, TEST_REPOSITORY, LAB_PATIENTS, LAB_USERS, SERVICE_ACCESS, AUDIT_LOG, CLOCK],
-          useFactory: (requisitions: RequisitionRepository, tests: TestRepository, patients: PatientDirectory, users: UserDirectory, access: ServiceAccess, audit: AuditLog, clock: Clock): RequisitionDependencies => ({
-            requisitions, tests, patients, users, access, audit, clock,
+          inject: [REQUISITION_REPOSITORY, TEST_REPOSITORY, LAB_PATIENTS, LAB_ENCOUNTERS, LAB_USERS, SERVICE_ACCESS, AUDIT_LOG, CLOCK],
+          useFactory: (requisitions: RequisitionRepository, tests: TestRepository, patients: PatientDirectory, encounters: EncounterDirectory, users: UserDirectory, access: ServiceAccess, audit: AuditLog, clock: Clock): RequisitionDependencies => ({
+            requisitions, tests, patients, encounters, users, access, audit, clock,
           }),
         },
         { provide: CreateTestUseCase, inject: [CATALOG_DEPENDENCIES, ID_GENERATOR], useFactory: (d: CatalogDependencies, ids: IdGenerator) => new CreateTestUseCase(d, ids) },

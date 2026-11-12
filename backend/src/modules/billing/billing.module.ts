@@ -14,7 +14,7 @@ import {
   CollectPaymentUseCase, CreateInvoiceUseCase, GetInvoiceUseCase, InvoiceDependencies, ListInvoicesUseCase, ManageInvoiceUseCases, ReprintReceiptUseCase,
 } from './application/use-cases/invoices';
 import {
-  APPROVAL_REPOSITORY, ApprovalRepository, BILLING_CURRENCY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, CASH_SESSION_REPOSITORY, CashSessionRepository, INVOICE_REPOSITORY, InvoiceRepository, ITEM_REPOSITORY, ItemRepository,
+  AdmissionDirectory, APPROVAL_REPOSITORY, ApprovalRepository, BILLING_ADMISSIONS, BILLING_CURRENCY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, CASH_SESSION_REPOSITORY, CashSessionRepository, INVOICE_REPOSITORY, InvoiceRepository, ITEM_REPOSITORY, ItemRepository,
   PatientDirectory, ServiceDirectory, UserDirectory,
 } from './domain/ports';
 import { Currency } from './domain/values';
@@ -55,11 +55,11 @@ export class BillingModule {
         },
         {
           provide: INVOICE_DEPENDENCIES,
-          inject: [INVOICE_REPOSITORY, ITEM_REPOSITORY, BILLING_PATIENTS, CASH_SESSION_REPOSITORY, APPROVAL_REPOSITORY, BILLING_USERS, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_CURRENCY, AUDIT_LOG, CLOCK],
+          inject: [INVOICE_REPOSITORY, ITEM_REPOSITORY, BILLING_PATIENTS, BILLING_ADMISSIONS, CASH_SESSION_REPOSITORY, APPROVAL_REPOSITORY, BILLING_USERS, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_CURRENCY, AUDIT_LOG, CLOCK],
           useFactory: (
-            invoices: InvoiceRepository, items: ItemRepository, patients: PatientDirectory, sessions: CashSessionRepository, approvals: ApprovalRepository, users: UserDirectory,
+            invoices: InvoiceRepository, items: ItemRepository, patients: PatientDirectory, admissions: AdmissionDirectory, sessions: CashSessionRepository, approvals: ApprovalRepository, users: UserDirectory,
             discountApprovalPercent: number, currency: Currency, audit: AuditLog, clock: Clock,
-          ): InvoiceDependencies => ({ invoices, items, patients, sessions, approvals, users, discountApprovalPercent, currency, audit, clock }),
+          ): InvoiceDependencies => ({ invoices, items, patients, admissions, sessions, approvals, users, discountApprovalPercent, currency, audit, clock }),
         },
         {
           provide: APPROVAL_DEPENDENCIES,

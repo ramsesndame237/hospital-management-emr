@@ -48,6 +48,8 @@ export interface RequisitionFilter {
   readonly barcode?: SpecimenBarcode;
   /** Seulement les demandes passées par ce prescripteur (portée « own »). */
   readonly orderedBy?: string;
+  /** Seulement les demandes prescrites pendant cette consultation. */
+  readonly encounterId?: string;
 }
 
 export interface PreviousResult {
@@ -97,5 +99,19 @@ export interface UserDirectory {
 
 export const TEST_REPOSITORY = Symbol('LAB_TEST_REPOSITORY');
 export const REQUISITION_REPOSITORY = Symbol('LAB_REQUISITION_REPOSITORY');
+/** Une consultation, telle que le laboratoire a besoin de la connaître pour y rattacher une demande. */
+export interface EncounterInfo {
+  readonly id: string;
+  readonly patientId: string;
+  /** `IN_PROGRESS`, `SIGNED` ou `CANCELLED`. */
+  readonly status: string;
+}
+
+/** Les consultations appartiennent au module Clinique : la racine de composition branche ce port dessus. */
+export interface EncounterDirectory {
+  find(id: string): Promise<EncounterInfo | null>;
+}
+
 export const LAB_PATIENTS = Symbol('LAB_PATIENTS');
+export const LAB_ENCOUNTERS = Symbol('LAB_ENCOUNTERS');
 export const LAB_USERS = Symbol('LAB_USERS');

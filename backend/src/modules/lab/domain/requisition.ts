@@ -75,6 +75,8 @@ export interface RequisitionState {
   readonly priority: Priority;
   readonly source: Source;
   readonly clinicalNotes: string | null;
+  /** La consultation qui a prescrit ces analyses, quand il y en a une. */
+  readonly encounterId: string | null;
   readonly orderedBy: string;
   readonly orderedAt: Instant;
   readonly tests: readonly OrderedTest[];
@@ -129,7 +131,7 @@ export class Requisition {
   }
 
   static order(input: {
-    id: RequisitionId; number: RequisitionNumber; patientId: PatientRef; priority: Priority; source: Source; clinicalNotes: string | null; orderedBy: string; orderedAt: Instant;
+    id: RequisitionId; number: RequisitionNumber; patientId: PatientRef; priority: Priority; source: Source; clinicalNotes: string | null; encounterId?: string | null; orderedBy: string; orderedAt: Instant;
     tests: readonly TestToOrder[]; specimenIds: readonly SpecimenId[]; barcodes: readonly SpecimenBarcode[];
   }): Result<Requisition> {
     const shape = checkTests(input.tests);
@@ -145,7 +147,7 @@ export class Requisition {
     });
     const tests: OrderedTest[] = input.tests.map((t) => ({ testId: t.testId, code: t.code, name: t.name, section: t.section, specimenId: specimens[groups.indexOf(key(t))].id, result: null }));
     return ok(new Requisition({
-      id: input.id, number: input.number, patientId: input.patientId, priority: input.priority, source: input.source, clinicalNotes: input.clinicalNotes, orderedBy: input.orderedBy,
+      id: input.id, number: input.number, patientId: input.patientId, priority: input.priority, source: input.source, clinicalNotes: input.clinicalNotes, encounterId: input.encounterId ?? null, orderedBy: input.orderedBy,
       orderedAt: input.orderedAt, tests, specimens, cancelledBy: null, cancelledAt: null, cancellationReason: null, version: 0,
     }));
   }

@@ -2,6 +2,9 @@ import { HttpStatus } from '@nestjs/common';
 import { domainHttp } from '../../../common/domain-http';
 
 export const { toHttp, unwrap } = domainHttp({
+  LAB_ENCOUNTER_NOT_FOUND: HttpStatus.NOT_FOUND,
+  LAB_ENCOUNTER_PATIENT_MISMATCH: HttpStatus.CONFLICT,
+  LAB_ENCOUNTER_CANCELLED: HttpStatus.CONFLICT,
   LAB_TEST_NOT_FOUND: HttpStatus.NOT_FOUND,
   LAB_REQUISITION_NOT_FOUND: HttpStatus.NOT_FOUND,
   LAB_SPECIMEN_NOT_FOUND: HttpStatus.NOT_FOUND,
