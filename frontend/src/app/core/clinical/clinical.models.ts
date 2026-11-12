@@ -155,3 +155,71 @@ export interface DiagnosisInput {
   readonly kind: DiagnosisKind;
   readonly certainty?: Certainty;
 }
+
+export type PrescriptionStatus = 'ISSUED' | 'CANCELLED';
+
+/** Une allergie active du patient qui vise un médicament : un motif est exigé pour le prescrire malgré tout. */
+export interface AllergyAlert {
+  readonly allergyId: string;
+  readonly substance: string;
+  readonly severity: Severity;
+}
+
+export interface DrugSummary {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly genericName: string;
+  readonly strength: string | null;
+  readonly form: string;
+  readonly schedule: string;
+  readonly unit: string;
+  readonly active: boolean;
+}
+
+export interface DrugSuggestion extends DrugSummary {
+  readonly allergyAlerts: readonly AllergyAlert[];
+}
+
+export interface PrescriptionLine {
+  readonly position: number;
+  readonly drug: DrugSummary | null;
+  readonly dose: string;
+  readonly frequency: string;
+  readonly durationDays: number | null;
+  readonly quantity: number;
+  readonly instructions: string | null;
+  /** Motif de prescription malgré une allergie connue ; absent : aucune alerte à l'émission. */
+  readonly allergyOverride: string | null;
+}
+
+export interface Prescription {
+  readonly id: string;
+  readonly number: string;
+  readonly encounterId: string;
+  readonly patient: PatientSummary | null;
+  readonly serviceId: string;
+  readonly doctor: UserRef | null;
+  readonly status: PrescriptionStatus;
+  readonly issuedAt: string;
+  readonly notes: string | null;
+  readonly lines: readonly PrescriptionLine[];
+  readonly cancelledBy: UserRef | null;
+  readonly cancelledAt: string | null;
+  readonly cancellationReason: string | null;
+}
+
+export interface PrescriptionLineInput {
+  readonly drugId: string;
+  readonly dose: string;
+  readonly frequency: string;
+  readonly durationDays?: number | null;
+  readonly quantity: number;
+  readonly instructions?: string | null;
+  readonly allergyOverride?: string | null;
+}
+
+export interface PrescriptionInput {
+  readonly notes?: string | null;
+  readonly lines: readonly PrescriptionLineInput[];
+}

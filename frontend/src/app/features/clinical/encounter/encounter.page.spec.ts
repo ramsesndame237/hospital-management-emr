@@ -231,6 +231,29 @@ describe('EncounterPage', () => {
     });
   });
 
+  describe('ordonnances', () => {
+    const RX = [...DOCTOR, 'clinical.prescriptions:read:department', 'clinical.prescriptions:write:department'];
+
+    it('propose d’émettre une ordonnance au médecin de la consultation en cours', async () => {
+      await setup({ permissions: RX });
+      expect(clinical.listPrescriptions).toHaveBeenCalledWith('e-1');
+      expect(text()).toContain('Ordonnances');
+      expect(buttonNamed('Nouvelle ordonnance')).toBeDefined();
+    });
+
+    it('les montre en lecture seule à un confrère et une fois la consultation signée', async () => {
+      await setup({ permissions: RX, userId: colleague.id });
+      expect(text()).toContain('Ordonnances');
+      expect(buttonNamed('Nouvelle ordonnance')).toBeUndefined();
+    });
+
+    it('n’affiche pas la section sans le droit de lire les ordonnances', async () => {
+      await setup();
+      expect(clinical.listPrescriptions).not.toHaveBeenCalled();
+      expect(text()).not.toContain('Nouvelle ordonnance');
+    });
+  });
+
   describe('allergies', () => {
     it('enregistre une nouvelle allergie puis recharge la consultation', async () => {
       await setup();

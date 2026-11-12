@@ -3,7 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
-import { Allergy, AllergyChanges, AllergyInput, DiagnosisInput, Encounter, EncounterFilter, EncounterSummary, NoteInput, Page, QueueItem, VitalsInput } from './clinical.models';
+import {
+  Allergy, AllergyChanges, AllergyInput, DiagnosisInput, DrugSuggestion, Encounter, EncounterFilter, EncounterSummary, NoteInput, Page, Prescription, PrescriptionInput, QueueItem, VitalsInput,
+} from './clinical.models';
 
 /**
  * Port d'accès au dossier clinique : file d'attente du médecin, consultations (constantes, note SOAP, diagnostics, signature, addenda) et
@@ -32,6 +34,12 @@ export abstract class ClinicalGateway {
   abstract updateAllergy(id: string, changes: AllergyChanges): Promise<Allergy>;
   /** Déclare une saisie erronée : l'allergie sort de la liste active mais reste au dossier. */
   abstract voidAllergy(id: string, reason: string): Promise<Allergy>;
+  /** Médicaments actifs du formulaire, avec les alertes d'allergie du patient de la consultation ; moins de 2 caractères : aucun résultat. */
+  abstract searchDrugs(encounterId: string, text: string): Promise<readonly DrugSuggestion[]>;
+  abstract listPrescriptions(encounterId: string): Promise<readonly Prescription[]>;
+  /** 409 `CLINICAL_ALLERGY_CONFLICT` quand une allergie vise un médicament sans motif, `CLINICAL_ENCOUNTER_LOCKED` sur une consultation signée. */
+  abstract issuePrescription(encounterId: string, input: PrescriptionInput): Promise<Prescription>;
+  abstract cancelPrescription(id: string, reason: string): Promise<Prescription>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/clinical`. */
@@ -96,6 +104,22 @@ export class HttpClinicalGateway extends ClinicalGateway {
 
   override voidAllergy(id: string, reason: string): Promise<Allergy> {
     return this.call(this.http.post<Allergy>(`${this.base}/allergies/${id}/void`, { reason }));
+  }
+
+  override searchDrugs(encounterId: string, text: string): Promise<readonly DrugSuggestion[]> {
+    return this.call(this.http.get<DrugSuggestion[]>(`${this.base}/encounters/${encounterId}/drugs`, { params: { search: text } }));
+  }
+
+  override listPrescriptions(encounterId: string): Promise<readonly Prescription[]> {
+    return this.call(this.http.get<Prescription[]>(`${this.base}/encounters/${encounterId}/prescriptions`));
+  }
+
+  override issuePrescription(encounterId: string, input: PrescriptionInput): Promise<Prescription> {
+    return this.call(this.http.post<Prescription>(`${this.base}/encounters/${encounterId}/prescriptions`, input));
+  }
+
+  override cancelPrescription(id: string, reason: string): Promise<Prescription> {
+    return this.call(this.http.post<Prescription>(`${this.base}/prescriptions/${id}/cancel`, { reason }));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

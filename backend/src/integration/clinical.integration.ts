@@ -3,18 +3,22 @@ import { ADMISSION_REPOSITORY } from '../modules/admissions/domain/ports';
 import type { AdmissionRepository } from '../modules/admissions/domain/ports';
 import { Admission } from '../modules/admissions/domain/admission';
 import { AdmissionId, AdmissionStatus, AdmissionType } from '../modules/admissions/domain/values';
-import { CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS } from '../modules/clinical/domain/ports';
-import type { PatientDirectory, PatientInfo, UserDirectory, VisitDirectory, VisitInfo } from '../modules/clinical/domain/ports';
+import { CLINICAL_DRUGS, CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS } from '../modules/clinical/domain/ports';
+import type { DrugDirectory, DrugInfo, PatientDirectory, PatientInfo, UserDirectory, VisitDirectory, VisitInfo } from '../modules/clinical/domain/ports';
 import { USER_REPOSITORY } from '../modules/iam/domain/ports';
 import type { UserRepository } from '../modules/iam/domain/ports';
 import { UserId } from '../modules/iam/domain/value-objects/user-id';
+import { DRUG_REPOSITORY } from '../modules/pharmacy/domain/ports';
+import type { DrugRepository } from '../modules/pharmacy/domain/ports';
+import { Drug } from '../modules/pharmacy/domain/drug';
+import { DrugId } from '../modules/pharmacy/domain/values';
 import { PATIENT_REPOSITORY } from '../modules/patients/domain/ports';
 import type { PatientRepository } from '../modules/patients/domain/ports';
 import { PatientId } from '../modules/patients/domain/values';
 
 /**
  * Racine de composition : c'est ici, et seulement ici, que le module Clinique est relié aux Patients (identité du bandeau), à l'IAM (noms des
- * soignants) et aux Admissions (l'arrivée d'un patient ouvre la consultation). Aucun de ces modules ne connaît les autres.
+ * soignants), aux Admissions (l'arrivée d'un patient ouvre la consultation) et à la Pharmacie (le formulaire des médicaments prescrits). Aucun de ces modules ne connaît les autres.
  */
 export class PatientsForClinical implements PatientDirectory {
   constructor(private readonly patients: PatientRepository) {}
@@ -66,6 +70,27 @@ export class VisitsForClinical implements VisitDirectory {
   }
 }
 
+const drugOf = (d: Drug): DrugInfo => {
+  const s = d.state;
+  return { id: d.id.value, code: s.code.value, name: s.name.value, genericName: s.genericName.value, strength: s.strength, form: s.form, schedule: s.schedule, unit: s.unit, active: s.active };
+};
+
+export class DrugsForClinical implements DrugDirectory {
+  constructor(private readonly drugs: DrugRepository) {}
+
+  async find(ids: readonly string[]): Promise<Map<string, DrugInfo>> {
+    const refs = ids.flatMap((raw) => {
+      const id = DrugId.create(raw);
+      return id.ok ? [id.value] : [];
+    });
+    return new Map((await this.drugs.findByIds(refs)).map((d) => [d.id.value, drugOf(d)]));
+  }
+
+  async search(text: string, limit: number): Promise<DrugInfo[]> {
+    return (await this.drugs.list({ search: text, includeInactive: false }, 0, limit)).items.map(drugOf);
+  }
+}
+
 @Module({})
 export class ClinicalIntegrationModule {
   static register(): DynamicModule {
@@ -77,8 +102,9 @@ export class ClinicalIntegrationModule {
         { provide: CLINICAL_PATIENTS, inject: [PATIENT_REPOSITORY], useFactory: (p: PatientRepository) => new PatientsForClinical(p) },
         { provide: CLINICAL_USERS, inject: [USER_REPOSITORY], useFactory: (u: UserRepository) => new UsersForClinical(u) },
         { provide: CLINICAL_VISITS, inject: [ADMISSION_REPOSITORY], useFactory: (a: AdmissionRepository) => new VisitsForClinical(a) },
+        { provide: CLINICAL_DRUGS, inject: [DRUG_REPOSITORY], useFactory: (d: DrugRepository) => new DrugsForClinical(d) },
       ],
-      exports: [CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS],
+      exports: [CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS, CLINICAL_DRUGS],
     };
   }
 }

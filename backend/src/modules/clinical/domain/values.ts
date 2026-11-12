@@ -82,3 +82,30 @@ export function requiredText(raw: string, max: number, code: string, message: st
   const text = (raw ?? '').trim();
   return text.length >= 1 && text.length <= max ? ok(text) : err(new DomainError(code, message, { max }));
 }
+
+export class PrescriptionId extends ValueObject<string> {
+  static create(raw: string): Result<PrescriptionId> {
+    const r = uuid(raw, 'CLINICAL_PRESCRIPTION_ID_INVALID', "L'identifiant de cette ordonnance est invalide.");
+    return r.ok ? ok(new PrescriptionId(r.value)) : err(r.error);
+  }
+}
+
+/** Le médicament prescrit (module Pharmacie) : ce module n'en connaît que l'identifiant. */
+export class DrugRef extends ValueObject<string> {
+  static create(raw: string): Result<DrugRef> {
+    const r = uuid(raw, 'CLINICAL_DRUG_INVALID', "L'identifiant du médicament est invalide.");
+    return r.ok ? ok(new DrugRef(r.value)) : err(r.error);
+  }
+}
+
+/** Numéro d'ordonnance, attribué par le système. */
+export class PrescriptionNumber extends ValueObject<string> {
+  static create(raw: string): Result<PrescriptionNumber> {
+    const normalized = (raw ?? '').trim().toUpperCase();
+    return /^RX-\d{7,12}$/.test(normalized) ? ok(new PrescriptionNumber(normalized)) : err(new DomainError('CLINICAL_PRESCRIPTION_NUMBER_INVALID', "Numéro d'ordonnance invalide."));
+  }
+
+  static fromSequence(n: number): Result<PrescriptionNumber> {
+    return PrescriptionNumber.create(`RX-${String(n).padStart(7, '0')}`);
+  }
+}

@@ -163,3 +163,90 @@ UPDATE iam_roles
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['clinical.allergies:read']) AS p ORDER BY p)
  WHERE code = 'PHARMACIST';
+
+-- ---------------------------------------------------------------------------------------------------------------------------------------------
+-- Tranche 2 : ordonnances. Une ordonnance est émise pendant une consultation en cours par le médecin qui la conduit ; elle ne se réécrit plus
+-- (seul son statut passe de ISSUED à CANCELLED, avec un motif). Les médicaments viennent du formulaire de la pharmacie (clé étrangère).
+-- ---------------------------------------------------------------------------------------------------------------------------------------------
+CREATE SEQUENCE IF NOT EXISTS clinical_prescription_number_seq;
+
+CREATE TABLE IF NOT EXISTS clinical_prescriptions (
+  id                   uuid PRIMARY KEY,
+  prescription_number  text NOT NULL CHECK (prescription_number ~ '^RX-[0-9]{7,12}$'),
+  encounter_id         uuid NOT NULL REFERENCES clinical_encounters (id),
+  patient_id           uuid NOT NULL REFERENCES patients (id),
+  service_id           uuid NOT NULL REFERENCES administration_structure_nodes (id),
+  doctor_id            uuid NOT NULL,
+  status               text NOT NULL CHECK (status IN ('ISSUED', 'CANCELLED')),
+  issued_at            timestamptz NOT NULL,
+  notes                text CHECK (notes IS NULL OR length(notes) BETWEEN 1 AND 300),
+  cancelled_by         uuid,
+  cancelled_at         timestamptz,
+  cancellation_reason  text CHECK (cancellation_reason IS NULL OR length(cancellation_reason) BETWEEN 1 AND 200),
+  version              integer NOT NULL DEFAULT 0,
+  updated_at           timestamptz NOT NULL DEFAULT now(),
+  CHECK ((status = 'CANCELLED') = (cancelled_at IS NOT NULL AND cancelled_by IS NOT NULL AND cancellation_reason IS NOT NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_clinical_prescriptions_number ON clinical_prescriptions (prescription_number);
+CREATE INDEX IF NOT EXISTS ix_clinical_prescriptions_encounter ON clinical_prescriptions (encounter_id, issued_at);
+CREATE INDEX IF NOT EXISTS ix_clinical_prescriptions_patient ON clinical_prescriptions (patient_id, issued_at DESC);
+CREATE INDEX IF NOT EXISTS ix_clinical_prescriptions_service ON clinical_prescriptions (service_id, status, issued_at DESC);
+
+CREATE TABLE IF NOT EXISTS clinical_prescription_lines (
+  prescription_id   uuid NOT NULL REFERENCES clinical_prescriptions (id),
+  position          smallint NOT NULL CHECK (position >= 0),
+  drug_id           uuid NOT NULL REFERENCES pharmacy_drugs (id),
+  dose              text NOT NULL CHECK (length(dose) BETWEEN 1 AND 60),
+  frequency         text NOT NULL CHECK (length(frequency) BETWEEN 1 AND 60),
+  duration_days     smallint CHECK (duration_days IS NULL OR duration_days BETWEEN 1 AND 365),
+  quantity          integer NOT NULL CHECK (quantity BETWEEN 1 AND 10000),
+  instructions      text CHECK (instructions IS NULL OR length(instructions) BETWEEN 1 AND 200),
+  -- Motif du médecin qui prescrit malgré une allergie connue du patient à ce médicament ; absent quand il n'y avait aucune alerte.
+  allergy_override  text CHECK (allergy_override IS NULL OR length(allergy_override) BETWEEN 3 AND 200),
+  PRIMARY KEY (prescription_id, position),
+  UNIQUE (prescription_id, drug_id)
+);
+
+-- Une ordonnance ne naît que d'une consultation en cours ; ses lignes ne se réécrivent ni ne s'effacent ; elle ne s'efface pas, et une fois
+-- annulée elle ne bouge plus.
+CREATE OR REPLACE FUNCTION clinical_prescriptions_guard() RETURNS trigger AS $$
+DECLARE parent text;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'clinical_prescriptions : suppression interdite' USING ERRCODE = 'restrict_violation';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    SELECT status INTO parent FROM clinical_encounters WHERE id = NEW.encounter_id;
+    IF parent IS DISTINCT FROM 'IN_PROGRESS' THEN
+      RAISE EXCEPTION 'clinical_prescriptions : une ordonnance ne se rédige que pendant une consultation en cours' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF OLD.status <> 'ISSUED' THEN
+    RAISE EXCEPTION 'clinical_prescriptions : une ordonnance % ne peut plus être modifiée', OLD.status USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_clinical_prescriptions_guard ON clinical_prescriptions;
+CREATE TRIGGER trg_clinical_prescriptions_guard BEFORE INSERT OR UPDATE OR DELETE ON clinical_prescriptions FOR EACH ROW EXECUTE FUNCTION clinical_prescriptions_guard();
+
+CREATE OR REPLACE FUNCTION clinical_prescription_lines_guard() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    RAISE EXCEPTION 'clinical_prescription_lines est en ajout seul : % interdit', TG_OP USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_clinical_prescription_lines_guard ON clinical_prescription_lines;
+CREATE TRIGGER trg_clinical_prescription_lines_guard BEFORE INSERT OR UPDATE OR DELETE ON clinical_prescription_lines FOR EACH ROW EXECUTE FUNCTION clinical_prescription_lines_guard();
+
+-- Droits. Le médecin prescrit dans ses services ; l'infirmier les lit. (Le pharmacien les lira avec la dispensation.)
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['clinical.prescriptions:read:department', 'clinical.prescriptions:write:department']) AS p ORDER BY p)
+ WHERE code = 'DOCTOR';
+
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['clinical.prescriptions:read:department']) AS p ORDER BY p)
+ WHERE code = 'NURSE';
