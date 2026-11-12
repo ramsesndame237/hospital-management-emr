@@ -148,3 +148,53 @@ export interface Occupancy {
   readonly free: number;
   readonly beds: readonly OccupancyBed[];
 }
+
+export const APPOINTMENT_STATUSES = ['SCHEDULED', 'ARRIVED', 'CANCELLED', 'NO_SHOW'] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
+
+export interface Appointment {
+  readonly id: string;
+  readonly number: string;
+  readonly status: AppointmentStatus;
+  readonly startsAt: string;
+  readonly endsAt: string;
+  readonly durationMinutes: number;
+  readonly patient: { readonly id: string; readonly number: string; readonly lastName: string; readonly firstName: string } | null;
+  readonly practitioner: { readonly id: string; readonly staffNumber: string; readonly lastName: string; readonly firstName: string } | null;
+  readonly locationId: string;
+  readonly serviceId: string;
+  readonly reasonCode: string | null;
+  readonly cancellationReason: string | null;
+}
+
+export interface AppointmentFilter {
+  /** Début inclus et fin exclue de la période (ISO 8601 avec fuseau). */
+  readonly from?: string;
+  readonly to?: string;
+  readonly serviceId?: string;
+  readonly status?: AppointmentStatus;
+  readonly patientId?: string;
+}
+
+export interface AppointmentInput {
+  readonly patientId: string;
+  readonly practitionerId: string;
+  readonly locationId: string;
+  readonly startsAt: string;
+  readonly durationMinutes: number;
+}
+
+export interface AppointmentChanges {
+  readonly startsAt?: string;
+  readonly durationMinutes?: number;
+  readonly practitionerId?: string;
+}
+
+/** Un professionnel actuellement affecté à un service : de quoi choisir qui reçoit le patient. */
+export interface Practitioner {
+  readonly id: string;
+  readonly staffNumber: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly professionCode: string;
+}

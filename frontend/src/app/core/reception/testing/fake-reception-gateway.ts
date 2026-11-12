@@ -1,5 +1,7 @@
 import { ReceptionGateway } from '../reception.gateway';
-import { Admission, AdmissionFilter, Occupancy, OpenAdmissionInput, Page, Patient, PatientCriteria, PatientInput, PatientSummary, Service } from '../reception.models';
+import {
+  Admission, AdmissionFilter, Appointment, AppointmentChanges, AppointmentFilter, AppointmentInput, Occupancy, OpenAdmissionInput, Page, Patient, PatientCriteria, PatientInput, PatientSummary, Practitioner, Service,
+} from '../reception.models';
 
 export const page = <T>(items: readonly T[], over: Partial<Page<T>> = {}): Page<T> => ({ items, total: items.length, offset: 0, limit: 20, ...over });
 
@@ -28,6 +30,14 @@ export const occupancy = (over: Partial<Occupancy> = {}): Occupancy => ({
   ], ...over,
 });
 
+export const practitioner = (over: Partial<Practitioner> = {}): Practitioner => ({ id: 'st-1', staffNumber: 'D-PED', firstName: 'Marie', lastName: 'Curie', professionCode: 'DOCTOR', ...over });
+
+export const appointment = (over: Partial<Appointment> = {}): Appointment => ({
+  id: 'rdv-1', number: 'RDV-0000045', status: 'SCHEDULED', startsAt: '2026-10-24T09:00:00Z', endsAt: '2026-10-24T09:30:00Z', durationMinutes: 30,
+  patient: { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth' }, practitioner: { id: 'st-1', staffNumber: 'D-PED', lastName: 'Curie', firstName: 'Marie' },
+  locationId: 'svc-ped', serviceId: 'svc-ped', reasonCode: null, cancellationReason: null, ...over,
+});
+
 /** Double de test du port `ReceptionGateway` : chaque méthode est un mock Vitest que le test configure. */
 export class FakeReceptionGateway extends ReceptionGateway {
   override searchPatients = vi.fn<(criteria: PatientCriteria, offset: number, limit: number) => Promise<Page<PatientSummary>>>().mockResolvedValue(page([summary()]));
@@ -51,4 +61,16 @@ export class FakeReceptionGateway extends ReceptionGateway {
   override transferAdmission = vi.fn<(id: string, target: { bedId?: string; serviceId?: string }) => Promise<Admission>>().mockImplementation((id, target) =>
     Promise.resolve(admission({ id, serviceId: target.serviceId ?? 'svc-ped' })),
   );
+  override listAppointments = vi.fn<(filter: AppointmentFilter, offset: number, limit: number) => Promise<Page<Appointment>>>().mockResolvedValue(page([appointment()]));
+  override listPractitioners = vi.fn<(serviceId: string) => Promise<readonly Practitioner[]>>().mockResolvedValue([practitioner()]);
+  override scheduleAppointment = vi.fn<(input: AppointmentInput) => Promise<Appointment>>().mockImplementation((input) =>
+    Promise.resolve(appointment({ id: 'rdv-new', number: 'RDV-0000046', startsAt: input.startsAt, durationMinutes: input.durationMinutes, serviceId: input.locationId, locationId: input.locationId })),
+  );
+  override rescheduleAppointment = vi.fn<(id: string, changes: AppointmentChanges) => Promise<Appointment>>().mockImplementation((id, changes) =>
+    Promise.resolve(appointment({ id, ...(changes.startsAt ? { startsAt: changes.startsAt } : {}) })),
+  );
+  override cancelAppointment = vi.fn<(id: string, reason: string) => Promise<Appointment>>().mockImplementation((id, reason) =>
+    Promise.resolve(appointment({ id, status: 'CANCELLED', cancellationReason: reason })),
+  );
+  override markNoShow = vi.fn<(id: string) => Promise<Appointment>>().mockImplementation((id) => Promise.resolve(appointment({ id, status: 'NO_SHOW' })));
 }

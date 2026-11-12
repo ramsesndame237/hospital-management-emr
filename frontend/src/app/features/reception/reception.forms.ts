@@ -1,4 +1,6 @@
-import { ADMISSION_STATUSES, ADMISSION_TYPES, AdmissionStatus, AdmissionType, DISCHARGE_TYPES, DOCUMENT_TYPES, MARITAL_STATUSES, OccupancyBed, Patient, PatientInput, RELATIONSHIPS, SEXES, Service } from '../../core/reception/reception.models';
+import {
+  ADMISSION_STATUSES, ADMISSION_TYPES, APPOINTMENT_STATUSES, AdmissionStatus, AdmissionType, DISCHARGE_TYPES, DOCUMENT_TYPES, MARITAL_STATUSES, OccupancyBed, Patient, PatientInput, Practitioner, RELATIONSHIPS, SEXES, Service,
+} from '../../core/reception/reception.models';
 import { failureNotice } from '../../shared/failure-message';
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 
@@ -152,5 +154,62 @@ export function admissionFilterFields(): FieldSchema[] {
   return [
     { type: 'select', name: 'status', label: 'reception.admission.status', span: 4, value: 'IN_PROGRESS', options: [all, ...options(ADMISSION_STATUSES as readonly AdmissionStatus[], 'reception.admission.statuses')] },
     { type: 'select', name: 'type', label: 'reception.admission.type', span: 4, value: '', options: [all, ...options(ADMISSION_TYPES as readonly AdmissionType[], 'reception.admission.types')] },
+  ];
+}
+
+const TIME = '^([01]\\d|2[0-3]):[0-5]\\d$';
+export const DURATIONS = ['15', '20', '30', '45', '60', '90'] as const;
+const durationOptions = (): OptionSpec[] => DURATIONS.map((d) => ({ value: d, label: `reception.agenda.minutes.${d}` }));
+const serviceOptions = (services: readonly Service[]): OptionSpec[] => services.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }));
+
+/** Filtre de l'agenda : le jour, le service et le statut. */
+export function agendaFilterFields(o: { readonly services: readonly Service[]; readonly today: string }): FieldSchema[] {
+  const all = { value: '', label: 'reception.agenda.all' };
+  return [
+    { type: 'text', name: 'date', label: 'reception.agenda.date', span: 3, value: o.today, inputClass: 'font-mono', placeholder: 'reception.dateFormat', validators: [{ type: 'pattern', value: DATE, message: 'reception.patient.dateInvalid' }] },
+    { type: 'select', name: 'serviceId', label: 'reception.admission.service', span: 5, value: '', options: [all, ...serviceOptions(o.services)] },
+    { type: 'select', name: 'status', label: 'reception.admission.status', span: 4, value: '', options: [all, ...options(APPOINTMENT_STATUSES, 'reception.agenda.statuses')] },
+  ];
+}
+
+/** Prise de rendez-vous : le service, le professionnel (ceux du service), le jour, l'heure et la durée. Le patient se choisit au-dessus. */
+export function bookingFields(o: { readonly services: readonly Service[]; readonly practitioners: readonly Practitioner[]; readonly today: string; readonly notice: string | null }): FieldSchema[] {
+  const required = { type: 'required', message: 'reception.admission.required' };
+  return [
+    ...failureNotice(o.notice),
+    { type: 'select', name: 'serviceId', label: 'reception.admission.service', placeholder: 'reception.choose', options: serviceOptions(o.services), validators: [required] },
+    {
+      type: 'select', name: 'practitionerId', label: 'reception.agenda.practitioner', placeholder: 'reception.choose', validators: [required],
+      options: o.practitioners.map((p) => ({ value: p.id, label: `${p.lastName} ${p.firstName} (${p.staffNumber})` })),
+      hint: 'reception.agenda.practitionerHint',
+    },
+    { type: 'text', name: 'date', label: 'reception.agenda.date', span: 6, value: o.today, inputClass: 'font-mono', placeholder: 'reception.dateFormat', validators: [required, { type: 'pattern', value: DATE, message: 'reception.patient.dateInvalid' }] },
+    { type: 'text', name: 'time', label: 'reception.agenda.time', span: 6, inputClass: 'font-mono', placeholder: 'HH:MM', validators: [required, { type: 'pattern', value: TIME, message: 'reception.agenda.timeInvalid' }] },
+    { type: 'select', name: 'duration', label: 'reception.agenda.duration', value: '30', options: durationOptions(), validators: [required] },
+    { type: 'submit', name: 'submit', label: 'reception.agenda.book', busyLabel: 'reception.saving' },
+    { type: 'button', name: 'cancel', label: 'reception.cancelAction', variant: 'outline' },
+  ];
+}
+
+/** Déplacement d'un rendez-vous à venir : un autre jour, une autre heure, une autre durée. */
+export function rescheduleFields(o: { readonly date: string; readonly time: string; readonly duration: number; readonly notice: string | null }): FieldSchema[] {
+  const required = { type: 'required', message: 'reception.admission.required' };
+  return [
+    ...failureNotice(o.notice),
+    { type: 'text', name: 'date', label: 'reception.agenda.date', span: 6, value: o.date, inputClass: 'font-mono', placeholder: 'reception.dateFormat', autofocus: true, validators: [required, { type: 'pattern', value: DATE, message: 'reception.patient.dateInvalid' }] },
+    { type: 'text', name: 'time', label: 'reception.agenda.time', span: 6, value: o.time, inputClass: 'font-mono', placeholder: 'HH:MM', validators: [required, { type: 'pattern', value: TIME, message: 'reception.agenda.timeInvalid' }] },
+    { type: 'select', name: 'duration', label: 'reception.agenda.duration', value: String(o.duration), options: durationOptions(), validators: [required] },
+    { type: 'submit', name: 'submit', label: 'reception.agenda.move', busyLabel: 'reception.saving' },
+    { type: 'button', name: 'cancel', label: 'reception.cancelAction', variant: 'outline' },
+  ];
+}
+
+/** Annulation d'un rendez-vous : le motif est obligatoire et libère le créneau. */
+export function cancelAppointmentFields(o: { readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'text', name: 'reason', label: 'reception.agenda.cancelReason', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'reception.admission.reasonRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'submit', name: 'submit', label: 'reception.agenda.cancelSubmit', busyLabel: 'reception.saving' },
+    { type: 'button', name: 'cancel', label: 'reception.agenda.cancelKeep', variant: 'outline' },
   ];
 }

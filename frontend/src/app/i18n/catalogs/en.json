@@ -248,7 +248,8 @@
     "reception": "Front desk",
     "receptionPatients": "Patients",
     "receptionNew": "New patient",
-    "receptionAdmissions": "Admissions"
+    "receptionAdmissions": "Admissions",
+    "receptionAgenda": "Agenda"
   },
   "admin": {
     "actions": "Actions",
@@ -2278,6 +2279,58 @@
       "arrival": "Arrival",
       "state": "Status",
       "none": "No admission."
+    },
+    "agenda": {
+      "title": "Agenda",
+      "lead": "Today’s appointments. When the patient shows up, record the arrival: they join the doctor’s queue.",
+      "new": "New appointment",
+      "all": "All",
+      "date": "Day",
+      "time": "Time",
+      "timeInvalid": "Enter the time as HH:MM (for example 09:30).",
+      "dateInvalid": "This date or time does not exist.",
+      "duration": "Duration",
+      "minutes": {
+        "15": "15 min",
+        "20": "20 min",
+        "30": "30 min",
+        "45": "45 min",
+        "60": "1 h",
+        "90": "1 h 30"
+      },
+      "statuses": {
+        "SCHEDULED": "Upcoming",
+        "ARRIVED": "Arrived",
+        "CANCELLED": "Cancelled",
+        "NO_SHOW": "No-show"
+      },
+      "practitioner": "Practitioner",
+      "practitionerHint": "The practitioners assigned to the chosen service.",
+      "slot": "Slot",
+      "none": "No appointment that day.",
+      "patient": "Patient",
+      "patientHint": "Search a patient (record number or name)",
+      "changePatient": "Change",
+      "patientRequired": "Choose the patient of the appointment.",
+      "book": "Book the appointment",
+      "booked": "Appointment {number} booked.",
+      "move": "Move",
+      "moveTitle": "Move {number}",
+      "moveOf": "Move appointment {number}",
+      "moved": "Appointment {number} moved.",
+      "cancel": "Cancel",
+      "cancelTitle": "Cancel {number}",
+      "cancelOf": "Cancel appointment {number}",
+      "cancelReason": "Reason for cancelling",
+      "cancelSubmit": "Cancel the appointment",
+      "cancelKeep": "Keep the appointment",
+      "cancelled": "Appointment {number} cancelled.",
+      "arrived": "Patient arrived",
+      "arrivedOf": "Record the arrival of the patient of appointment {number}",
+      "admitted": "Arrival recorded: admission {number} opened, the patient is in the doctor’s queue.",
+      "noShow": "No-show",
+      "noShowOf": "Record the no-show of the patient of appointment {number}",
+      "noShowDone": "No-show recorded for {number}."
     }
   }
 }
