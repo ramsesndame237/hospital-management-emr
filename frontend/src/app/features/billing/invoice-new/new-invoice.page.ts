@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { BillingGateway } from '../../../core/billing/billing.gateway';
 import { Translator } from '../../../core/i18n/translator';
@@ -23,6 +23,10 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
         <h1 class="text-[28px] leading-9 font-semibold text-foreground">{{ i18n.t('billing.new.title') }}</h1>
         <p class="text-sm leading-6 text-muted-foreground">{{ i18n.t('billing.new.lead') }}</p>
       </header>
+
+      @if (admissionId()) {
+        <p class="border-l-4 border-primary bg-card p-3 text-sm" role="status" data-test="linked">{{ i18n.t('billing.new.linked') }}</p>
+      }
 
       <div class="flex flex-col gap-4 border border-border bg-card p-6">
         <app-form-builder #form [fields]="fields()" [busy]="searching()" formId="patient-search" (submitted)="search($event)" />
@@ -75,7 +79,11 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
     </div>
   `,
 })
-export class NewInvoicePage {
+export class NewInvoicePage implements OnInit {
+  /** Numéro du patient et admission à régler, donnés par l'adresse quand on vient de l'accueil. */
+  readonly patientNumber = input<string>();
+  readonly admissionId = input<string>();
+
   protected readonly i18n = inject(Translator);
   private readonly patients = inject(PatientSearchGateway);
   private readonly billing = inject(BillingGateway);
@@ -105,11 +113,25 @@ export class NewInvoicePage {
     }
   }
 
+  /** Venu de l'accueil : le patient est déjà proposé ; la facture ne s'ouvre que quand on le choisit. */
+  async ngOnInit(): Promise<void> {
+    const number = this.patientNumber()?.trim();
+    if (!number) return;
+    this.searching.set(true);
+    try {
+      this.results.set(await this.patients.search(number, 5));
+    } catch (error) {
+      this.notice.set(failureMessage(error, this.i18n, this.form()));
+    } finally {
+      this.searching.set(false);
+    }
+  }
+
   protected async choose(patient: PatientSummary): Promise<void> {
     this.createError.set(null);
     this.creating.set(true);
     try {
-      const invoice = await this.billing.createInvoice(patient.id);
+      const invoice = await this.billing.createInvoice(patient.id, this.admissionId() || undefined);
       await this.router.navigate(['/billing/invoices', invoice.id]);
     } catch (error) {
       this.createError.set(failureMessage(error, this.i18n));

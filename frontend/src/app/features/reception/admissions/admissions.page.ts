@@ -77,13 +77,16 @@ type Panel = { readonly kind: 'discharge' | 'cancel' | 'transfer'; readonly admi
                         @if (a.status === 'CANCELLED') { <span class="block text-xs text-muted-foreground">{{ a.cancellationReason }}</span> }
                       </td>
                       <td class="px-4 py-3 text-right">
-                        @if (canWrite() && a.status === 'IN_PROGRESS') {
-                          <span class="flex flex-wrap justify-end gap-2">
+                        <span class="flex flex-wrap justify-end gap-2">
+                          @if (canBill() && a.patient && a.status !== 'CANCELLED') {
+                            <a [routerLink]="['/billing/invoices/new']" [queryParams]="{ patientNumber: a.patient.number, admissionId: a.id }" [class]="secondary" [attr.aria-label]="i18n.t('reception.admission.billOf', { number: a.number })">{{ i18n.t('reception.admission.bill') }}</a>
+                          }
+                          @if (canWrite() && a.status === 'IN_PROGRESS') {
                             <button type="button" [class]="secondary" [attr.aria-label]="i18n.t('reception.admission.dischargeOf', { number: a.number })" (click)="open('discharge', a)">{{ i18n.t('reception.admission.dischargeAction') }}</button>
                             <button type="button" [class]="secondary" [attr.aria-label]="i18n.t('reception.admission.transferOf', { number: a.number })" (click)="open('transfer', a)">{{ i18n.t('reception.admission.transferAction') }}</button>
                             <button type="button" [class]="secondary" [attr.aria-label]="i18n.t('reception.admission.cancelOf', { number: a.number })" (click)="open('cancel', a)">{{ i18n.t('reception.admission.cancelAction') }}</button>
-                          </span>
-                        }
+                          }
+                        </span>
                       </td>
                     </tr>
                   } @empty {
@@ -138,6 +141,7 @@ export class AdmissionsPage implements OnInit {
   private filter: AdmissionFilter = { status: 'IN_PROGRESS' };
   private bedsOf: string | null = null;
 
+  protected readonly canBill = computed(() => hasPermission(this.user()?.permissions ?? [], 'billing.invoices:write'));
   protected readonly canWrite = computed(() => hasPermission(this.user()?.permissions ?? [], 'admissions:write:department'));
   protected readonly failure = computed(() => failureNotice(this.error()));
   protected readonly layoutClass = computed(() => (this.panel() ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]' : 'grid items-start gap-6'));

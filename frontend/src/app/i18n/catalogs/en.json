@@ -700,7 +700,8 @@
       "chooseOf": "Bill {name}",
       "none": "No record matches.",
       "refine": "{shown} records shown out of {total}: refine the search to narrow it down.",
-      "back": "Back to invoices"
+      "back": "Back to invoices",
+      "linked": "The invoice will be attached to the admission: choose the patient to open it."
     },
     "detail": {
       "back": "Back to invoices",
@@ -1189,7 +1190,8 @@
       "specimenCount": "{count} specimen(s) to collect",
       "submit": "Send the request",
       "done": "Request {number} sent.",
-      "back": "Back to the worklist"
+      "back": "Back to the worklist",
+      "linked": "This request will be attached to the current consultation: it will appear in the consultation record."
     },
     "catalog": {
       "title": "Test catalog",
@@ -2136,6 +2138,12 @@
         "PARTIAL": "Partly dispensed",
         "COMPLETE": "Dispensed"
       }
+    },
+    "labs": {
+      "title": "Lab tests",
+      "new": "Request lab tests",
+      "none": "No lab test requested during this consultation.",
+      "openOf": "Open request {number}"
     }
   },
   "reception": {
@@ -2326,7 +2334,9 @@
       "cancelKeep": "Keep the admission",
       "dischargeDone": "Discharge of {number} recorded.",
       "transferDone": "Transfer of {number} recorded.",
-      "cancelDone": "Admission {number} cancelled."
+      "cancelDone": "Admission {number} cancelled.",
+      "bill": "Bill",
+      "billOf": "Bill admission {number}"
     },
     "admissions": {
       "title": "Admissions",

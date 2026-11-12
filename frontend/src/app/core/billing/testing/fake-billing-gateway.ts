@@ -20,7 +20,7 @@ export function invoice(over: Partial<Invoice> = {}): Invoice {
   const total = subtotal - discount;
   const paid = payments.reduce((sum, p) => sum + p.amount, 0);
   return {
-    id: 'inv-1', number: 'FAC-0000123', status: 'DRAFT', currency: 'XAF', currencyDigits: 0, patient, lines, subtotal, discount, discountReason: discount > 0 ? 'Personnel' : null,
+    id: 'inv-1', number: 'FAC-0000123', status: 'DRAFT', currency: 'XAF', currencyDigits: 0, patient, admissionId: null, lines, subtotal, discount, discountReason: discount > 0 ? 'Personnel' : null,
     total, paid, balance: total - paid, note: null, cancellationReason: null, issuedAt: null, payments, approvals: [], discountApprovalPercent: 10, ...over,
   };
 }
@@ -42,7 +42,7 @@ export class FakeBillingGateway extends BillingGateway {
     page([summary(), summary({ id: 'inv-2', number: 'FAC-0000122', status: 'PAID', paid: 3000, total: 3000, subtotal: 3000, balance: 0 })]),
   );
   override getInvoice = vi.fn<(id: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice()));
-  override createInvoice = vi.fn<(patientId: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice({ lines: [] })));
+  override createInvoice = vi.fn<(patientId: string, admissionId?: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice({ lines: [] })));
   override addLine = vi.fn<(invoiceId: string, itemId: string, quantity: number) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice()));
   override removeLine = vi.fn<(invoiceId: string, lineId: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice({ lines: [] })));
   override setDiscount = vi.fn<(invoiceId: string, amount: number, reason: string | null) => Promise<Invoice>>().mockImplementation((_id, amount) => Promise.resolve(invoice({ discount: amount })));
