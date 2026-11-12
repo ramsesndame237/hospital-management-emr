@@ -2,11 +2,12 @@ import { Result } from '../../../shared-kernel/result';
 import { Instant, PlainDate } from '../../../shared-kernel/temporal';
 import { AdjustmentStatus, StockAdjustment } from './adjustment';
 import { Batch, MovementDraft, MovementType, StockLevel } from './batch';
+import { Dispensation } from './dispensation';
 import { Drug } from './drug';
 import { GoodsReceipt } from './receipt';
 import { OrderStatus, PurchaseOrder } from './purchase-order';
 import { Supplier } from './supplier';
-import { AdjustmentId, AdjustmentNumber, BatchId, DrugCode, DrugForm, DrugId, PurchaseOrderId, PurchaseOrderNumber, ReceiptId, ReceiptNumber, Schedule, SupplierCode, SupplierId } from './values';
+import { AdjustmentId, AdjustmentNumber, BatchId, DispensationNumber, DrugCode, DrugForm, DrugId, PurchaseOrderId, PurchaseOrderNumber, ReceiptId, ReceiptNumber, Schedule, SupplierCode, SupplierId } from './values';
 
 export interface DrugFilter {
   /** Texte cherché dans le code, le nom et la dénomination commune (insensible à la casse). */
@@ -243,6 +244,70 @@ export interface AdjustmentRepository {
 export interface UserDirectory {
   find(ids: readonly string[]): Promise<Map<string, { readonly id: string; readonly username: string }>>;
 }
+
+/** Une ligne d'ordonnance, telle que la pharmacie la lit. */
+export interface RxLine {
+  readonly position: number;
+  readonly drugId: string;
+  readonly dose: string;
+  readonly frequency: string;
+  readonly durationDays: number | null;
+  /** Unités de dispensation prescrites. */
+  readonly quantity: number;
+  readonly instructions: string | null;
+  /** Motif du médecin qui a prescrit malgré une allergie connue à l'émission. */
+  readonly allergyOverride: string | null;
+  /** Allergies ACTIVES du patient qui visent ce médicament, à l'instant où l'on délivre (une allergie saisie après l'ordonnance y figure). */
+  readonly allergyAlerts: readonly { readonly substance: string; readonly severity: string }[];
+}
+
+export interface RxInfo {
+  readonly id: string;
+  readonly number: string;
+  /** `ISSUED` (en cours) ou `CANCELLED`. */
+  readonly status: string;
+  readonly issuedAt: Instant;
+  readonly doctorId: string;
+  readonly notes: string | null;
+  readonly patient: { readonly id: string; readonly number: string; readonly lastName: string; readonly firstName: string; readonly sex: string; readonly birthDate: string } | null;
+  readonly lines: readonly RxLine[];
+}
+
+/** Les ordonnances appartiennent au module Clinique : la racine de composition branche ce port dessus (la pharmacie ne lit que ce qu'il faut pour délivrer). */
+export interface PrescriptionDirectory {
+  find(id: string): Promise<RxInfo | null>;
+  /** Les ordonnances en cours, les plus anciennes d'abord. */
+  listIssued(offset: number, limit: number): Promise<{ items: RxInfo[]; total: number }>;
+}
+
+/** Ce que la dispensation a besoin de savoir, sous verrou, pour décider ce qui sort du stock. */
+export interface DispensingContext {
+  /** Quantité déjà délivrée par ligne de l'ordonnance (rang → quantité). */
+  readonly dispensed: ReadonlyMap<number, number>;
+  /** Lots d'un médicament, verrouillés, ceux qui périment le plus tôt d'abord. */
+  batchesOf(drugId: string): Promise<Batch[]>;
+}
+
+/** Le résultat de la décision : la dispensation à écrire et, pour chaque lot touché, le mouvement du grand livre. */
+export interface DispensingPlan {
+  readonly dispensation: Dispensation;
+  readonly movements: readonly { readonly batch: Batch; readonly draft: MovementDraft }[];
+}
+
+export interface DispensationRepository {
+  nextNumber(): Promise<DispensationNumber>;
+  /** Quantités déjà délivrées, par ordonnance puis par ligne. */
+  dispensedQuantities(prescriptionIds: readonly string[]): Promise<Map<string, Map<number, number>>>;
+  listOf(prescriptionId: string): Promise<Dispensation[]>;
+  /**
+   * Délivre sous verrou : un verrou propre à l'ordonnance sérialise deux délivrances simultanées, `decide` voit alors ce qui est déjà sorti et les lots
+   * verrouillés, et la dispensation, les lots et le grand livre s'écrivent dans la même transaction. Rien n'est écrit si `decide` refuse.
+   */
+  dispense(prescriptionId: string, decide: (context: DispensingContext) => Promise<Result<DispensingPlan>>): Promise<Result<Dispensation>>;
+}
+
+export const DISPENSATION_REPOSITORY = Symbol('PHARMACY_DISPENSATION_REPOSITORY');
+export const PHARMACY_PRESCRIPTIONS = Symbol('PHARMACY_PRESCRIPTIONS');
 
 export const DRUG_REPOSITORY = Symbol('PHARMACY_DRUG_REPOSITORY');
 export const STOCK_REPOSITORY = Symbol('PHARMACY_STOCK_REPOSITORY');

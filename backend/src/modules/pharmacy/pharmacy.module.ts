@@ -6,20 +6,23 @@ import { AdjustmentUseCases } from './application/use-cases/adjustments';
 import { ListOrdersUseCase, OrderUseCases, SuggestOrdersUseCase } from './application/use-cases/orders';
 import { CreateSupplierUseCase, GetSupplierUseCase, ListSuppliersUseCase, ManageSupplierUseCases } from './application/use-cases/suppliers';
 import { CreateDrugUseCase, GetDrugUseCase, ListDrugsUseCase, ManageDrugUseCases } from './application/use-cases/catalog';
+import { DispenseUseCase, DispensingQueueUseCase, GetPrescriptionForDispensingUseCase } from './application/use-cases/dispensing';
 import { GetReceiptUseCase, ListReceiptsUseCase, PostReceiptUseCase } from './application/use-cases/receipts';
 import {
   BatchActionUseCases, GetDrugStockUseCase, ListExpiryUseCase, ListMovementsUseCase, ListStockUseCase, StockSummaryUseCase, SuggestBatchesUseCase,
 } from './application/use-cases/stock';
 import { PharmacyDependencies } from './application/views';
 import {
-  ADJUSTMENT_REPOSITORY, AdjustmentRepository, DRUG_REPOSITORY, DrugRepository, ORDER_REPOSITORY, PHARMACY_CURRENCY, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS, PurchaseOrderRepository, STOCK_REPOSITORY,
+  ADJUSTMENT_REPOSITORY, AdjustmentRepository, DISPENSATION_REPOSITORY, DispensationRepository, DRUG_REPOSITORY, DrugRepository, PHARMACY_PRESCRIPTIONS, PrescriptionDirectory, ORDER_REPOSITORY, PHARMACY_CURRENCY, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_USERS, PurchaseOrderRepository, STOCK_REPOSITORY,
   StockRepository, SUPPLIER_REPOSITORY, SupplierRepository, UserDirectory,
 } from './domain/ports';
 import { PgAdjustmentRepository } from './infrastructure/persistence/pg-adjustment.repository';
+import { PgDispensationRepository } from './infrastructure/persistence/pg-dispensation.repository';
 import { PgDrugRepository } from './infrastructure/persistence/pg-drug.repository';
 import { PgPurchaseOrderRepository } from './infrastructure/persistence/pg-purchase-order.repository';
 import { PgSupplierRepository } from './infrastructure/persistence/pg-supplier.repository';
 import { PgStockRepository } from './infrastructure/persistence/pg-stock.repository';
+import { PharmacyDispensingController } from './presentation/dispensing.controller';
 import { PharmacyDrugsController } from './presentation/drugs.controller';
 import { PharmacyAdjustmentsController, PharmacyReceiptsController } from './presentation/receipts.controller';
 import { PharmacyOrdersController } from './presentation/orders.controller';
@@ -40,21 +43,25 @@ export class PharmacyModule {
       module: PharmacyModule,
       // Global, et n'exporte que le formulaire : la racine de composition le branche au module Clinique (prescription).
       global: true,
-      exports: [DRUG_REPOSITORY],
-      controllers: [PharmacyDrugsController, PharmacyStockController, PharmacyReceiptsController, PharmacyAdjustmentsController, PharmacySuppliersController, PharmacyOrdersController],
+      exports: [DRUG_REPOSITORY, DISPENSATION_REPOSITORY],
+      controllers: [PharmacyDrugsController, PharmacyStockController, PharmacyReceiptsController, PharmacyAdjustmentsController, PharmacySuppliersController, PharmacyOrdersController, PharmacyDispensingController],
       providers: [
         { provide: DRUG_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgDrugRepository(sql) },
         { provide: STOCK_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgStockRepository(sql) },
         { provide: ADJUSTMENT_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgAdjustmentRepository(sql) },
         { provide: SUPPLIER_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgSupplierRepository(sql) },
         { provide: ORDER_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgPurchaseOrderRepository(sql) },
+        { provide: DISPENSATION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgDispensationRepository(sql) },
         {
           provide: DEPENDENCIES,
-          inject: [DRUG_REPOSITORY, STOCK_REPOSITORY, ADJUSTMENT_REPOSITORY, SUPPLIER_REPOSITORY, ORDER_REPOSITORY, PHARMACY_USERS, AUDIT_LOG, CLOCK, CALENDAR, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_CURRENCY],
-          useFactory: (drugs: DrugRepository, stock: StockRepository, adjustments: AdjustmentRepository, suppliers: SupplierRepository, orders: PurchaseOrderRepository, users: UserDirectory, audit: AuditLog, clock: Clock, calendar: Calendar, expiryAlertDays: number, currency: string): PharmacyDependencies => ({
-            drugs, stock, adjustments, suppliers, orders, users, audit, clock, calendar, expiryAlertDays, currency,
+          inject: [DRUG_REPOSITORY, STOCK_REPOSITORY, ADJUSTMENT_REPOSITORY, SUPPLIER_REPOSITORY, ORDER_REPOSITORY, DISPENSATION_REPOSITORY, PHARMACY_PRESCRIPTIONS, PHARMACY_USERS, AUDIT_LOG, CLOCK, CALENDAR, PHARMACY_EXPIRY_ALERT_DAYS, PHARMACY_CURRENCY],
+          useFactory: (drugs: DrugRepository, stock: StockRepository, adjustments: AdjustmentRepository, suppliers: SupplierRepository, orders: PurchaseOrderRepository, dispensations: DispensationRepository, prescriptions: PrescriptionDirectory, users: UserDirectory, audit: AuditLog, clock: Clock, calendar: Calendar, expiryAlertDays: number, currency: string): PharmacyDependencies => ({
+            drugs, stock, adjustments, suppliers, orders, dispensations, prescriptions, users, audit, clock, calendar, expiryAlertDays, currency,
           }),
         },
+        { provide: DispensingQueueUseCase, ...use((d) => new DispensingQueueUseCase(d)) },
+        { provide: GetPrescriptionForDispensingUseCase, ...use((d) => new GetPrescriptionForDispensingUseCase(d)) },
+        { provide: DispenseUseCase, ...use((d, ids) => new DispenseUseCase(d, ids)) },
         { provide: CreateDrugUseCase, ...use((d, ids) => new CreateDrugUseCase(d, ids)) },
         { provide: ManageDrugUseCases, ...use((d) => new ManageDrugUseCases(d)) },
         { provide: GetDrugUseCase, ...use((d) => new GetDrugUseCase(d)) },

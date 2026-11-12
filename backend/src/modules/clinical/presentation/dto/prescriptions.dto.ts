@@ -157,6 +157,9 @@ export class PrescriptionDto {
   @DocProperty({ description: 'Les lignes.', type: PrescriptionLineDto, itemType: PrescriptionLineDto })
   lines!: readonly PrescriptionLineDto[];
 
+  @DocProperty({ description: 'Ce que la pharmacie a délivré : `NONE`, `PARTIAL` ou `COMPLETE`. Une ordonnance délivrée, même en partie, ne s’annule plus.', example: 'NONE', enum: ['NONE', 'PARTIAL', 'COMPLETE'] })
+  dispensing!: string;
+
   @DocProperty({ description: 'Qui l’a annulée.', type: UserSummaryDto, nullable: true })
   cancelledBy!: UserSummaryDto | null;
 

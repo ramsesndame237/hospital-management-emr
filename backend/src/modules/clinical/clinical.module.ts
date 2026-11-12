@@ -8,7 +8,7 @@ import { EncounterActionUseCases, GetEncounterUseCase, ListEncountersUseCase, Qu
 import { CancelPrescriptionUseCase, GetPrescriptionUseCase, IssuePrescriptionUseCase, ListEncounterPrescriptionsUseCase, SearchDrugsUseCase } from './application/use-cases/prescriptions';
 import { ClinicalDependencies } from './application/views';
 import {
-  ALLERGY_REPOSITORY, AllergyRepository, CLINICAL_DRUGS, CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS, DrugDirectory, ENCOUNTER_REPOSITORY, EncounterRepository, PatientDirectory, PRESCRIPTION_REPOSITORY,
+  ALLERGY_REPOSITORY, AllergyRepository, CLINICAL_DISPENSING, CLINICAL_DRUGS, DispensingDirectory, CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS, DrugDirectory, ENCOUNTER_REPOSITORY, EncounterRepository, PatientDirectory, PRESCRIPTION_REPOSITORY,
   PrescriptionRepository, UserDirectory, VisitDirectory,
 } from './domain/ports';
 import { PgAllergyRepository } from './infrastructure/persistence/pg-allergy.repository';
@@ -31,6 +31,9 @@ export class ClinicalModule {
     const use = <T>(factory: (d: ClinicalDependencies) => T) => ({ inject: [DEPENDENCIES], useFactory: factory });
     return {
       module: ClinicalModule,
+      // Global : la racine de composition relie la pharmacie aux ordonnances et aux allergies (délivrance) sans que la Pharmacie connaisse la Clinique.
+      global: true,
+      exports: [PRESCRIPTION_REPOSITORY, ALLERGY_REPOSITORY],
       controllers: [ClinicalEncountersController, ClinicalAllergiesController, ClinicalPrescriptionsController],
       providers: [
         { provide: ENCOUNTER_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgEncounterRepository(sql) },
@@ -38,9 +41,9 @@ export class ClinicalModule {
         { provide: PRESCRIPTION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgPrescriptionRepository(sql) },
         {
           provide: DEPENDENCIES,
-          inject: [ENCOUNTER_REPOSITORY, ALLERGY_REPOSITORY, PRESCRIPTION_REPOSITORY, CLINICAL_DRUGS, CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS, SERVICE_ACCESS, AUDIT_LOG, CLOCK, ID_GENERATOR],
-          useFactory: (encounters: EncounterRepository, allergies: AllergyRepository, prescriptions: PrescriptionRepository, drugs: DrugDirectory, patients: PatientDirectory, users: UserDirectory, visits: VisitDirectory, access: ServiceAccess, audit: AuditLog, clock: Clock, ids: IdGenerator): ClinicalDependencies => ({
-            encounters, allergies, prescriptions, drugs, patients, users, visits, access, audit, clock, ids,
+          inject: [ENCOUNTER_REPOSITORY, ALLERGY_REPOSITORY, PRESCRIPTION_REPOSITORY, CLINICAL_DRUGS, CLINICAL_DISPENSING, CLINICAL_PATIENTS, CLINICAL_USERS, CLINICAL_VISITS, SERVICE_ACCESS, AUDIT_LOG, CLOCK, ID_GENERATOR],
+          useFactory: (encounters: EncounterRepository, allergies: AllergyRepository, prescriptions: PrescriptionRepository, drugs: DrugDirectory, dispensing: DispensingDirectory, patients: PatientDirectory, users: UserDirectory, visits: VisitDirectory, access: ServiceAccess, audit: AuditLog, clock: Clock, ids: IdGenerator): ClinicalDependencies => ({
+            encounters, allergies, prescriptions, drugs, dispensing, patients, users, visits, access, audit, clock, ids,
           }),
         },
         { provide: StartEncounterUseCase, ...use((d) => new StartEncounterUseCase(d)) },

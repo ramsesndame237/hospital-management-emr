@@ -4,7 +4,7 @@ import { ServiceAccess } from '../../../shared-kernel/service-access';
 import { Allergy } from '../domain/allergy';
 import { Encounter } from '../domain/encounter';
 import { Prescription } from '../domain/prescription';
-import { AllergyRepository, DrugDirectory, EncounterRepository, PatientDirectory, PatientInfo, PrescriptionRepository, UserDirectory, VisitDirectory } from '../domain/ports';
+import { AllergyRepository, DispensingDirectory, DrugDirectory, EncounterRepository, PatientDirectory, PatientInfo, PrescriptionRepository, UserDirectory, VisitDirectory } from '../domain/ports';
 import { bodyMassIndex } from '../domain/vitals';
 
 export interface ClinicalDependencies {
@@ -12,6 +12,7 @@ export interface ClinicalDependencies {
   readonly allergies: AllergyRepository;
   readonly prescriptions: PrescriptionRepository;
   readonly drugs: DrugDirectory;
+  readonly dispensing: DispensingDirectory;
   readonly patients: PatientDirectory;
   readonly users: UserDirectory;
   readonly visits: VisitDirectory;
@@ -150,6 +151,8 @@ export interface PrescriptionLineView {
   readonly allergyOverride: string | null;
 }
 
+export type DispensingState = 'NONE' | 'PARTIAL' | 'COMPLETE';
+
 export interface PrescriptionView {
   readonly id: string;
   readonly number: string;
@@ -161,15 +164,24 @@ export interface PrescriptionView {
   readonly issuedAt: string;
   readonly notes: string | null;
   readonly lines: PrescriptionLineView[];
+  /** Ce que la pharmacie a délivré : une ordonnance délivrée, même en partie, ne s'annule plus. */
+  readonly dispensing: DispensingState;
   readonly cancelledBy: UserSummary | null;
   readonly cancelledAt: string | null;
   readonly cancellationReason: string | null;
+}
+
+/** Rien de délivré, tout délivré, ou entre les deux. */
+export function dispensingState(lines: readonly { readonly prescribed: number; readonly done: number }[]): DispensingState {
+  if (lines.every((l) => l.done <= 0)) return 'NONE';
+  return lines.every((l) => l.done >= l.prescribed) ? 'COMPLETE' : 'PARTIAL';
 }
 
 export async function toPrescriptionViews(d: ClinicalDependencies, prescriptions: readonly Prescription[]): Promise<PrescriptionView[]> {
   const drugs = await d.drugs.find([...new Set(prescriptions.flatMap((p) => p.state.lines.map((l) => l.drugId.value)))]);
   const patients = await d.patients.find([...new Set(prescriptions.map((p) => p.state.patientId.value))]);
   const who = await userSummaries(d, prescriptions.flatMap((p) => [p.state.doctorId, p.state.cancelledBy]));
+  const dispensed = await d.dispensing.dispensedQuantities(prescriptions.map((p) => p.id.value));
   return prescriptions.map((p) => {
     const s = p.state;
     const patient = patients.get(s.patientId.value);
@@ -179,6 +191,7 @@ export async function toPrescriptionViews(d: ClinicalDependencies, prescriptions
       lines: s.lines.map((l, position) => ({
         position, drug: drugs.get(l.drugId.value) ?? null, dose: l.dose, frequency: l.frequency, durationDays: l.durationDays, quantity: l.quantity, instructions: l.instructions, allergyOverride: l.allergyOverride,
       })),
+      dispensing: dispensingState(s.lines.map((l, i) => ({ prescribed: l.quantity, done: dispensed.get(s.id.value)?.get(i) ?? 0 }))),
       cancelledBy: who(s.cancelledBy), cancelledAt: s.cancelledAt?.toString() ?? null, cancellationReason: s.cancellationReason,
     };
   });

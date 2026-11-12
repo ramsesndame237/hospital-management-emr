@@ -73,6 +73,8 @@ export interface PrescriptionRepository {
   listOfEncounter(encounterId: EncounterId): Promise<Prescription[]>;
   /** Nombre d'ordonnances en cours (non annulées) d'une consultation. */
   countIssued(encounterId: EncounterId): Promise<number>;
+  /** Les ordonnances en cours de tous les services, les plus anciennes d'abord (pour la pharmacie, qui les délivre). */
+  listIssued(offset: number, limit: number): Promise<{ items: Prescription[]; total: number }>;
 }
 
 export interface PatientInfo {
@@ -132,6 +134,12 @@ export interface DrugDirectory {
   search(text: string, limit: number): Promise<DrugInfo[]>;
 }
 
+/** Ce que la pharmacie a déjà délivré : le module Pharmacie en est propriétaire, la racine de composition branche ce port dessus. */
+export interface DispensingDirectory {
+  /** Quantité délivrée par ordonnance puis par rang de ligne ; une ordonnance sans délivrance est absente. */
+  dispensedQuantities(prescriptionIds: readonly string[]): Promise<Map<string, Map<number, number>>>;
+}
+
 export const ENCOUNTER_REPOSITORY = Symbol('CLINICAL_ENCOUNTER_REPOSITORY');
 export const ALLERGY_REPOSITORY = Symbol('CLINICAL_ALLERGY_REPOSITORY');
 export const CLINICAL_PATIENTS = Symbol('CLINICAL_PATIENTS');
@@ -139,3 +147,4 @@ export const CLINICAL_USERS = Symbol('CLINICAL_USERS');
 export const CLINICAL_VISITS = Symbol('CLINICAL_VISITS');
 export const PRESCRIPTION_REPOSITORY = Symbol('CLINICAL_PRESCRIPTION_REPOSITORY');
 export const CLINICAL_DRUGS = Symbol('CLINICAL_DRUGS');
+export const CLINICAL_DISPENSING = Symbol('CLINICAL_DISPENSING');
