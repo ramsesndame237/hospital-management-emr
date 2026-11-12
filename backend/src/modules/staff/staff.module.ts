@@ -2,7 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { SQL_EXECUTOR, SqlExecutor } from '../../database/sql-executor';
 import { CALENDAR, Calendar, CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/ports';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
-import { ListNodeAssignmentsUseCase, ListStaffAssignmentsUseCase, ManageAssignmentsUseCases } from './application/use-cases/assignments';
+import { ListNodeAssignmentsUseCase, ListPractitionersUseCase, ListStaffAssignmentsUseCase, ManageAssignmentsUseCases } from './application/use-cases/assignments';
 import { GetMyStaffProfileUseCase, GetStaffUseCase, ListStaffUseCase, ManageStaffUseCases, RegisterStaffUseCase } from './application/use-cases/staff';
 import {
   ASSIGNMENT_REPOSITORY, AssignmentRepository, REFERENCE_CODES, ReferenceCodes, STAFF_REPOSITORY, StaffRepository, STRUCTURE_DIRECTORY, StructureDirectory,
@@ -58,6 +58,7 @@ export class StaffModule {
           inject: [STRUCTURE_DIRECTORY, ASSIGNMENT_REPOSITORY, CALENDAR],
           useFactory: (d: StructureDirectory, a: AssignmentRepository, c: Calendar) => new ListNodeAssignmentsUseCase(d, a, c),
         },
+        { provide: ListPractitionersUseCase, inject: [ListNodeAssignmentsUseCase], useFactory: (a: ListNodeAssignmentsUseCase) => new ListPractitionersUseCase(a) },
         {
           provide: ManageAssignmentsUseCases,
           inject: [STAFF_REPOSITORY, ASSIGNMENT_REPOSITORY, STRUCTURE_DIRECTORY, ID_GENERATOR, AUDIT_LOG, CLOCK, CALENDAR],
