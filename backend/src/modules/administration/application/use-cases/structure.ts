@@ -73,6 +73,15 @@ export class GetStructureNodeUseCase {
   }
 }
 
+/** Les services actifs, pour choisir où accueillir un patient : tout le personnel les lit, sans passer par la liste des établissements (réservée à l'administration). */
+export class ListServicesUseCase {
+  constructor(private readonly structure: StructureRepository) {}
+
+  async execute(): Promise<NodeView[]> {
+    return (await this.structure.listActiveServices()).map(toNodeView);
+  }
+}
+
 /** Arbre complet d'un établissement (services → unités → salles → lits) avec ses totaux. Les éléments désactivés sont masqués par défaut. */
 export class GetStructureTreeUseCase {
   constructor(private readonly facilities: FacilityRepository, private readonly structure: StructureRepository) {}

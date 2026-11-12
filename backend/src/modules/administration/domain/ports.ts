@@ -32,6 +32,8 @@ export interface StructureRepository {
   /** Tous les éléments d'un établissement, dans l'ordre des codes (l'arbre est reconstitué par le cas d'usage). */
   listByFacility(facilityId: FacilityId, includeInactive: boolean): Promise<StructureNode[]>;
   hasActiveChildren(id: NodeId): Promise<boolean>;
+  /** Les services actifs de tous les établissements, par nom (pour choisir où accueillir un patient). */
+  listActiveServices(): Promise<StructureNode[]>;
 }
 
 /**

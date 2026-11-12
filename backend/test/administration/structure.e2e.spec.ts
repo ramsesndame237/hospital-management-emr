@@ -34,6 +34,7 @@ describe('API structure /api/v1 (HTTP réel, PostgreSQL réel)', () => {
   it.each([
     ['GET', '/api/v1/facilities/:f/structure'],
     ['POST', '/api/v1/facilities/:f/services'],
+    ['GET', '/api/v1/structure/services'],
     ['GET', `/api/v1/structure/${ID}`],
     ['POST', `/api/v1/structure/${ID}/children`],
     ['PATCH', `/api/v1/structure/${ID}`],
@@ -67,6 +68,14 @@ describe('API structure /api/v1 (HTTP réel, PostgreSQL réel)', () => {
       const b = await http().post(api(`/structure/${room}/children`)).set(bearer(admin)).send({ code: 'B1', name: 'Lit 1' }).expect(201);
       expect(b.body).toMatchObject({ kind: 'BED', parentId: room });
       bed = b.body.id;
+    });
+
+    it('liste les services actifs de tous les établissements pour tout le personnel, sans unités ni lits', async () => {
+      const list = await http().get(api('/structure/services')).set(bearer(nurse)).expect(200);
+      const ped = (list.body as { id: string; kind: string; code: string; name: string }[]).find((n) => n.id === service)!;
+      expect(ped).toMatchObject({ kind: 'SERVICE', code: 'PED', name: 'Pédiatrie' });
+      expect((list.body as { kind: string }[]).every((n) => n.kind === 'SERVICE')).toBe(true);
+      expect((list.body as { id: string }[]).some((n) => n.id === unit || n.id === bed)).toBe(false);
     });
 
     it('applique les règles du métier : doublon 409, spécialité inconnue 422, lit sans enfant 422, étage hors salle 422', async () => {

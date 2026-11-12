@@ -3,7 +3,7 @@ import { DocGroup, DocOperation } from '../../api-docs';
 import type { DocParam } from '../../api-docs';
 import { CurrentUser, RequirePermissions } from '../../iam/presentation/decorators';
 import type { AuthUser } from '../../iam/presentation/decorators';
-import { GetStructureNodeUseCase, GetStructureTreeUseCase, ManageStructureUseCases } from '../application/use-cases/structure';
+import { GetStructureNodeUseCase, GetStructureTreeUseCase, ListServicesUseCase, ManageStructureUseCases } from '../application/use-cases/structure';
 import { CreateChildDto, CreateServiceDto, NodeDto, StructureTreeDto, UpdateNodeDto } from './dto/structure.dto';
 import { unwrap } from './http-errors';
 
@@ -28,8 +28,21 @@ export class StructureController {
   constructor(
     private readonly tree: GetStructureTreeUseCase,
     private readonly node: GetStructureNodeUseCase,
+    private readonly services: ListServicesUseCase,
     private readonly manage: ManageStructureUseCases,
   ) {}
+
+  @DocOperation({
+    summary: 'Lister les services actifs',
+    description: "Les services actifs de tous les établissements, par nom : de quoi choisir où accueillir un patient. Contrairement à la liste des établissements (réservée à l'administration), tout le personnel y accède.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Les services actifs.', type: NodeDto, isArray: true }],
+    errors: [],
+  })
+  @RequirePermissions('administration.structure:read') @Get('structure/services')
+  async listServices(): Promise<NodeDto[]> {
+    return this.services.execute();
+  }
 
   @DocOperation({
     summary: "Lire la structure d'un établissement",
