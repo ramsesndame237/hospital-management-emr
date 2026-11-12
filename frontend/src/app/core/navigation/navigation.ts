@@ -78,6 +78,7 @@ export const NAVIGATION: readonly NavItem[] = [
     labelKey: 'nav.pharmacy',
     icon: 'ward',
     children: [
+      { id: 'pharmacy-prescriptions', labelKey: 'nav.pharmacyPrescriptions', icon: 'invoice', route: '/pharmacy/prescriptions', permission: 'pharmacy.dispensing:read' },
       { id: 'pharmacy-stock', labelKey: 'nav.pharmacyStock', icon: 'dashboard', route: '/pharmacy/stock', permission: 'pharmacy.stock:read' },
       { id: 'pharmacy-expiry', labelKey: 'nav.pharmacyExpiry', icon: 'agenda', route: '/pharmacy/expiry', permission: 'pharmacy.stock:read' },
       { id: 'pharmacy-receipts', labelKey: 'nav.pharmacyReceipts', icon: 'invoice', route: '/pharmacy/receipts', permission: 'pharmacy.stock:read' },

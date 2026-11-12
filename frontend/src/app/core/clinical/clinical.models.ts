@@ -204,6 +204,8 @@ export interface Prescription {
   readonly issuedAt: string;
   readonly notes: string | null;
   readonly lines: readonly PrescriptionLine[];
+  /** Ce que la pharmacie a délivré : une ordonnance délivrée, même en partie, ne s'annule plus. */
+  readonly dispensing: 'NONE' | 'PARTIAL' | 'COMPLETE';
   readonly cancelledBy: UserRef | null;
   readonly cancelledAt: string | null;
   readonly cancellationReason: string | null;

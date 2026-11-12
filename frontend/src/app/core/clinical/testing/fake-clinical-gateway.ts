@@ -47,7 +47,7 @@ export const suggestion = (over: Partial<DrugSuggestion> = {}): DrugSuggestion =
 export const prescription = (over: Partial<Prescription> = {}): Prescription => ({
   id: 'rx-1', number: 'RX-0000001', encounterId: 'e-1', patient, serviceId: 'svc-1', doctor, status: 'ISSUED', issuedAt: '2026-10-24T08:20:00Z', notes: null,
   lines: [{ position: 0, drug: drug(), dose: '1 gélule', frequency: '3 fois par jour', durationDays: 7, quantity: 21, instructions: null, allergyOverride: null }],
-  cancelledBy: null, cancelledAt: null, cancellationReason: null, ...over,
+  dispensing: 'NONE', cancelledBy: null, cancelledAt: null, cancellationReason: null, ...over,
 });
 
 /** Double de test du port `ClinicalGateway` : chaque méthode est un mock Vitest que le test configure. */
