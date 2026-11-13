@@ -8,6 +8,7 @@ const HOMES: Readonly<Record<string, { readonly permission: string; readonly rou
   SYSTEM_ADMIN: { permission: 'administration.organization:read', route: '/admin/organization' },
   CASHIER: { permission: 'billing.invoices:read', route: '/billing/invoices' },
   LAB_TECHNICIAN: { permission: 'lab.requisitions:read:all', route: '/lab/worklist' },
+  RADIOLOGIST: { permission: 'imaging.orders:read:all', route: '/imaging/worklist' },
   PHARMACIST: { permission: 'pharmacy.dispensing:read', route: '/pharmacy/prescriptions' },
   RECEPTIONIST: { permission: 'patients:write', route: '/patients' },
   PATIENT: { permission: 'portal:read:own', route: '/portal' },
