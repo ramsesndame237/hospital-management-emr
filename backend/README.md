@@ -25,8 +25,12 @@ cp .env.example .env     # puis renseigner DB_PASSWORD et JWT_SECRET
 npm run build
 npm test                 # enveloppe, configuration, schéma validé sur un vrai PostgreSQL embarqué (PGlite)
 npm run start:dev        # nécessite PostgreSQL ; DB_ENABLED=false pour démarrer sans base
-docker compose up --build
+npm run db:migrate       # applique tout le schéma (migration/schema/manifest.json), idempotent
 ```
+
+Installation complète (base + API + interface web) : [`docs/deployment/DEPLOIEMENT.md`](../docs/deployment/DEPLOIEMENT.md) — `docker-compose.yml` est à la racine du dépôt.
+
+Ajouter un module : créer `migration/schema/<module>.pg.sql` ET l'ajouter à `migration/schema/manifest.json` (un test échoue sinon) : le conteneur, les tests et `db:migrate` lisent ce manifeste.
 
 ## Régénérer l'inventaire et les entités
 

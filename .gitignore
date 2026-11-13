@@ -17,3 +17,7 @@ HAMS_Requirements/
 /Code/Websites/DanpheEMR/appsettings.json
 /Database/DanpheEMR_CompleteDB_4th_August_2019.bak
 /Code/Websites/DanpheEMR/DanpheEmrAPI.xml
+
+# Installation Docker : les secrets restent hors du dépôt
+.env
+!.env.example
