@@ -44,7 +44,8 @@ export class AppointmentsModule {
         { provide: ListAppointmentsUseCase, inject: [DEPENDENCIES], useFactory: (d: Dependencies) => new ListAppointmentsUseCase(d) },
         { provide: ArriveAppointmentUseCase, inject: [DEPENDENCIES], useFactory: (d: Dependencies) => new ArriveAppointmentUseCase(d) },
       ],
-      exports: [ArriveAppointmentUseCase],
+      // Exporte aussi le dépôt des rendez-vous : la racine de composition le branche au portail du patient (lecture de SES rendez-vous).
+      exports: [ArriveAppointmentUseCase, APPOINTMENT_REPOSITORY],
     };
   }
 }

@@ -250,7 +250,8 @@
     "receptionNew": "New patient",
     "receptionAdmissions": "Admissions",
     "receptionAgenda": "Agenda",
-    "pharmacyPrescriptions": "Prescriptions"
+    "pharmacyPrescriptions": "Prescriptions",
+    "portal": "My space"
   },
   "admin": {
     "actions": "Actions",
@@ -1414,6 +1415,14 @@
       "rangeInvalid": "Band {n}: enter valid numbers (minimum age in whole days, at least one limit).",
       "saveRanges": "Save the reference ranges",
       "noRanges": "No band: results will not get a position (normal, low, high)."
+    },
+    "results": {
+      "title": "Results",
+      "lead": "The lab tests you prescribed whose results are published, most recent first. The report flags critical values.",
+      "pending": "My pending requests",
+      "open": "View the report",
+      "openOf": "View the report of request {number}",
+      "empty": "No published result yet."
     }
   },
   "pharmacy": {
@@ -1878,7 +1887,7 @@
       "remaining": "Left to dispense",
       "state": "Status",
       "actions": "Actions",
-      "units": "{n} units · {lines} lines",
+      "units": "{n} unit(s) · {lines} line(s)",
       "states": {
         "NONE": "To dispense",
         "PARTIAL": "Partly dispensed",
@@ -2400,6 +2409,68 @@
       "noShow": "No-show",
       "noShowOf": "Record the no-show of the patient of appointment {number}",
       "noShowDone": "No-show recorded for {number}."
+    },
+    "portal": {
+      "title": "Portal account",
+      "linked": "Account “{username}” linked on {when}.",
+      "none": "This patient has no linked portal account. The account (Patient role) is created by administration; enter its username to link it to this record. A link cannot be changed.",
+      "username": "Patient account username",
+      "link": "Link the account",
+      "done": "Account linked to the record."
+    }
+  },
+  "portal": {
+    "title": "My space",
+    "notLinked": "Your account is not linked to your patient record yet. Ask the hospital front desk to link it.",
+    "appointments": {
+      "title": "My appointments",
+      "none": "No appointment.",
+      "statuses": {
+        "SCHEDULED": "Upcoming",
+        "ARRIVED": "Attended",
+        "CANCELLED": "Cancelled",
+        "NO_SHOW": "Missed"
+      }
+    },
+    "results": {
+      "title": "My lab results",
+      "lead": "Only results validated and published by the laboratory appear here. Your doctor will go through them with you.",
+      "of": "Results of {number}",
+      "test": "Test",
+      "value": "Result",
+      "reference": "Reference values",
+      "flag": "Position",
+      "amended": "Result corrected after publication",
+      "none": "No published result yet.",
+      "flags": {
+        "LOW": "Low",
+        "HIGH": "High",
+        "CRITICAL_LOW": "Very low",
+        "CRITICAL_HIGH": "Very high"
+      }
+    },
+    "prescriptions": {
+      "title": "My prescriptions",
+      "none": "No prescription.",
+      "days": "{n} days",
+      "qty": "{n} {unit}",
+      "cancelled": "Cancelled",
+      "states": {
+        "NONE": "To collect at the pharmacy",
+        "PARTIAL": "Partly collected",
+        "COMPLETE": "Collected"
+      }
+    },
+    "invoices": {
+      "title": "My invoices",
+      "none": "No invoice.",
+      "statuses": {
+        "ISSUED": "To pay",
+        "PARTIALLY_PAID": "Partly paid",
+        "PAID": "Paid",
+        "CANCELLED": "Cancelled"
+      },
+      "amounts": "Total {total} · paid {paid} · balance {balance}"
     }
   }
 }

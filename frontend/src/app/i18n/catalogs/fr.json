@@ -250,7 +250,8 @@
     "receptionNew": "Nouveau patient",
     "receptionAdmissions": "Admissions",
     "receptionAgenda": "Agenda",
-    "pharmacyPrescriptions": "Ordonnances"
+    "pharmacyPrescriptions": "Ordonnances",
+    "portal": "Mon espace"
   },
   "admin": {
     "actions": "Actions",
@@ -1414,6 +1415,14 @@
       "rangeInvalid": "Tranche {n} : saisissez des nombres valides (âge minimal en jours entiers, au moins une limite).",
       "saveRanges": "Enregistrer les valeurs de référence",
       "noRanges": "Aucune tranche : les résultats ne recevront pas de position (normal, bas, haut)."
+    },
+    "results": {
+      "title": "Résultats",
+      "lead": "Les analyses que vous avez prescrites et dont les résultats sont publiés, les plus récentes d’abord. Le rapport signale les valeurs critiques.",
+      "pending": "Mes demandes en cours",
+      "open": "Voir le rapport",
+      "openOf": "Voir le rapport de la demande {number}",
+      "empty": "Aucun résultat publié pour le moment."
     }
   },
   "pharmacy": {
@@ -1878,7 +1887,7 @@
       "remaining": "Reste à délivrer",
       "state": "État",
       "actions": "Actions",
-      "units": "{n} unités · {lines} lignes",
+      "units": "{n} unité(s) · {lines} ligne(s)",
       "states": {
         "NONE": "À délivrer",
         "PARTIAL": "Délivrée en partie",
@@ -2400,6 +2409,68 @@
       "noShow": "Absent",
       "noShowOf": "Constater l’absence du patient du rendez-vous {number}",
       "noShowDone": "Absence constatée pour {number}."
+    },
+    "portal": {
+      "title": "Compte du portail",
+      "linked": "Compte « {username} » relié le {when}.",
+      "none": "Ce patient n’a pas de compte de portail relié. Le compte (rôle Patient) est créé par l’administration ; saisissez son identifiant pour le relier à ce dossier. Un lien ne se modifie pas.",
+      "username": "Identifiant du compte patient",
+      "link": "Relier le compte",
+      "done": "Compte relié au dossier."
+    }
+  },
+  "portal": {
+    "title": "Mon espace",
+    "notLinked": "Votre compte n’est pas encore relié à votre dossier patient. Rendez-vous à l’accueil de l’hôpital pour le faire relier.",
+    "appointments": {
+      "title": "Mes rendez-vous",
+      "none": "Aucun rendez-vous.",
+      "statuses": {
+        "SCHEDULED": "À venir",
+        "ARRIVED": "Honoré",
+        "CANCELLED": "Annulé",
+        "NO_SHOW": "Manqué"
+      }
+    },
+    "results": {
+      "title": "Mes résultats d’analyses",
+      "lead": "Seuls les résultats validés et publiés par le laboratoire apparaissent ici. Votre médecin vous les commente.",
+      "of": "Résultats de {number}",
+      "test": "Analyse",
+      "value": "Résultat",
+      "reference": "Valeurs de référence",
+      "flag": "Position",
+      "amended": "Résultat corrigé après sa publication",
+      "none": "Aucun résultat publié pour le moment.",
+      "flags": {
+        "LOW": "Bas",
+        "HIGH": "Élevé",
+        "CRITICAL_LOW": "Très bas",
+        "CRITICAL_HIGH": "Très élevé"
+      }
+    },
+    "prescriptions": {
+      "title": "Mes ordonnances",
+      "none": "Aucune ordonnance.",
+      "days": "{n} jours",
+      "qty": "{n} {unit}",
+      "cancelled": "Annulée",
+      "states": {
+        "NONE": "À retirer à la pharmacie",
+        "PARTIAL": "Retirée en partie",
+        "COMPLETE": "Retirée"
+      }
+    },
+    "invoices": {
+      "title": "Mes factures",
+      "none": "Aucune facture.",
+      "statuses": {
+        "ISSUED": "À payer",
+        "PARTIALLY_PAID": "Payée en partie",
+        "PAID": "Payée",
+        "CANCELLED": "Annulée"
+      },
+      "amounts": "Total {total} · payé {paid} · reste {balance}"
     }
   }
 }

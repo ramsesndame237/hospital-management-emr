@@ -42,6 +42,9 @@ export class BillingModule {
   static register(): DynamicModule {
     return {
       module: BillingModule,
+      // Global, et n'exporte que les factures : la racine de composition les branche au portail du patient.
+      global: true,
+      exports: [INVOICE_REPOSITORY],
       controllers: [BillingCatalogController, BillingInvoicesController, BillingSessionsController, BillingApprovalsController],
       providers: [
         { provide: ITEM_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgItemRepository(sql) },

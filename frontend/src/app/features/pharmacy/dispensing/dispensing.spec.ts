@@ -46,7 +46,7 @@ describe('Dispensation en pharmacie', () => {
       const row = textOf(q('[data-test="RX-0000001"]'));
       expect(row).toContain('Mbarga Élisabeth');
       expect(row).toContain('PAT-0000001');
-      expect(row).toContain('21 unités · 1 lignes');
+      expect(row).toContain('21 unité(s) · 1 ligne(s)');
       expect(row).toContain('À délivrer');
       expect(q('[data-test="RX-0000001"] a')?.getAttribute('href')).toBe('/pharmacy/prescriptions/rx-1');
     });

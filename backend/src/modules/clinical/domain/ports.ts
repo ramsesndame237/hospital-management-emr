@@ -71,6 +71,8 @@ export interface PrescriptionRepository {
   mutate(id: PrescriptionId, mutate: (prescription: Prescription) => Result<void>): Promise<Result<Prescription> | null>;
   /** Les ordonnances d'une consultation, dans l'ordre d'émission. */
   listOfEncounter(encounterId: EncounterId): Promise<Prescription[]>;
+  /** Les ordonnances d'un patient (annulées comprises), les plus récentes d'abord. */
+  listByPatient(patientId: PatientRef, limit: number): Promise<Prescription[]>;
   /** Nombre d'ordonnances en cours (non annulées) d'une consultation. */
   countIssued(encounterId: EncounterId): Promise<number>;
   /** Les ordonnances en cours de tous les services, les plus anciennes d'abord (pour la pharmacie, qui les délivre). */

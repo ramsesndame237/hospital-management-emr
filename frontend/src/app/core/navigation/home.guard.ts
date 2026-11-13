@@ -10,6 +10,7 @@ const HOMES: Readonly<Record<string, { readonly permission: string; readonly rou
   LAB_TECHNICIAN: { permission: 'lab.requisitions:read:all', route: '/lab/worklist' },
   PHARMACIST: { permission: 'pharmacy.dispensing:read', route: '/pharmacy/prescriptions' },
   RECEPTIONIST: { permission: 'patients:write', route: '/patients' },
+  PATIENT: { permission: 'portal:read:own', route: '/portal' },
 };
 
 /**

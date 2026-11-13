@@ -137,6 +137,12 @@ export class PgPrescriptionRepository implements PrescriptionRepository {
     return { total: total[0]?.n ?? 0, items: rows.map((r) => toPrescription(r, lines.get(r.id) ?? [])) };
   }
 
+  async listByPatient(patientId: PatientRef, limit: number): Promise<Prescription[]> {
+    const rows = await this.sql.query<PrescriptionRow>(`SELECT ${COLUMNS} FROM clinical_prescriptions WHERE patient_id = $1 ORDER BY issued_at DESC, prescription_number DESC LIMIT $2`, [patientId.value, limit]);
+    const lines = await linesOf(this.sql, rows.map((r) => r.id));
+    return rows.map((r) => toPrescription(r, lines.get(r.id) ?? []));
+  }
+
   async countIssued(encounterId: EncounterId): Promise<number> {
     const rows = await this.sql.query<{ n: number }>("SELECT count(*)::int AS n FROM clinical_prescriptions WHERE encounter_id = $1 AND status = 'ISSUED'", [encounterId.value]);
     return rows[0]?.n ?? 0;
