@@ -33,6 +33,7 @@ class InMemoryStructure implements StructureRepository {
   async listByFacility(facilityId: FacilityId, includeInactive: boolean) {
     return [...this.byId.values()].filter((n) => n.facilityId.equals(facilityId) && (includeInactive || n.active)).sort((a, b) => a.code.value.localeCompare(b.code.value));
   }
+  async listActiveServices() { return [...this.byId.values()].filter((n) => n.kind === 'SERVICE' && n.active); }
   async hasActiveChildren(id: NodeId) { return [...this.byId.values()].some((n) => n.parentId?.equals(id) && n.active); }
 }
 

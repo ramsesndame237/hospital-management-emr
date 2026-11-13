@@ -85,6 +85,11 @@ export class PgStructureRepository implements StructureRepository {
     return rows.map(toNode);
   }
 
+  async listActiveServices(): Promise<StructureNode[]> {
+    const rows = await this.sql.query<NodeRow>(`SELECT ${COLUMNS} FROM administration_structure_nodes WHERE kind = 'SERVICE' AND active ORDER BY name, id`);
+    return rows.map(toNode);
+  }
+
   async hasActiveChildren(id: NodeId): Promise<boolean> {
     const rows = await this.sql.query<{ found: boolean }>(
       'SELECT EXISTS (SELECT 1 FROM administration_structure_nodes WHERE parent_id = $1 AND active) AS found',

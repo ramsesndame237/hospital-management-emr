@@ -40,6 +40,16 @@ export const NAVIGATION: readonly NavItem[] = [
     ],
   },
   {
+    id: 'reception',
+    labelKey: 'nav.reception',
+    icon: 'user',
+    children: [
+      { id: 'reception-patients', labelKey: 'nav.receptionPatients', icon: 'user', route: '/patients', permission: 'patients:read' },
+      { id: 'reception-new', labelKey: 'nav.receptionNew', icon: 'add', route: '/patients/new', permission: 'patients:write' },
+      { id: 'reception-admissions', labelKey: 'nav.receptionAdmissions', icon: 'ward', route: '/admissions', permission: 'admissions:read:department' },
+    ],
+  },
+  {
     id: 'billing',
     labelKey: 'nav.billing',
     icon: 'invoice',
@@ -84,7 +94,6 @@ export const NAVIGATION: readonly NavItem[] = [
   { id: 'emergency', labelKey: 'nav.emergency', icon: 'emergency', route: '/modules/emergency', roles: DOCTOR },
   { id: 'results', labelKey: 'nav.results', icon: 'dashboard', route: '/modules/results', roles: DOCTOR },
   { id: 'tasks', labelKey: 'nav.tasks', icon: 'agenda', route: '/modules/tasks', roles: DOCTOR },
-  { id: 'patients', labelKey: 'nav.patients', icon: 'consultations', route: '/modules/patients', roles: DOCTOR },
   { id: 'surgery', labelKey: 'nav.surgery', icon: 'ward', route: '/modules/surgery', roles: DOCTOR },
   { id: 'maternity', labelKey: 'nav.maternity', icon: 'emergency', route: '/modules/maternity', roles: DOCTOR },
   { id: 'documents', labelKey: 'nav.documents', icon: 'dashboard', route: '/modules/documents', roles: DOCTOR },

@@ -19,6 +19,8 @@ export class ApiError extends Error {
     readonly fieldErrors: readonly FieldError[] = [],
     /** Délai d'attente demandé par le serveur (en-tête `Retry-After`, en secondes) ; `null` s'il n'en précise pas. */
     readonly retryAfterSeconds: number | null = null,
+    /** Corps brut de la réponse, pour les rares erreurs qui portent des données (les dossiers qui ressemblent, pour un doublon). */
+    readonly body: unknown = null,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -52,7 +54,7 @@ export function toApiError(error: unknown): ApiError {
     const message = typeof body?.message === 'string' ? body.message : error.statusText;
     const fieldErrors = Array.isArray(body?.errors) ? (body.errors as FieldError[]).filter((e) => typeof e?.message === 'string') : [];
     const retryAfter = Number(error.headers?.get('Retry-After'));
-    return new ApiError(error.status, code, message, fieldErrors, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null);
+    return new ApiError(error.status, code, message, fieldErrors, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null, error.error ?? null);
   }
   return new ApiError(0, UNKNOWN, error instanceof Error ? error.message : String(error));
 }

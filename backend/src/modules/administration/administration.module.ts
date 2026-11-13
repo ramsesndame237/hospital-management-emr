@@ -4,7 +4,7 @@ import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/por
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
 import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, RegisterFacilityUseCase } from './application/use-cases/facilities';
 import { GetOrganizationUseCase, SetupOrganizationUseCase } from './application/use-cases/organization';
-import { GetStructureNodeUseCase, GetStructureTreeUseCase, ManageStructureUseCases } from './application/use-cases/structure';
+import { GetStructureNodeUseCase, GetStructureTreeUseCase, ListServicesUseCase, ManageStructureUseCases } from './application/use-cases/structure';
 import {
   FACILITY_REPOSITORY, FacilityRepository, ORGANIZATION_REPOSITORY, OrganizationRepository, SPECIALTY_DIRECTORY, SpecialtyDirectory, STRUCTURE_REPOSITORY, StructureRepository,
 } from './domain/ports';
@@ -52,6 +52,7 @@ export class AdministrationModule {
           inject: [FACILITY_REPOSITORY, AUDIT_LOG, CLOCK],
           useFactory: (f: FacilityRepository, a: AuditLog, c: Clock) => new ManageFacilityUseCases(f, a, c),
         },
+        { provide: ListServicesUseCase, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new ListServicesUseCase(s) },
         { provide: GetStructureNodeUseCase, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new GetStructureNodeUseCase(s) },
         {
           provide: GetStructureTreeUseCase,
