@@ -1,9 +1,15 @@
-# Environnement local / démo : PostgreSQL + API. Les secrets viennent d'un fichier .env (voir .env.example), jamais du dépôt.
-#   docker compose up --build
-# Le schéma est chargé au premier démarrage depuis migration/schema/schema.pg.sql (déduit du code C#).
+# Sanjeevani EMR : installation complète (base PostgreSQL, Redis, API, interface web).
+#   cp .env.example .env   # puis renseigner les secrets (voir les commentaires du fichier)
+#   docker compose up -d --build
+#   docker compose run --rm -e BOOTSTRAP_ADMIN_EMAIL=dsi@hopital.example api node dist/cli/bootstrap-admin.js   # premier administrateur, une seule fois
+# L'interface est servie sur http://localhost:${WEB_PORT:-8080} ; mettre un reverse proxy TLS devant en production (docs/deployment/DEPLOIEMENT.md).
+# Le schéma complet est appliqué par l'API à chaque démarrage (tools/migrate.mjs, ordre de migration/schema/manifest.json) : une mise à jour de l'image met la base à niveau.
+name: sanjeevani
+
 services:
   db:
     image: postgres:18-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-sanjeevani}
       POSTGRES_USER: ${DB_USER:-sanjeevani}
@@ -11,7 +17,6 @@ services:
     volumes:
       # PostgreSQL 18+ : le répertoire de données est /var/lib/postgresql/18/docker ; le volume se monte donc sur le parent.
       - pgdata:/var/lib/postgresql
-      - ./migration/schema/schema.pg.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sanjeevani} -d ${DB_NAME:-sanjeevani}"]
       interval: 10s
@@ -22,6 +27,7 @@ services:
   # Pas de persistance (--save ""): les sessions sont éphémères, une perte de Redis déconnecte simplement tout le monde.
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --save \"\" --appendonly no --maxmemory 256mb --maxmemory-policy volatile-lru"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD est obligatoire (voir .env.example)}
@@ -32,7 +38,8 @@ services:
       retries: 5
 
   api:
-    build: .
+    build: ./backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -47,20 +54,38 @@ services:
       DB_USER: ${DB_USER:-sanjeevani}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET est obligatoire (32 caractères minimum)}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
+      # Même origine que l'interface (nginx relaie /api) : le CORS ne sert qu'aux appels directs à l'API.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY est obligatoire (32 octets en base64, voir .env.example)}
       LEGACY_PASSWORD_SALT: ${LEGACY_PASSWORD_SALT:-}
-      # Mettre false uniquement pour un essai local en HTTP ; en production l'API refuse de démarrer avec false.
+      # En production l'API refuse de démarrer avec false : l'accès se fait en HTTPS (localhost est aussi accepté par les navigateurs).
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       BREACH_CHECK_ENABLED: ${BREACH_CHECK_ENABLED:-true}
-      # Documentation interactive (/api-docs, connexion + permission api.docs:read). Fermée par défaut ; mettre true en démo.
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      # Réglages de l'établissement : le fuseau décide du jour courant (affectations, agenda, caisse).
+      TIME_ZONE: ${TIME_ZONE:-Africa/Douala}
+      BILLING_CURRENCY: ${BILLING_CURRENCY:-XAF}
+      BILLING_VARIANCE_LIMIT: ${BILLING_VARIANCE_LIMIT:-5000}
+      BILLING_DISCOUNT_APPROVAL_PERCENT: ${BILLING_DISCOUNT_APPROVAL_PERCENT:-10}
+      PHARMACY_EXPIRY_ALERT_DAYS: ${PHARMACY_EXPIRY_ALERT_DAYS:-90}
       I18N_ADAPTER: ${I18N_ADAPTER:-nestjs-i18n}
       I18N_LOCALES: ${I18N_LOCALES:-fr,en}
       I18N_DEFAULT_LOCALE: ${I18N_DEFAULT_LOCALE:-fr}
+    # L'API n'est pas exposée : seule l'interface web (nginx) la joint, sur le réseau interne.
+    expose:
+      - "3000"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_UPSTREAM: api:3000
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-8080}:8080"
 
 volumes:
   pgdata:
