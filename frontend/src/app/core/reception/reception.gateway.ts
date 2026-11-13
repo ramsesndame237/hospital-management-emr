@@ -3,7 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
-import { Admission, AdmissionFilter, Occupancy, OpenAdmissionInput, Page, Patient, PatientCriteria, PatientInput, PatientSummary, Service } from './reception.models';
+import {
+  Admission, AdmissionFilter, Appointment, AppointmentChanges, AppointmentFilter, AppointmentInput, Occupancy, OpenAdmissionInput, Page, Patient, PatientCriteria, PatientInput, PatientSummary, Practitioner, Service,
+} from './reception.models';
 
 /**
  * Port d'accès à l'accueil : dossiers patients (recherche, ouverture avec contrôle des doublons, correction) et admissions (arrivée, transfert,
@@ -24,6 +26,15 @@ export abstract class ReceptionGateway {
   abstract cancelAdmission(id: string, reason: string): Promise<Admission>;
   /** Hospitalisation : `bedId` du nouveau lit ; autre admission : `serviceId` du nouveau service. */
   abstract transferAdmission(id: string, target: { readonly bedId?: string; readonly serviceId?: string }): Promise<Admission>;
+  /** L'agenda des services visibles, du plus proche au plus lointain. */
+  abstract listAppointments(filter: AppointmentFilter, offset: number, limit: number): Promise<Page<Appointment>>;
+  /** Les professionnels actuellement affectés à ce service. */
+  abstract listPractitioners(serviceId: string): Promise<readonly Practitioner[]>;
+  abstract scheduleAppointment(input: AppointmentInput): Promise<Appointment>;
+  abstract rescheduleAppointment(id: string, changes: AppointmentChanges): Promise<Appointment>;
+  abstract cancelAppointment(id: string, reason: string): Promise<Appointment>;
+  /** Le patient ne s'est pas présenté (possible une fois le créneau commencé). */
+  abstract markNoShow(id: string): Promise<Appointment>;
 }
 
 /** Adaptateur HTTP des API `/api/v1/patients`, `/api/v1/admissions` et `/api/v1/structure/services`. */
@@ -74,6 +85,30 @@ export class HttpReceptionGateway extends ReceptionGateway {
 
   override transferAdmission(id: string, target: { readonly bedId?: string; readonly serviceId?: string }): Promise<Admission> {
     return this.call(this.http.post<Admission>(`${this.base}/admissions/${id}/transfer`, target));
+  }
+
+  override listAppointments(filter: AppointmentFilter, offset: number, limit: number): Promise<Page<Appointment>> {
+    return this.call(this.http.get<Page<Appointment>>(`${this.base}/appointments`, { params: { ...clean(filter), offset, limit } }));
+  }
+
+  override listPractitioners(serviceId: string): Promise<readonly Practitioner[]> {
+    return this.call(this.http.get<Practitioner[]>(`${this.base}/structure/${serviceId}/practitioners`));
+  }
+
+  override scheduleAppointment(input: AppointmentInput): Promise<Appointment> {
+    return this.call(this.http.post<Appointment>(`${this.base}/appointments`, input));
+  }
+
+  override rescheduleAppointment(id: string, changes: AppointmentChanges): Promise<Appointment> {
+    return this.call(this.http.post<Appointment>(`${this.base}/appointments/${id}/reschedule`, changes));
+  }
+
+  override cancelAppointment(id: string, reason: string): Promise<Appointment> {
+    return this.call(this.http.post<Appointment>(`${this.base}/appointments/${id}/cancel`, { reason }));
+  }
+
+  override markNoShow(id: string): Promise<Appointment> {
+    return this.call(this.http.post<Appointment>(`${this.base}/appointments/${id}/no-show`, null));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

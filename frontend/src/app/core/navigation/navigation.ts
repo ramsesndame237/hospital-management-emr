@@ -46,6 +46,7 @@ export const NAVIGATION: readonly NavItem[] = [
     children: [
       { id: 'reception-patients', labelKey: 'nav.receptionPatients', icon: 'user', route: '/patients', permission: 'patients:read' },
       { id: 'reception-new', labelKey: 'nav.receptionNew', icon: 'add', route: '/patients/new', permission: 'patients:write' },
+      { id: 'reception-agenda', labelKey: 'nav.receptionAgenda', icon: 'agenda', route: '/appointments', permission: 'appointments:read:department' },
       { id: 'reception-admissions', labelKey: 'nav.receptionAdmissions', icon: 'ward', route: '/admissions', permission: 'admissions:read:department' },
     ],
   },
@@ -88,7 +89,7 @@ export const NAVIGATION: readonly NavItem[] = [
       { id: 'pharmacy-catalog', labelKey: 'nav.pharmacyCatalog', icon: 'consultations', route: '/pharmacy/catalog', permission: 'pharmacy.catalog:read' },
     ],
   },
-  { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/modules/agenda', roles: DOCTOR },
+  { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/appointments', permission: 'appointments:read:department' },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/clinical/queue', permission: 'clinical.encounters:read:department' },
   { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },
   { id: 'emergency', labelKey: 'nav.emergency', icon: 'emergency', route: '/modules/emergency', roles: DOCTOR },

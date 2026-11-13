@@ -1,5 +1,5 @@
 import { Translator } from '../../core/i18n/translator';
-import { AdmissionStatus, AdmissionType } from '../../core/reception/reception.models';
+import { AdmissionStatus, AdmissionType, AppointmentStatus } from '../../core/reception/reception.models';
 import { StatusTone } from '../../shared/status-tag';
 
 type Tag = { readonly label: string; readonly tone: StatusTone };
@@ -17,3 +17,9 @@ export function typeTag(i18n: Translator, type: AdmissionType): Tag {
 }
 
 export const personName = (p: { readonly lastName: string; readonly firstName: string }): string => `${p.lastName} ${p.firstName}`;
+
+/** Statut d'un rendez-vous : à venir en orange, honoré en vert, annulé ou absent en rouge. Le texte est toujours affiché. */
+export function appointmentTag(i18n: Translator, status: AppointmentStatus): Tag {
+  const tone: StatusTone = status === 'ARRIVED' ? 'success' : status === 'SCHEDULED' ? 'warning' : 'critical';
+  return { label: i18n.t(`reception.agenda.statuses.${status}`), tone };
+}

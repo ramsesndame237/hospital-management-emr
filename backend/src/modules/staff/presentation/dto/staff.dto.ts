@@ -204,6 +204,11 @@ export class StaffSummaryDto {
   professionCode!: string;
 }
 
+export class PractitionerDto extends StaffSummaryDto {
+  @DocProperty({ description: 'Identifiant de la fiche du personnel (celui que les rendez-vous et les admissions attendent).', example: 'c0a8f1d2-5b7e-4c1a-9d3f-6e2b8a4f7c11', format: 'uuid' })
+  id!: string;
+}
+
 export class NodeAssignmentDto extends AssignmentDto {
   @DocProperty({ description: 'La personne affectée.', type: StaffSummaryDto })
   staff!: StaffSummaryDto;

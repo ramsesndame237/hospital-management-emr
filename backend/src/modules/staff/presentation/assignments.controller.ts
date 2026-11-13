@@ -3,8 +3,8 @@ import { DocGroup, DocOperation } from '../../api-docs';
 import type { DocParam } from '../../api-docs';
 import { CurrentUser, RequirePermissions } from '../../iam/presentation/decorators';
 import type { AuthUser } from '../../iam/presentation/decorators';
-import { ListNodeAssignmentsUseCase, ListStaffAssignmentsUseCase, ManageAssignmentsUseCases } from '../application/use-cases/assignments';
-import { AssignDto, AssignmentDto, EndAssignmentDto, NodeAssignmentDto, SetPrimaryDto } from './dto/staff.dto';
+import { ListNodeAssignmentsUseCase, ListPractitionersUseCase, ListStaffAssignmentsUseCase, ManageAssignmentsUseCases } from '../application/use-cases/assignments';
+import { AssignDto, AssignmentDto, EndAssignmentDto, NodeAssignmentDto, PractitionerDto, SetPrimaryDto } from './dto/staff.dto';
 import { unwrap } from './http-errors';
 
 const STAFF: DocParam = { name: 'id', description: 'Identifiant de la fiche du personnel.', example: 'c0a8f1d2-5b7e-4c1a-9d3f-6e2b8a4f7c11', format: 'uuid' };
@@ -29,6 +29,7 @@ export class AssignmentsController {
     private readonly manage: ManageAssignmentsUseCases,
     private readonly byStaff: ListStaffAssignmentsUseCase,
     private readonly byNode: ListNodeAssignmentsUseCase,
+    private readonly practitioners: ListPractitionersUseCase,
   ) {}
 
   @DocOperation({
@@ -72,6 +73,19 @@ export class AssignmentsController {
     @Query('includeEnded', new DefaultValuePipe(false), ParseBoolPipe) includeEnded: boolean,
   ): Promise<NodeAssignmentDto[]> {
     return unwrap(await this.byNode.execute(id, includeEnded));
+  }
+
+  @DocOperation({
+    summary: "Professionnels d'un service ou d'une unité",
+    description: "Les personnes actuellement affectées, avec leur seule identité professionnelle (identifiant de fiche, matricule, nom, profession) : de quoi choisir qui reçoit un patient. Accessible à l'accueil et aux soignants, contrairement à la liste des affectations (gestion du personnel).",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Les professionnels, triés par nom.', type: PractitionerDto, isArray: true }],
+    errors: [400, 404],
+    params: [NODE],
+  })
+  @RequirePermissions('staff.practitioners:read') @Get('structure/:id/practitioners')
+  async listPractitioners(@Param('id', ParseUUIDPipe) id: string): Promise<PractitionerDto[]> {
+    return unwrap(await this.practitioners.execute(id));
   }
 
   @DocOperation({

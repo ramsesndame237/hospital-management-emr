@@ -56,3 +56,9 @@ UPDATE iam_roles
 UPDATE iam_roles
    SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['staff:read']) AS p ORDER BY p)
  WHERE code = 'DPO_AUDITOR';
+
+-- Choisir qui reçoit un patient (rendez-vous, admission) : l'accueil et les soignants lisent l'identité professionnelle des personnes affectées à un
+-- service, sans accès aux fiches du personnel.
+UPDATE iam_roles
+   SET permissions = ARRAY(SELECT DISTINCT p FROM unnest(permissions || ARRAY['staff.practitioners:read']) AS p ORDER BY p)
+ WHERE code IN ('RECEPTIONIST', 'DOCTOR', 'NURSE', 'SYSTEM_ADMIN');

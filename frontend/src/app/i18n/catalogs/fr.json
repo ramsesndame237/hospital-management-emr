@@ -248,7 +248,8 @@
     "reception": "Accueil",
     "receptionPatients": "Patients",
     "receptionNew": "Nouveau patient",
-    "receptionAdmissions": "Admissions"
+    "receptionAdmissions": "Admissions",
+    "receptionAgenda": "Agenda"
   },
   "admin": {
     "actions": "Actions",
@@ -2278,6 +2279,58 @@
       "arrival": "Arrivée",
       "state": "État",
       "none": "Aucune admission."
+    },
+    "agenda": {
+      "title": "Agenda",
+      "lead": "Les rendez-vous du jour. Quand le patient se présente, enregistrez son arrivée : il rejoint la file d’attente du médecin.",
+      "new": "Nouveau rendez-vous",
+      "all": "Tous",
+      "date": "Jour",
+      "time": "Heure",
+      "timeInvalid": "Saisissez l’heure au format HH:MM (par exemple 09:30).",
+      "dateInvalid": "Cette date ou cette heure n’existe pas.",
+      "duration": "Durée",
+      "minutes": {
+        "15": "15 min",
+        "20": "20 min",
+        "30": "30 min",
+        "45": "45 min",
+        "60": "1 h",
+        "90": "1 h 30"
+      },
+      "statuses": {
+        "SCHEDULED": "À venir",
+        "ARRIVED": "Arrivé",
+        "CANCELLED": "Annulé",
+        "NO_SHOW": "Absent"
+      },
+      "practitioner": "Professionnel",
+      "practitionerHint": "Les professionnels affectés au service choisi.",
+      "slot": "Créneau",
+      "none": "Aucun rendez-vous ce jour-là.",
+      "patient": "Patient",
+      "patientHint": "Rechercher un patient (numéro de dossier ou nom)",
+      "changePatient": "Changer",
+      "patientRequired": "Choisissez le patient du rendez-vous.",
+      "book": "Prendre le rendez-vous",
+      "booked": "Rendez-vous {number} pris.",
+      "move": "Déplacer",
+      "moveTitle": "Déplacer {number}",
+      "moveOf": "Déplacer le rendez-vous {number}",
+      "moved": "Rendez-vous {number} déplacé.",
+      "cancel": "Annuler",
+      "cancelTitle": "Annuler {number}",
+      "cancelOf": "Annuler le rendez-vous {number}",
+      "cancelReason": "Motif de l’annulation",
+      "cancelSubmit": "Annuler le rendez-vous",
+      "cancelKeep": "Garder le rendez-vous",
+      "cancelled": "Rendez-vous {number} annulé.",
+      "arrived": "Patient arrivé",
+      "arrivedOf": "Enregistrer l’arrivée du patient du rendez-vous {number}",
+      "admitted": "Arrivée enregistrée : admission {number} ouverte, le patient est dans la file du médecin.",
+      "noShow": "Absent",
+      "noShowOf": "Constater l’absence du patient du rendez-vous {number}",
+      "noShowDone": "Absence constatée pour {number}."
     }
   }
 }

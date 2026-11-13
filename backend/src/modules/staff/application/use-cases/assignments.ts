@@ -49,6 +49,36 @@ export class ListNodeAssignmentsUseCase {
   }
 }
 
+export interface PractitionerView {
+  /** Identifiant de la fiche du personnel (celui que les rendez-vous et les admissions attendent). */
+  readonly id: string;
+  readonly staffNumber: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly professionCode: string;
+}
+
+/**
+ * Qui reçoit les patients dans ce service ou cette unité aujourd'hui : l'identité professionnelle des personnes actuellement affectées, rien d'autre
+ * (ni emploi, ni dates). C'est ce qu'il faut à l'accueil pour choisir un professionnel ; la fiche complète reste réservée à la gestion du personnel.
+ */
+export class ListPractitionersUseCase {
+  constructor(private readonly assigned: ListNodeAssignmentsUseCase) {}
+
+  async execute(nodeId: string): Promise<Result<PractitionerView[]>> {
+    const rows = await this.assigned.execute(nodeId, false);
+    if (!rows.ok) return err(rows.error);
+    const seen = new Set<string>();
+    const practitioners: PractitionerView[] = [];
+    for (const a of rows.value) {
+      if (!a.current || seen.has(a.staffId)) continue;
+      seen.add(a.staffId);
+      practitioners.push({ id: a.staffId, ...a.staff });
+    }
+    return ok(practitioners);
+  }
+}
+
 export class ManageAssignmentsUseCases {
   constructor(
     private readonly staff: StaffRepository,
