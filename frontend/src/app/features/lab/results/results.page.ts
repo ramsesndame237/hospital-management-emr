@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { hasPermission } from '../../../core/auth/permissions';
+import { SessionStore } from '../../../core/auth/session.store';
 import { Translator } from '../../../core/i18n/translator';
 import { LabGateway } from '../../../core/lab/lab.gateway';
 import { RequisitionSummary } from '../../../core/lab/lab.models';
@@ -8,6 +10,7 @@ import { Temporal } from '../../../core/time/temporal';
 import { failureMessage, failureNotice } from '../../../shared/failure-message';
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
 import { StatusTag } from '../../../shared/status-tag';
+import { ImagingResultsSection } from '../../imaging/results/imaging-results.section';
 import { priorityTag } from '../lab-status';
 
 const PAGE_SIZE = 25;
@@ -19,7 +22,7 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
  */
 @Component({
   selector: 'app-results-page',
-  imports: [RouterLink, FormBuilderComponent, StatusTag],
+  imports: [RouterLink, FormBuilderComponent, StatusTag, ImagingResultsSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -75,6 +78,10 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
           </nav>
         }
       }
+
+      @if (showImaging()) {
+        <app-imaging-results-section />
+      }
     </div>
   `,
 })
@@ -82,7 +89,10 @@ export class ResultsPage {
   protected readonly i18n = inject(Translator);
   private readonly gateway = inject(LabGateway);
   private readonly dates = inject(DateTimeFormatter);
+  private readonly user = inject(SessionStore).user;
 
+  /** Le médecin qui demande des examens d'imagerie y retrouve aussi leurs comptes rendus signés. */
+  protected readonly showImaging = computed(() => hasPermission(this.user()?.permissions ?? [], 'imaging.orders:read:own'));
   protected readonly pageSize = PAGE_SIZE;
   protected readonly link = LINK;
   protected readonly loading = signal(true);

@@ -7,6 +7,7 @@ import { AdministrationGateway, HttpAdministrationGateway } from './core/adminis
 import { ApprovalGateway, HttpApprovalGateway } from './core/billing/approval.gateway';
 import { BillingGateway, HttpBillingGateway } from './core/billing/billing.gateway';
 import { CashSessionGateway, HttpCashSessionGateway } from './core/billing/cash-session.gateway';
+import { HttpImagingGateway, ImagingGateway } from './core/imaging/imaging.gateway';
 import { HttpLabGateway, LabGateway } from './core/lab/lab.gateway';
 import { ClinicalGateway, HttpClinicalGateway } from './core/clinical/clinical.gateway';
 import { HttpReceptionGateway, ReceptionGateway } from './core/reception/reception.gateway';
@@ -40,6 +41,7 @@ export const appConfig: ApplicationConfig = {
     { provide: CashSessionGateway, useClass: HttpCashSessionGateway },
     { provide: ApprovalGateway, useClass: HttpApprovalGateway },
     { provide: LabGateway, useClass: HttpLabGateway },
+    { provide: ImagingGateway, useClass: HttpImagingGateway },
     { provide: PharmacyGateway, useClass: HttpPharmacyGateway },
     { provide: ClinicalGateway, useClass: HttpClinicalGateway },
     { provide: ReceptionGateway, useClass: HttpReceptionGateway },

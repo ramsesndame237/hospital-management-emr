@@ -74,6 +74,16 @@ export const NAVIGATION: readonly NavItem[] = [
     ],
   },
   {
+    id: 'imaging',
+    labelKey: 'nav.imaging',
+    icon: 'ward',
+    children: [
+      { id: 'imaging-worklist', labelKey: 'nav.imagingWorklist', icon: 'agenda', route: '/imaging/worklist', permission: 'imaging.orders:read:own' },
+      { id: 'imaging-new', labelKey: 'nav.imagingNew', icon: 'add', route: '/imaging/orders/new', permission: 'imaging.orders:order' },
+      { id: 'imaging-catalog', labelKey: 'nav.imagingCatalog', icon: 'consultations', route: '/imaging/catalog', permission: 'imaging.catalog:read' },
+    ],
+  },
+  {
     id: 'pharmacy',
     labelKey: 'nav.pharmacy',
     icon: 'ward',
