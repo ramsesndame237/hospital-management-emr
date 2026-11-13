@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { hasPermission } from '../../../core/auth/permissions';
 import { SessionStore } from '../../../core/auth/session.store';
@@ -29,6 +29,10 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
         <h1 class="text-[28px] leading-9 font-semibold text-foreground">{{ i18n.t('lab.new.title') }}</h1>
         <p class="text-sm leading-6 text-muted-foreground">{{ i18n.t('lab.new.lead') }}</p>
       </header>
+
+      @if (encounterId()) {
+        <p class="border-l-4 border-primary bg-card p-3 text-sm" role="status" data-test="linked">{{ i18n.t('lab.new.linked') }}</p>
+      }
 
       <section class="flex flex-col gap-4 border border-border bg-card p-6" aria-labelledby="patient-step">
         <h2 id="patient-step" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('lab.new.patientStep') }}</h2>
@@ -116,7 +120,11 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
     </div>
   `,
 })
-export class NewRequisitionPage {
+export class NewRequisitionPage implements OnInit {
+  /** Numéro du patient et consultation d'origine, donnés par l'adresse quand on vient de l'espace de consultation. */
+  readonly patientNumber = input<string>();
+  readonly encounterId = input<string>();
+
   protected readonly i18n = inject(Translator);
   private readonly patientsGateway = inject(PatientSearchGateway);
   private readonly lab = inject(LabGateway);
@@ -196,6 +204,18 @@ export class NewRequisitionPage {
     this.chosen.update((list) => list.filter((t) => t.id !== test.id));
   }
 
+  /** Venu de la consultation : le patient est déjà choisi (rien ne s'écrit tant qu'on n'a pas envoyé la demande). */
+  async ngOnInit(): Promise<void> {
+    const number = this.patientNumber()?.trim();
+    if (!number) return;
+    try {
+      const found = (await this.patientsGateway.search(number, 5)).items.find((p) => p.number === number);
+      if (found) this.patient.set(found);
+    } catch {
+      // Le patient se cherche alors à la main, comme d'habitude.
+    }
+  }
+
   protected async submit(value: Record<string, unknown>): Promise<void> {
     const patient = this.patient();
     if (!patient || this.chosen().length === 0) return;
@@ -204,7 +224,7 @@ export class NewRequisitionPage {
     try {
       const notes = String(value['notes'] ?? '').trim();
       const created = await this.lab.order({
-        patientId: patient.id, testIds: this.chosen().map((t) => t.id), priority: String(value['priority']) as Priority, source: String(value['source']) as Source, ...(notes ? { clinicalNotes: notes } : {}),
+        patientId: patient.id, testIds: this.chosen().map((t) => t.id), priority: String(value['priority']) as Priority, source: String(value['source']) as Source, ...(notes ? { clinicalNotes: notes } : {}), ...(this.encounterId() ? { encounterId: this.encounterId() } : {}),
       });
       this.toast.show(this.i18n.t('lab.new.done', { number: created.number }));
       await this.router.navigate(['/lab/requisitions', created.id]);

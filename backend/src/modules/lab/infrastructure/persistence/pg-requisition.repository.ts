@@ -17,6 +17,7 @@ interface RequisitionRow {
   source: string;
   status: string;
   clinical_notes: string | null;
+  encounter_id: string | null;
   ordered_by: string;
   ordered_at: Date | string;
   cancelled_by: string | null;
@@ -123,7 +124,7 @@ interface EventRow {
   note: string | null;
 }
 
-const COLUMNS = 'id, requisition_number, patient_id, priority, source, status, clinical_notes, ordered_by, ordered_at, cancelled_by, cancelled_at, cancellation_reason, version';
+const COLUMNS = 'id, requisition_number, patient_id, priority, source, status, clinical_notes, encounter_id, ordered_by, ordered_at, cancelled_by, cancelled_at, cancellation_reason, version';
 const SPECIMEN_COLUMNS = 'id, barcode, specimen_type, container, status, collected_by, collected_at, received_by, received_at, rejection_reason, rejection_note, rejected_by, rejected_at, recollection_of';
 
 function need<T>(r: { ok: true; value: T } | { ok: false }, what: string): T {
@@ -140,6 +141,7 @@ function toRequisition(row: RequisitionRow, tests: TestRow[], specimens: Specime
     priority: need(parsePriority(row.priority), what),
     source: need(parseSource(row.source), what),
     clinicalNotes: row.clinical_notes,
+    encounterId: row.encounter_id,
     orderedBy: row.ordered_by,
     orderedAt: requiredInstantFromDb(row.ordered_at),
     tests: tests.map((t): OrderedTest => ({
@@ -284,8 +286,8 @@ export class PgRequisitionRepository implements RequisitionRepository {
     const s = requisition.state;
     await this.sql.transaction(async (tx) => {
       await tx.query(
-        `INSERT INTO lab_requisitions (id, requisition_number, patient_id, priority, source, status, clinical_notes, ordered_by, ordered_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::timestamptz)`,
-        [s.id.value, s.number.value, s.patientId.value, s.priority, s.source, requisition.status, s.clinicalNotes, s.orderedBy, s.orderedAt.toString()],
+        `INSERT INTO lab_requisitions (id, requisition_number, patient_id, priority, source, status, clinical_notes, encounter_id, ordered_by, ordered_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::timestamptz)`,
+        [s.id.value, s.number.value, s.patientId.value, s.priority, s.source, requisition.status, s.clinicalNotes, s.encounterId, s.orderedBy, s.orderedAt.toString()],
       );
       await writeChildren(tx, requisition);
     });
@@ -318,6 +320,7 @@ export class PgRequisitionRepository implements RequisitionRepository {
     if (filter.patientId) where.push(`r.patient_id = ${arg(filter.patientId.value)}`);
     if (filter.number) where.push(`r.requisition_number = ${arg(filter.number.value)}`);
     if (filter.orderedBy) where.push(`r.ordered_by = ${arg(filter.orderedBy)}`);
+    if (filter.encounterId) where.push(`r.encounter_id = ${arg(filter.encounterId)}`);
     if (filter.section) where.push(`EXISTS (SELECT 1 FROM lab_requisition_tests t WHERE t.requisition_id = r.id AND t.section = ${arg(filter.section)})`);
     if (filter.barcode) where.push(`EXISTS (SELECT 1 FROM lab_specimens sp WHERE sp.requisition_id = r.id AND sp.barcode = ${arg(filter.barcode.value)})`);
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';

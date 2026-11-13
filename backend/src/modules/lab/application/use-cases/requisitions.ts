@@ -4,7 +4,7 @@ import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { ServiceAccess } from '../../../../shared-kernel/service-access';
 import { criticalNotified, currentVersion, isCritical, ResultStatus, TestResult } from '../../domain/result';
 import { checkTests, Requisition, RequisitionStatus, specimenCount, TestToOrder } from '../../domain/requisition';
-import { PatientDirectory, PatientInfo, RequisitionRepository, TestRepository, UserDirectory } from '../../domain/ports';
+import { EncounterDirectory, PatientDirectory, PatientInfo, RequisitionRepository, TestRepository, UserDirectory } from '../../domain/ports';
 import {
   parseNotes, parsePriority, parseRejectionReason, parseSection, parseSource, PatientRef, Priority, Reason, RejectionReason, RequisitionId, RequisitionNumber, Section, SpecimenBarcode, SpecimenId, Source, TestId,
 } from '../../domain/values';
@@ -128,6 +128,8 @@ export interface RequisitionView {
   readonly priority: string;
   readonly source: string;
   readonly clinicalNotes: string | null;
+  /** La consultation qui a prescrit ces analyses. */
+  readonly encounterId: string | null;
   readonly orderedBy: UserSummary | null;
   readonly orderedAt: string;
   readonly tests: readonly OrderedTestView[];
@@ -141,6 +143,7 @@ export interface RequisitionDependencies {
   readonly requisitions: RequisitionRepository;
   readonly tests: TestRepository;
   readonly patients: PatientDirectory;
+  readonly encounters: EncounterDirectory;
   readonly users: UserDirectory;
   readonly access: ServiceAccess;
   readonly audit: AuditLog;
@@ -165,7 +168,7 @@ export async function toView(d: RequisitionDependencies, actorId: string, requis
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
   const catalogue = new Map((await d.tests.findByIds(s.tests.map((t) => t.testId))).map((t) => [t.id.value, t.state]));
   return {
-    id: s.id.value, number: s.number.value, status: requisition.status, patient: patient ? summaryOf(patient) : null, priority: s.priority, source: s.source, clinicalNotes: s.clinicalNotes,
+    id: s.id.value, number: s.number.value, status: requisition.status, patient: patient ? summaryOf(patient) : null, priority: s.priority, source: s.source, clinicalNotes: s.clinicalNotes, encounterId: s.encounterId,
     orderedBy: who(s.orderedBy), orderedAt: s.orderedAt.toString(),
     tests: s.tests.map((t): OrderedTestView => {
       const c = catalogue.get(t.testId.value);
@@ -239,6 +242,8 @@ export interface OrderInput {
   priority?: string;
   source?: string;
   clinicalNotes?: string | null;
+  /** La consultation qui prescrit ces analyses (facultatif) : elle doit concerner le même patient et ne pas être annulée. */
+  encounterId?: string | null;
   testIds: readonly string[];
 }
 
@@ -256,6 +261,13 @@ export class OrderRequisitionUseCase {
     const notes = parseNotes(input.clinicalNotes);
     if (!notes.ok) return err(notes.error);
     if (!(await this.d.patients.find([patientRef.value.value])).has(patientRef.value.value)) return err(PATIENT_NOT_FOUND);
+    const encounterId = (input.encounterId ?? '').trim().toLowerCase() || null;
+    if (encounterId) {
+      const encounter = await this.d.encounters.find(encounterId);
+      if (!encounter) return err(new DomainError('LAB_ENCOUNTER_NOT_FOUND', 'Consultation introuvable.'));
+      if (encounter.patientId !== patientRef.value.value) return err(new DomainError('LAB_ENCOUNTER_PATIENT_MISMATCH', 'Cette consultation concerne un autre patient.'));
+      if (encounter.status === 'CANCELLED') return err(new DomainError('LAB_ENCOUNTER_CANCELLED', 'Cette consultation est annulée : on ne lui rattache plus de demande.'));
+    }
 
     const testIds: TestId[] = [];
     for (const raw of input.testIds) {
@@ -285,12 +297,12 @@ export class OrderRequisitionUseCase {
       specimenIds.push(sid.value);
     }
     const requisition = Requisition.order({
-      id: id.value, number: await this.d.requisitions.nextNumber(), patientId: patientRef.value, priority: priority.value, source: source.value, clinicalNotes: notes.value, orderedBy: actorId,
+      id: id.value, number: await this.d.requisitions.nextNumber(), patientId: patientRef.value, priority: priority.value, source: source.value, clinicalNotes: notes.value, encounterId, orderedBy: actorId,
       orderedAt: this.d.clock.now(), tests: toOrder, specimenIds, barcodes: await this.d.requisitions.nextBarcodes(count),
     });
     if (!requisition.ok) return err(requisition.error);
     await this.d.requisitions.insert(requisition.value);
-    await record(this.d, actorId, 'lab.requisition.order', requisition.value, { priority: priority.value, source: source.value, tests: toOrder.length, specimens: count });
+    await record(this.d, actorId, 'lab.requisition.order', requisition.value, { priority: priority.value, source: source.value, tests: toOrder.length, specimens: count, ...(encounterId ? { encounterId } : {}) });
     return ok(await toView(this.d, actorId, requisition.value));
   }
 }
@@ -329,6 +341,7 @@ export interface RequisitionListInput {
   patientId?: string;
   number?: string;
   barcode?: string;
+  encounterId?: string;
   offset: number;
   limit: number;
 }
@@ -366,19 +379,20 @@ export class ListRequisitionsUseCase {
     if (!number.ok) return err(number.error);
     const barcode = input.barcode?.trim() ? SpecimenBarcode.create(input.barcode) : ok(undefined);
     if (!barcode.ok) return err(barcode.error);
+    const encounterId = input.encounterId?.trim().toLowerCase() || undefined;
 
     const reviewer = await isReviewer(this.d, actorId);
     const offset = Math.max(0, Math.trunc(input.offset));
     const limit = Math.min(200, Math.max(1, Math.trunc(input.limit)));
     const page = await this.d.requisitions.list(
-      { status, priority: priority.value as Priority | undefined, source: source.value as Source | undefined, section: section.value as Section | undefined, patientId: patientId.value, number: number.value, barcode: barcode.value, orderedBy: reviewer ? undefined : actorId },
+      { status, priority: priority.value as Priority | undefined, source: source.value as Source | undefined, section: section.value as Section | undefined, patientId: patientId.value, number: number.value, barcode: barcode.value, encounterId, orderedBy: reviewer ? undefined : actorId },
       offset, limit,
     );
     const patients = await this.d.patients.find([...new Set(page.items.map((i) => i.patientId))]);
     const users = await this.d.users.find([...new Set(page.items.map((i) => i.orderedBy))]);
     await this.d.audit.record({
       action: 'lab.requisition.list', outcome: 'SUCCESS', actorId,
-      metadata: { criteria: ['status', 'priority', 'source', 'section', 'patientId', 'number', 'barcode'].filter((k) => (input as unknown as Record<string, unknown>)[k]).join(','), returned: page.items.length, total: page.total },
+      metadata: { criteria: ['status', 'priority', 'source', 'section', 'patientId', 'number', 'barcode', 'encounterId'].filter((k) => (input as unknown as Record<string, unknown>)[k]).join(','), returned: page.items.length, total: page.total },
       occurredAt: this.d.clock.now(),
     });
     return ok({

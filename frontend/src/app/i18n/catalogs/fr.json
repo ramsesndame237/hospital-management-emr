@@ -700,7 +700,8 @@
       "chooseOf": "Facturer {name}",
       "none": "Aucun dossier ne correspond.",
       "refine": "{shown} dossiers affichés sur {total} : précisez la recherche pour affiner.",
-      "back": "Retour aux factures"
+      "back": "Retour aux factures",
+      "linked": "La facture sera rattachée à l’admission : choisissez le patient pour l’ouvrir."
     },
     "detail": {
       "back": "Retour aux factures",
@@ -1189,7 +1190,8 @@
       "specimenCount": "{count} échantillon(s) à prélever",
       "submit": "Envoyer la demande",
       "done": "Demande {number} envoyée.",
-      "back": "Retour à la liste de travail"
+      "back": "Retour à la liste de travail",
+      "linked": "Cette demande sera rattachée à la consultation en cours : elle apparaîtra dans le dossier de la consultation."
     },
     "catalog": {
       "title": "Catalogue des analyses",
@@ -2136,6 +2138,12 @@
         "PARTIAL": "Délivrée en partie",
         "COMPLETE": "Délivrée"
       }
+    },
+    "labs": {
+      "title": "Analyses",
+      "new": "Demander des analyses",
+      "none": "Aucune analyse demandée pendant cette consultation.",
+      "openOf": "Ouvrir la demande {number}"
     }
   },
   "reception": {
@@ -2326,7 +2334,9 @@
       "cancelKeep": "Garder l’admission",
       "dischargeDone": "Sortie de {number} enregistrée.",
       "transferDone": "Transfert de {number} enregistré.",
-      "cancelDone": "Admission {number} annulée."
+      "cancelDone": "Admission {number} annulée.",
+      "bill": "Facturer",
+      "billOf": "Facturer l’admission {number}"
     },
     "admissions": {
       "title": "Admissions",

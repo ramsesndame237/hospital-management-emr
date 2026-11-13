@@ -46,7 +46,8 @@ describe('schéma des admissions sur PostgreSQL', () => {
     for (const ddl of MIGRATIONS) await db.exec(ddl);
     const roles = new Map((await new PgRoleRepository(sql).findAll()).map((r) => [r.code.value, new Set(r.permissions.map((p) => p.value))]));
     const holders = (p: string) => [...roles].filter(([, s]) => s.has(p)).map(([c]) => c).sort();
-    expect(holders('admissions:read:all')).toEqual(['RECEPTIONIST', 'SYSTEM_ADMIN']);
+    // La caisse lit les admissions (patient, service, heures) pour y rattacher une facture ; elle n'en écrit aucune.
+    expect(holders('admissions:read:all')).toEqual(['CASHIER', 'RECEPTIONIST', 'SYSTEM_ADMIN']);
     expect(holders('admissions:write:all')).toEqual(['RECEPTIONIST', 'SYSTEM_ADMIN']);
     expect(holders('admissions:read:department')).toEqual(['DOCTOR', 'NURSE']);
     expect(holders('admissions:write:department')).toEqual(['DOCTOR', 'NURSE']);

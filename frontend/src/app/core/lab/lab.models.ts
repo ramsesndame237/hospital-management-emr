@@ -203,6 +203,8 @@ export interface Requisition {
   readonly priority: Priority;
   readonly source: Source;
   readonly clinicalNotes: string | null;
+  /** La consultation qui a prescrit ces analyses. */
+  readonly encounterId: string | null;
   readonly orderedBy: LabUser | null;
   readonly orderedAt: string;
   readonly tests: readonly OrderedTest[];
@@ -233,6 +235,8 @@ export interface RequisitionFilter {
   readonly source?: Source;
   readonly number?: string;
   readonly barcode?: string;
+  /** Seulement les demandes prescrites pendant cette consultation. */
+  readonly encounterId?: string;
 }
 
 export interface OrderInput {
@@ -241,6 +245,8 @@ export interface OrderInput {
   readonly priority: Priority;
   readonly source: Source;
   readonly clinicalNotes?: string;
+  /** La consultation qui prescrit ces analyses (facultatif). */
+  readonly encounterId?: string;
 }
 
 /** Les deux identifiants lus sur le bracelet : numéro de dossier ET date de naissance (`AAAA-MM-JJ`). */

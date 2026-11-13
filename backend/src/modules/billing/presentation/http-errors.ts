@@ -2,6 +2,8 @@ import { HttpStatus } from '@nestjs/common';
 import { domainHttp } from '../../../common/domain-http';
 
 export const { toHttp, unwrap } = domainHttp({
+  BILLING_ADMISSION_NOT_FOUND: HttpStatus.NOT_FOUND,
+  BILLING_ADMISSION_PATIENT_MISMATCH: HttpStatus.CONFLICT,
   BILLING_ITEM_NOT_FOUND: HttpStatus.NOT_FOUND,
   BILLING_INVOICE_NOT_FOUND: HttpStatus.NOT_FOUND,
   BILLING_PAYMENT_NOT_FOUND: HttpStatus.NOT_FOUND,

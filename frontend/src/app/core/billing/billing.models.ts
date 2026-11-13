@@ -49,6 +49,8 @@ export interface Invoice {
   /** Décimales de la plus petite unité de la devise (0 pour le franc CFA). */
   readonly currencyDigits: number;
   readonly patient: BilledPatient | null;
+  /** L'admission que cette facture règle. */
+  readonly admissionId: string | null;
   readonly lines: readonly InvoiceLine[];
   readonly subtotal: number;
   readonly discount: number;

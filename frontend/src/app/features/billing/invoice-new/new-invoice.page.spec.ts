@@ -75,7 +75,7 @@ describe('NewInvoicePage', () => {
     await search('mbarga');
     (q('button[aria-label="Facturer Mbarga Élisabeth"]') as HTMLButtonElement).click();
     await settle(fixture);
-    expect(billing.createInvoice).toHaveBeenCalledWith('p-1');
+    expect(billing.createInvoice).toHaveBeenCalledWith('p-1', undefined);
     expect(navigate).toHaveBeenCalledWith(['/billing/invoices', 'inv-1']);
   });
 

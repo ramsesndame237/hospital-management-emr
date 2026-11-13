@@ -36,7 +36,7 @@ export const orderedTest = (over: Partial<Requisition['tests'][number]> = {}): R
 
 /** Une demande d'un échantillon à prélever, avec une analyse. */
 export const requisition = (over: Partial<Requisition> = {}): Requisition => ({
-  id: 'r-1', number: 'LAB-0000123', status: 'ORDERED', patient, priority: 'ROUTINE', source: 'OPD', clinicalNotes: null, orderedBy: doctor, orderedAt: '2026-10-24T08:00:00Z',
+  id: 'r-1', number: 'LAB-0000123', status: 'ORDERED', patient, priority: 'ROUTINE', source: 'OPD', clinicalNotes: null, encounterId: null, orderedBy: doctor, orderedAt: '2026-10-24T08:00:00Z',
   tests: [orderedTest()], specimens: [specimen()], cancelledBy: null, cancelledAt: null, cancellationReason: null, ...over,
 });
 

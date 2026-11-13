@@ -33,6 +33,8 @@ export interface InvoiceState {
   readonly id: InvoiceId;
   readonly number: InvoiceNumber;
   readonly patientId: PatientRef;
+  /** L'admission que cette facture règle, quand il y en a une. */
+  readonly admissionId: string | null;
   readonly currency: Currency;
   readonly status: InvoiceStatus;
   readonly lines: readonly InvoiceLine[];
@@ -67,9 +69,9 @@ export class Invoice {
     return new Invoice(state);
   }
 
-  static draft(state: Pick<InvoiceState, 'id' | 'number' | 'patientId' | 'currency' | 'note' | 'createdBy'>): Invoice {
+  static draft(state: Pick<InvoiceState, 'id' | 'number' | 'patientId' | 'currency' | 'note' | 'createdBy'> & { readonly admissionId?: string | null }): Invoice {
     return new Invoice({
-      ...state, status: InvoiceStatus.DRAFT, lines: [], discount: Amount.ZERO, discountReason: null, cancellationReason: null, payments: [], issuedAt: null, version: 0,
+      ...state, admissionId: state.admissionId ?? null, status: InvoiceStatus.DRAFT, lines: [], discount: Amount.ZERO, discountReason: null, cancellationReason: null, payments: [], issuedAt: null, version: 0,
     });
   }
 

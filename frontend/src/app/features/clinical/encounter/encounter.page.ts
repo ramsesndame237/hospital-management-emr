@@ -14,6 +14,7 @@ import { FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { ageText, encounterTag, patientName, severityTag } from '../clinical-status';
+import { LabRequestsSection } from './lab-requests.section';
 import { PrescriptionsSection } from './prescriptions.section';
 import { addendumFields, allergyFields, cancelFields, noteFields, VITAL_FIELDS, vitalsFields, voidAllergyFields } from '../clinical.forms';
 
@@ -39,7 +40,7 @@ interface Row {
  */
 @Component({
   selector: 'app-encounter-page',
-  imports: [RouterLink, FormBuilderComponent, StatusTag, PrescriptionsSection],
+  imports: [RouterLink, FormBuilderComponent, StatusTag, PrescriptionsSection, LabRequestsSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -185,6 +186,10 @@ interface Row {
               <app-prescriptions-section [encounterId]="e.id" [canIssue]="canWrite(e) && canWriteRx()" />
             }
 
+            @if (canReadLabs() && e.patient) {
+              <app-lab-requests-section [encounterId]="e.id" [patientNumber]="e.patient.number" [canOrder]="canOrderLabs() && e.status !== 'CANCELLED'" />
+            }
+
             @if (canWrite(e)) {
               <section class="flex flex-col gap-3 border border-border bg-card p-4" aria-labelledby="sign-title">
                 <h2 id="sign-title" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('clinical.sign.title') }}</h2>
@@ -270,6 +275,8 @@ export class EncounterPage implements OnInit {
   private readonly notices = signal<Record<'vitals' | 'note' | 'addendum' | 'panel', string | null>>({ vitals: null, note: null, addendum: null, panel: null });
 
   private readonly permissions = computed(() => this.user()?.permissions ?? []);
+  protected readonly canReadLabs = computed(() => hasPermission(this.permissions(), 'lab.requisitions:read:own'));
+  protected readonly canOrderLabs = computed(() => hasPermission(this.permissions(), 'lab.requisitions:order'));
   protected readonly canReadRx = computed(() => hasPermission(this.permissions(), 'clinical.prescriptions:read:department'));
   protected readonly canWriteRx = computed(() => hasPermission(this.permissions(), 'clinical.prescriptions:write:department'));
   protected readonly canAllergy = computed(() => hasPermission(this.permissions(), 'clinical.allergies:write'));

@@ -46,6 +46,7 @@ export class BillingInvoicesController {
     errors: [400, 422],
     query: [
       { name: 'patientId', description: 'Un patient.', example: '3f2b8c1e-7a4d-4e5f-9b60-1c2d3e4f5a6b' },
+      { name: 'admissionId', description: 'Factures rattachées à cette admission.', example: '8b9c0d1e-2f3a-4b4c-8d5e-6f7081920a1b' },
       { name: 'status', description: '`DRAFT`, `ISSUED`, `PARTIALLY_PAID`, `PAID` ou `CANCELLED`.', example: 'ISSUED' },
       { name: 'number', description: 'Un numéro de facture exact.', example: 'FAC-0000123' },
       { name: 'from', description: 'Créée à partir de (ISO 8601 avec fuseau, inclus).', example: '2026-11-01T00:00:00+01:00' },
@@ -58,6 +59,7 @@ export class BillingInvoicesController {
   async list(
     @CurrentUser() actor: AuthUser,
     @Query('patientId') patientId: string | undefined,
+    @Query('admissionId') admissionId: string | undefined,
     @Query('status') status: string | undefined,
     @Query('number') number: string | undefined,
     @Query('from') from: string | undefined,
@@ -65,7 +67,7 @@ export class BillingInvoicesController {
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
   ): Promise<InvoicePageDto> {
-    return unwrap(await this.listAll.execute(actor.userId, { patientId, status, number, from, to, offset, limit }));
+    return unwrap(await this.listAll.execute(actor.userId, { patientId, admissionId, status, number, from, to, offset, limit }));
   }
 
   @DocOperation({

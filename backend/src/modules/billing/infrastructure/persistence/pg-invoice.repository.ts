@@ -15,6 +15,7 @@ interface InvoiceRow {
   discount_amount: string | number;
   discount_reason: string | null;
   note: string | null;
+  admission_id: string | null;
   cancellation_reason: string | null;
   issued_at: Date | string | null;
   version: number;
@@ -42,7 +43,7 @@ interface PaymentRow {
   session_id: string | null;
 }
 
-const COLUMNS = 'id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, cancellation_reason, issued_at, version, created_by';
+const COLUMNS = 'id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, cancellation_reason, issued_at, version, created_by';
 
 function need<T>(r: { ok: true; value: T } | { ok: false }, what: string): T {
   if (!r.ok) throw new Error(`${what} corrompu en base`);
@@ -77,6 +78,7 @@ function toInvoice(row: InvoiceRow, lines: LineRow[], payments: PaymentRow[]): I
     discount: Amount.restore(Number(row.discount_amount)),
     discountReason: row.discount_reason === null ? null : need(Reason.create(row.discount_reason), what),
     note: row.note,
+    admissionId: row.admission_id,
     cancellationReason: row.cancellation_reason === null ? null : need(Reason.create(row.cancellation_reason), what),
     payments: payments.map(toPayment),
     createdBy: row.created_by,
@@ -134,9 +136,9 @@ export class PgInvoiceRepository implements InvoiceRepository {
   async insert(invoice: Invoice): Promise<void> {
     const s = invoice.state;
     await this.sql.query(
-      `INSERT INTO billing_invoices (id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [s.id.value, s.number.value, s.patientId.value, s.status, s.currency.value, s.discount.value, s.discountReason?.value ?? null, s.note, s.createdBy],
+      `INSERT INTO billing_invoices (id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [s.id.value, s.number.value, s.patientId.value, s.status, s.currency.value, s.discount.value, s.discountReason?.value ?? null, s.note, s.admissionId, s.createdBy],
     );
     if (s.lines.length > 0) await this.writeLines(this.sql, invoice);
   }
@@ -197,6 +199,7 @@ export class PgInvoiceRepository implements InvoiceRepository {
     const args: unknown[] = [];
     const arg = (v: unknown) => (args.push(v), `$${args.length}`);
     if (filter.patientId) where.push(`i.patient_id = ${arg(filter.patientId.value)}`);
+    if (filter.admissionId) where.push(`i.admission_id = ${arg(filter.admissionId)}`);
     if (filter.status) where.push(`i.status = ${arg(filter.status)}`);
     if (filter.number) where.push(`i.invoice_number = ${arg(filter.number.value)}`);
     if (filter.from) where.push(`i.created_at >= ${arg(filter.from)}::timestamptz`);

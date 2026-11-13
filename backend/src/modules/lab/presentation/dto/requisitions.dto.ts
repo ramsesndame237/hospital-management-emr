@@ -30,6 +30,10 @@ export class OrderRequisitionDto {
   @DocProperty({ description: 'Renseignements cliniques utiles à l\'analyse (500 caractères au plus).', example: 'Fièvre depuis 3 jours, retour de zone endémique.', maxLength: 500, optional: true, nullable: true })
   @IsOptional() @IsString() @MaxLength(500)
   clinicalNotes?: string | null;
+
+  @DocProperty({ description: 'La consultation qui prescrit ces analyses (facultatif) : elle doit concerner le même patient et ne pas être annulée.', example: '5b0f2b8e-2f5d-4a8c-8f0e-7d9c1a3b4e60', format: 'uuid', optional: true, nullable: true })
+  @IsOptional() @IsUUID()
+  encounterId?: string | null;
 }
 
 export class ReasonDto {
@@ -308,6 +312,9 @@ export class RequisitionDto {
 
   @DocProperty({ description: 'Renseignements cliniques.', example: null, nullable: true })
   clinicalNotes!: string | null;
+
+  @DocProperty({ description: 'La consultation qui a prescrit ces analyses.', example: null, format: 'uuid', nullable: true })
+  encounterId!: string | null;
 
   @DocProperty({ description: 'Prescripteur.', type: UserSummaryDto, nullable: true })
   orderedBy!: UserSummaryDto | null;

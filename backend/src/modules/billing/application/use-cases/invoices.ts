@@ -4,7 +4,7 @@ import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { Temporal } from '../../../../shared-kernel/temporal';
 import { discountNeedsApproval } from '../../domain/approval';
 import { Invoice, InvoiceLine, lineTotal, Payment } from '../../domain/invoice';
-import { ApprovalRepository, CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome, UserDirectory } from '../../domain/ports';
+import { AdmissionDirectory, ApprovalRepository, CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome, UserDirectory } from '../../domain/ports';
 import { ApprovalSummaryView, summarize } from './approval-views';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemId, LineId, parseInvoiceStatus, parseNote, parsePaymentMode, parsePaymentReference, PatientRef, PaymentId, PaymentMode, Quantity, Reason,
@@ -64,6 +64,8 @@ export interface InvoiceView {
   readonly paid: number;
   readonly balance: number;
   readonly note: string | null;
+  /** L'admission que cette facture règle. */
+  readonly admissionId: string | null;
   readonly cancellationReason: string | null;
   readonly issuedAt: string | null;
   readonly payments: readonly PaymentView[];
@@ -77,6 +79,7 @@ export interface InvoiceDependencies {
   readonly invoices: InvoiceRepository;
   readonly items: ItemRepository;
   readonly patients: PatientDirectory;
+  readonly admissions: AdmissionDirectory;
   readonly sessions: CashSessionRepository;
   readonly approvals: ApprovalRepository;
   readonly users: UserDirectory;
@@ -102,7 +105,7 @@ async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<Invoice
       id: l.id.value, itemId: l.itemId.value, itemCode: l.itemCode.value, itemName: l.itemName.value, unitPrice: l.unitPrice.value, quantity: l.quantity.value, total: lineTotal(l).value,
     })),
     subtotal: invoice.subtotal.value, discount: s.discount.value, discountReason: s.discountReason?.value ?? null, total: invoice.total.value, paid: invoice.paid.value, balance: invoice.balance.value,
-    note: s.note, cancellationReason: s.cancellationReason?.value ?? null, issuedAt: s.issuedAt?.toString() ?? null, payments: s.payments.map(toPaymentView),
+    note: s.note, admissionId: s.admissionId, cancellationReason: s.cancellationReason?.value ?? null, issuedAt: s.issuedAt?.toString() ?? null, payments: s.payments.map(toPaymentView),
     approvals, discountApprovalPercent: d.discountApprovalPercent,
   };
 }
@@ -149,16 +152,22 @@ async function buildLine(d: InvoiceDependencies, ids: IdGenerator, rawItemId: st
 export class CreateInvoiceUseCase {
   constructor(private readonly d: InvoiceDependencies, private readonly ids: IdGenerator) {}
 
-  async execute(actorId: string, input: { patientId: string; note?: string | null; lines?: readonly { itemId: string; quantity: number }[] }): Promise<Result<InvoiceView>> {
+  async execute(actorId: string, input: { patientId: string; admissionId?: string | null; note?: string | null; lines?: readonly { itemId: string; quantity: number }[] }): Promise<Result<InvoiceView>> {
     const patientRef = PatientRef.create(input.patientId);
     if (!patientRef.ok) return err(patientRef.error);
     const note = parseNote(input.note);
     if (!note.ok) return err(note.error);
     if (!(await this.d.patients.find([patientRef.value.value])).has(patientRef.value.value)) return err(PATIENT_NOT_FOUND);
+    const admissionId = (input.admissionId ?? '').trim().toLowerCase() || null;
+    if (admissionId) {
+      const admission = await this.d.admissions.find(admissionId);
+      if (!admission) return err(new DomainError('BILLING_ADMISSION_NOT_FOUND', 'Admission introuvable.'));
+      if (admission.patientId !== patientRef.value.value) return err(new DomainError('BILLING_ADMISSION_PATIENT_MISMATCH', 'Cette admission concerne un autre patient.'));
+    }
 
     const id = InvoiceId.create(this.ids.next());
     if (!id.ok) return err(id.error);
-    const invoice = Invoice.draft({ id: id.value, number: await this.d.invoices.nextInvoiceNumber(), patientId: patientRef.value, currency: this.d.currency, note: note.value, createdBy: actorId });
+    const invoice = Invoice.draft({ id: id.value, number: await this.d.invoices.nextInvoiceNumber(), patientId: patientRef.value, admissionId, currency: this.d.currency, note: note.value, createdBy: actorId });
     for (const wanted of input.lines ?? []) {
       const line = await buildLine(this.d, this.ids, wanted.itemId, wanted.quantity);
       if (!line.ok) return err(line.error);
@@ -166,7 +175,7 @@ export class CreateInvoiceUseCase {
       if (!added.ok) return err(added.error);
     }
     await this.d.invoices.insert(invoice);
-    await record(this.d, actorId, 'billing.invoice.create', invoice, { lines: invoice.state.lines.length });
+    await record(this.d, actorId, 'billing.invoice.create', invoice, { lines: invoice.state.lines.length, ...(admissionId ? { admissionId } : {}) });
     return ok(await toView(this.d, invoice));
   }
 }
@@ -377,6 +386,7 @@ export class GetInvoiceUseCase {
 
 export interface InvoiceListInput {
   patientId?: string;
+  admissionId?: string;
   status?: string;
   number?: string;
   from?: string;
@@ -426,11 +436,11 @@ export class ListInvoicesUseCase {
 
     const offset = Math.max(0, Math.trunc(input.offset));
     const limit = Math.min(200, Math.max(1, Math.trunc(input.limit)));
-    const page = await this.d.invoices.list({ patientId: patientId.value, status: status.value as InvoiceStatus | undefined, number: number.value, from: from.value, to: to.value }, offset, limit);
+    const page = await this.d.invoices.list({ patientId: patientId.value, admissionId: input.admissionId?.trim().toLowerCase() || undefined, status: status.value as InvoiceStatus | undefined, number: number.value, from: from.value, to: to.value }, offset, limit);
     const patients = await this.d.patients.find([...new Set(page.items.map((i) => i.patientId))]);
     await this.d.audit.record({
       action: 'billing.invoice.list', outcome: 'SUCCESS', actorId,
-      metadata: { criteria: ['patientId', 'status', 'number', 'from', 'to'].filter((k) => (input as unknown as Record<string, unknown>)[k]).join(','), returned: page.items.length, total: page.total },
+      metadata: { criteria: ['patientId', 'admissionId', 'status', 'number', 'from', 'to'].filter((k) => (input as unknown as Record<string, unknown>)[k]).join(','), returned: page.items.length, total: page.total },
       occurredAt: this.d.clock.now(),
     });
     return ok({

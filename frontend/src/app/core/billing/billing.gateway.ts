@@ -13,7 +13,8 @@ export abstract class BillingGateway {
   abstract listInvoices(filter: InvoiceFilter, offset: number, limit: number): Promise<Page<InvoiceSummary>>;
   abstract getInvoice(id: string): Promise<Invoice>;
   /** Crée un brouillon pour un patient. */
-  abstract createInvoice(patientId: string): Promise<Invoice>;
+  /** Ouvre un brouillon pour un patient, rattaché à une admission si elle est donnée (elle doit concerner le même patient). */
+  abstract createInvoice(patientId: string, admissionId?: string): Promise<Invoice>;
   abstract addLine(invoiceId: string, itemId: string, quantity: number): Promise<Invoice>;
   abstract removeLine(invoiceId: string, lineId: string): Promise<Invoice>;
   /** Un montant nul retire la remise ; sinon le motif est obligatoire. */
@@ -44,8 +45,8 @@ export class HttpBillingGateway extends BillingGateway {
     return this.call(this.http.get<Invoice>(`${this.base}/invoices/${id}`));
   }
 
-  override createInvoice(patientId: string): Promise<Invoice> {
-    return this.call(this.http.post<Invoice>(`${this.base}/invoices`, { patientId }));
+  override createInvoice(patientId: string, admissionId?: string): Promise<Invoice> {
+    return this.call(this.http.post<Invoice>(`${this.base}/invoices`, { patientId, ...(admissionId ? { admissionId } : {}) }));
   }
 
   override addLine(invoiceId: string, itemId: string, quantity: number): Promise<Invoice> {
