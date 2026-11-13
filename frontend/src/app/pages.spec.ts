@@ -30,11 +30,11 @@ async function type(fixture: ComponentFixture<unknown>, selector: string, value:
   fixture.detectChanges();
 }
 
-const DOCTOR_PERMISSIONS = ['clinical.encounters:read:department', 'patients:read', 'admissions:read:department', 'appointments:read:department'];
+const DOCTOR_PERMISSIONS = ['clinical.encounters:read:department', 'patients:read', 'admissions:read:department', 'appointments:read:department', 'lab.requisitions:read:own'];
 
 describe('menu de navigation', () => {
   it('montre au médecin son menu complet et aux autres rôles seulement ce qui leur est commun', () => {
-    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], DOCTOR_PERMISSIONS).length).toBe(13);
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], DOCTOR_PERMISSIONS).length).toBe(14);
     expect(visibleNavigation(NAVIGATION, ['CASHIER'], []).map((i) => i.id)).toEqual(['dashboard']);
   });
 
@@ -306,9 +306,9 @@ describe('ShellLayout', () => {
 
   const links = () => [...(fixture.nativeElement as HTMLElement).querySelectorAll('nav a')].map((a) => a.textContent?.replace(/\s+/g, ' ').trim());
 
-  it('montre au médecin ses 15 entrées et son identité (rôle, établissement)', async () => {
+  it('montre au médecin ses 16 entrées et son identité (rôle, établissement)', async () => {
     const { missing } = await setup(['DOCTOR'], DOCTOR_PERMISSIONS);
-    expect(links()).toHaveLength(15);
+    expect(links()).toHaveLength(16);
     expect(links()).toContain('Hospitalisation (tournées)');
     expect(text(fixture)).toContain('Médecin');
     expect(text(fixture)).toContain('Bonapriso · Douala');

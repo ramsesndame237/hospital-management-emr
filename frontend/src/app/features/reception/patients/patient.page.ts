@@ -13,6 +13,7 @@ import { FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { admissionTag, personName, typeTag } from '../reception-status';
+import { PortalAccountSection } from './portal-account.section';
 import { openAdmissionFields } from '../reception.forms';
 
 const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50';
@@ -25,7 +26,7 @@ const SECONDARY = 'inline-flex min-h-11 items-center rounded-[2px] border border
  */
 @Component({
   selector: 'app-patient-page',
-  imports: [RouterLink, FormBuilderComponent, StatusTag],
+  imports: [RouterLink, FormBuilderComponent, StatusTag, PortalAccountSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -83,6 +84,10 @@ const SECONDARY = 'inline-flex min-h-11 items-center rounded-[2px] border border
               </ul>
               @if (canAdmit()) { <a routerLink="/admissions" [class]="link" class="w-fit text-sm">{{ i18n.t('reception.patient.manageAdmissions') }}</a> }
             </section>
+
+            @if (canLinkPortal()) {
+              <app-portal-account-section [patientId]="p.id" />
+            }
           </div>
 
           @if (opening()) {
@@ -123,6 +128,7 @@ export class PatientPage implements OnInit {
   private bedsOf: string | null = null;
 
   private readonly permissions = computed(() => this.user()?.permissions ?? []);
+  protected readonly canLinkPortal = computed(() => hasPermission(this.permissions(), 'portal.accounts:manage'));
   protected readonly canWrite = computed(() => hasPermission(this.permissions(), 'patients:write'));
   protected readonly canAdmit = computed(() => hasPermission(this.permissions(), 'admissions:write:department'));
   protected readonly layoutClass = computed(() => (this.opening() ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]' : 'grid items-start gap-6'));
