@@ -154,6 +154,11 @@ describe("API imagerie : catalogue, demandes d'examens et comptes rendus", () =>
       await post('medecin', '/imaging/orders', { patientId: ids.patients[0], examTypeId: e, clinicalQuestion: 'x' }).expect(201);
     });
 
+    it('la demande porte l\'indication de produit de contraste et la préparation du catalogue', async () => {
+      expect((await get('radio', `/imaging/orders/${(await order({ examTypeId: scan })).id}`).expect(200)).body).toMatchObject({ usesContrast: true, preparation: null });
+      expect((await get('radio', `/imaging/orders/${(await order({ examTypeId: echo })).id}`).expect(200)).body).toMatchObject({ usesContrast: false, preparation: 'À jeun depuis 6 heures.' });
+    });
+
     it('une demande déjà faite garde le code et le libellé copiés même si le catalogue change', async () => {
       const e = (await post('admin', '/imaging/exam-types', { code: 'COPIE', name: 'Avant', modality: 'XRAY' }).expect(201)).body.id as string;
       const o = await order({ examTypeId: e });

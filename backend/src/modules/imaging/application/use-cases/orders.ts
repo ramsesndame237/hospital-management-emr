@@ -84,6 +84,10 @@ export interface OrderView {
   readonly examCode: string;
   readonly examName: string;
   readonly modality: string;
+  /** L'examen se fait avec un produit de contraste : une allergie connue doit être levée explicitement avant de le réaliser. */
+  readonly usesContrast: boolean;
+  /** Préparation du patient donnée avec le rendez-vous (à jeun, vessie pleine…). */
+  readonly preparation: string | null;
   readonly priority: string;
   readonly source: string;
   readonly clinicalQuestion: string;
@@ -131,9 +135,10 @@ export async function toView(d: OrderDependencies, actorId: string, order: Imagi
   const who = (id: string | null | undefined): UserSummary | null => (id && users.get(id) ? { id, username: users.get(id)!.username } : null);
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
   const draft = reviewer ? s.draft : null;
+  const exam = (await d.exams.findById(s.examTypeId))?.state;
   return {
     id: s.id.value, number: s.number.value, status: order.status, patient: patient ? summaryOf(patient) : null, examTypeId: s.examTypeId.value, examCode: s.examCode.value, examName: s.examName.value,
-    modality: s.modality, priority: s.priority, source: s.source, clinicalQuestion: s.clinicalQuestion, encounterId: s.encounterId, orderedBy: who(s.orderedBy), orderedAt: s.orderedAt.toString(),
+    modality: s.modality, usesContrast: exam?.usesContrast ?? false, preparation: exam?.preparation ?? null, priority: s.priority, source: s.source, clinicalQuestion: s.clinicalQuestion, encounterId: s.encounterId, orderedBy: who(s.orderedBy), orderedAt: s.orderedAt.toString(),
     scheduledFor: s.scheduledFor?.toString() ?? null, scheduledBy: who(s.scheduledBy), performedAt: s.performedAt?.toString() ?? null, performedBy: who(s.performedBy), techniqueNote: s.techniqueNote,
     screening: reviewer ? s.screening : null,
     report: {

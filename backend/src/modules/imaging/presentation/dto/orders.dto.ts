@@ -257,6 +257,12 @@ export class OrderDto {
   @DocProperty({ description: 'Modalité.', example: 'XRAY', enum: MODALITIES })
   modality!: string;
 
+  @DocProperty({ description: 'Examen avec produit de contraste (valeur actuelle du catalogue) : une allergie connue bloque la réalisation sans dérogation motivée.', example: false })
+  usesContrast!: boolean;
+
+  @DocProperty({ description: 'Préparation du patient (valeur actuelle du catalogue).', example: null, nullable: true })
+  preparation!: string | null;
+
   @DocProperty({ description: 'Priorité.', example: 'ROUTINE', enum: PRIORITIES })
   priority!: string;
 
