@@ -113,7 +113,8 @@ interface Draft {
           @for (p of prescriptions(); track p.id) {
             <li class="flex flex-col gap-2 border border-border bg-card p-4" [attr.data-test]="p.number">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="flex items-center gap-2 text-sm"><span class="font-mono font-medium">{{ p.number }}</span><app-status-tag [tone]="p.status === 'ISSUED' ? 'success' : 'critical'" [text]="i18n.t('clinical.rx.status.' + p.status)" /></span>
+                <span class="flex items-center gap-2 text-sm"><span class="font-mono font-medium">{{ p.number }}</span><app-status-tag [tone]="p.status === 'ISSUED' ? 'success' : 'critical'" [text]="i18n.t('clinical.rx.status.' + p.status)" />
+                  @if (p.status === 'ISSUED' && p.dispensing !== 'NONE') { <app-status-tag [tone]="p.dispensing === 'COMPLETE' ? 'success' : 'warning'" [text]="i18n.t('clinical.rx.dispensing.' + p.dispensing)" /> }</span>
                 <span class="text-xs text-muted-foreground">{{ i18n.t('clinical.rx.issuedBy', { who: p.doctor?.username ?? '', when: when(p.issuedAt) }) }}</span>
               </div>
               <ul class="flex flex-col divide-y divide-border text-sm">
@@ -293,7 +294,7 @@ export class PrescriptionsSection implements OnInit {
   }
 
   protected canCancel(p: Prescription): boolean {
-    return p.status === 'ISSUED' && !!p.doctor && p.doctor.id === this.user()?.id && hasPermission(this.permissions(), 'clinical.prescriptions:write:department');
+    return p.status === 'ISSUED' && p.dispensing === 'NONE' && !!p.doctor && p.doctor.id === this.user()?.id && hasPermission(this.permissions(), 'clinical.prescriptions:write:department');
   }
 
   protected openCancel(p: Prescription): void {

@@ -5,7 +5,7 @@ import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
 import {
   Adjustment, AdjustmentFilter, AdjustmentInput, Batch, Drug, Order, OrderFilter, OrderInput, OrderPage, SuggestionList, Supplier, SupplierChanges, SupplierFilter, SupplierInput, DrugChanges, DrugFilter, DrugInput, DrugPage, DrugStock, ExpiryFilter, ExpiryPage, Movement, MovementFilter, Page, Receipt, ReceiptFilter,
-  ReceiptInput, ReceiptPage, StockFilter, StockPage, StockSummary,
+  ReceiptInput, ReceiptPage, StockFilter, StockPage, StockSummary, DispenseInput, PrescriptionToDispense, QueueRow,
 } from './pharmacy.models';
 
 /**
@@ -53,6 +53,14 @@ export abstract class PharmacyGateway {
   /** Clôt un bon partiellement reçu dont le solde ne viendra pas. */
   abstract closeOrder(id: string, reason: string): Promise<Order>;
   abstract getSuggestions(): Promise<SuggestionList>;
+  /** Les ordonnances en cours pas encore entièrement délivrées, les plus anciennes d'abord (tous services). */
+  abstract getDispensingQueue(): Promise<readonly QueueRow[]>;
+  abstract getPrescription(id: string): Promise<PrescriptionToDispense>;
+  /**
+   * Délivre tout ou partie d'une ordonnance : le stock sort lot par lot (premier périmé, premier sorti). 409 `PHARMACY_STOCK_INSUFFICIENT_FOR_LINE`
+   * (rien ne sort), `PHARMACY_DISPENSE_EXCEEDS_PRESCRIPTION`, `PHARMACY_ALLERGY_ACKNOWLEDGEMENT_REQUIRED`.
+   */
+  abstract dispense(id: string, input: DispenseInput): Promise<PrescriptionToDispense>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/pharmacy`. */
@@ -194,6 +202,18 @@ export class HttpPharmacyGateway extends PharmacyGateway {
 
   override getSuggestions(): Promise<SuggestionList> {
     return this.call(this.http.get<SuggestionList>(`${this.base}/orders/suggestions`));
+  }
+
+  override getDispensingQueue(): Promise<readonly QueueRow[]> {
+    return this.call(this.http.get<QueueRow[]>(`${this.base}/prescriptions`));
+  }
+
+  override getPrescription(id: string): Promise<PrescriptionToDispense> {
+    return this.call(this.http.get<PrescriptionToDispense>(`${this.base}/prescriptions/${id}`));
+  }
+
+  override dispense(id: string, input: DispenseInput): Promise<PrescriptionToDispense> {
+    return this.call(this.http.post<PrescriptionToDispense>(`${this.base}/prescriptions/${id}/dispense`, input));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

@@ -141,6 +141,10 @@ export class CancelPrescriptionUseCase {
     if (!id.ok) return err(PRESCRIPTION_NOT_FOUND);
     const found = await this.d.prescriptions.findById(id.value);
     if (!found || !(await this.d.access.canAccess(actorId, 'clinical.prescriptions:write', found.state.serviceId))) return err(PRESCRIPTION_NOT_FOUND);
+    // Ce qui est sorti du stock ne se rattrape pas par une annulation (la base le refuse aussi).
+    if ((await this.d.dispensing.dispensedQuantities([id.value.value])).has(id.value.value)) {
+      return err(new DomainError('CLINICAL_PRESCRIPTION_DISPENSED', 'Cette ordonnance a déjà été délivrée (même en partie) : elle ne peut plus être annulée.'));
+    }
     const done = await this.d.prescriptions.mutate(id.value, (p) => p.cancel(reason, actorId, this.d.clock.now()));
     if (!done) return err(PRESCRIPTION_NOT_FOUND);
     if (!done.ok) return err(done.error);

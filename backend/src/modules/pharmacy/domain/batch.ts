@@ -4,7 +4,7 @@ import { BatchId, BatchNumber, Direction, DrugId, Money, Reason } from './values
 
 export type BatchStatus = 'AVAILABLE' | 'QUARANTINED';
 
-export type MovementType = 'RECEIPT' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT';
+export type MovementType = 'RECEIPT' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'DISPENSE';
 
 /** Ce qu'une opération a changé dans le stock d'un lot ; le dépôt l'inscrit au grand livre avec l'auteur, l'heure et le solde. */
 export interface MovementDraft {
@@ -91,6 +91,15 @@ export class Batch {
     }
     this.current = { ...this.current, quantity: this.current.quantity - quantity };
     return ok({ type: 'ADJUSTMENT_OUT', delta: -quantity, reason, reference });
+  }
+
+  /** Délivre `quantity` unités de ce lot (déjà choisi en « premier périmé, premier sorti ») : le lot doit être délivrable et contenir assez. */
+  dispense(quantity: number, today: PlainDate, reference: string): Result<MovementDraft> {
+    if (!this.isDispensable(today) || quantity > this.current.quantity) {
+      return err(new DomainError('PHARMACY_STOCK_INSUFFICIENT', `Le lot ${this.current.batchNumber.value} ne peut pas fournir ${quantity} unité(s).`, { available: this.current.quantity, batch: this.current.batchNumber.value }));
+    }
+    this.current = { ...this.current, quantity: this.current.quantity - quantity };
+    return ok({ type: 'DISPENSE', delta: -quantity, reason: null, reference });
   }
 
   /** Met le lot de côté (rappel de lot, doute sur la conservation) : il n'est plus délivrable, son stock reste visible. */

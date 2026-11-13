@@ -249,7 +249,8 @@
     "receptionPatients": "Patients",
     "receptionNew": "New patient",
     "receptionAdmissions": "Admissions",
-    "receptionAgenda": "Agenda"
+    "receptionAgenda": "Agenda",
+    "pharmacyPrescriptions": "Prescriptions"
   },
   "admin": {
     "actions": "Actions",
@@ -1864,6 +1865,60 @@
       "draftCreated": "Draft {number} saved ({total}).",
       "draftUpdated": "Draft {number} updated ({total}).",
       "addOf": "Add {name} to the order"
+    },
+    "dispensing": {
+      "title": "Prescriptions to dispense",
+      "lead": "The prescriptions issued by doctors, across all services, that the pharmacy has not fully dispensed yet. Oldest first.",
+      "refresh": "Refresh",
+      "number": "Prescription",
+      "patient": "Patient",
+      "issued": "Issued on",
+      "remaining": "Left to dispense",
+      "state": "Status",
+      "actions": "Actions",
+      "units": "{n} units · {lines} lines",
+      "states": {
+        "NONE": "To dispense",
+        "PARTIAL": "Partly dispensed",
+        "COMPLETE": "Dispensed"
+      },
+      "cancelledTag": "Cancelled",
+      "allergyTag": "Known allergy",
+      "none": "No prescription to dispense.",
+      "open": "Open",
+      "openOf": "Open prescription {number}",
+      "back": "Back to prescriptions",
+      "prescription": "Prescription {number}",
+      "issuedBy": "Issued by {who} on {when}",
+      "lines": "Prescription lines",
+      "days": "{n} days",
+      "amounts": "Prescribed {prescribed} · dispensed {dispensed} · left {remaining} ({unit})",
+      "stock": "Dispensable stock: {n}",
+      "fefo": "Proposed picking (first expired, first out):",
+      "doctorOverride": "The doctor prescribed despite a known allergy: {reason}",
+      "alert": "Known allergy: {substance} ({severity} severity).",
+      "severity": {
+        "MILD": "mild",
+        "MODERATE": "moderate",
+        "SEVERE": "severe"
+      },
+      "now": "To dispense now",
+      "ack": "Reason to dispense despite the allergy",
+      "notes": "Remark (optional)",
+      "submit": "Dispense",
+      "quantityInvalid": "Line {n}: the quantity must be a positive whole number.",
+      "tooMuch": "Line {n}: only {remaining} unit(s) are left to dispense.",
+      "noStock": "Line {n}: only {available} unit(s) in dispensable stock. Nothing was dispensed.",
+      "ackRequired": "Line {n}: an allergy is known that the doctor did not override, give a reason (at least 3 characters) to dispense.",
+      "nothing": "Enter at least one quantity to dispense.",
+      "done": "Dispensation {number} recorded.",
+      "cancelled": "This prescription is cancelled: it cannot be dispensed.",
+      "complete": "This prescription is fully dispensed.",
+      "history": "Dispensations",
+      "noneYet": "Nothing has been dispensed yet.",
+      "by": "by {who} on {when}",
+      "picked": "Line {line}: {qty} unit(s) of batch {batch} (expires {expiry})",
+      "myOverride": "pharmacist’s reason: {reason}"
     }
   },
   "clinical": {
@@ -2076,7 +2131,11 @@
       "frequencyRequired": "Line {n}: enter the frequency.",
       "quantityInvalid": "Line {n}: the quantity must be a whole number from 1 to 10,000.",
       "durationInvalid": "Line {n}: the duration must be a whole number from 1 to 365 days.",
-      "overrideRequired": "Line {n}: an allergy is known, give a reason (at least 3 characters) to prescribe anyway."
+      "overrideRequired": "Line {n}: an allergy is known, give a reason (at least 3 characters) to prescribe anyway.",
+      "dispensing": {
+        "PARTIAL": "Partly dispensed",
+        "COMPLETE": "Dispensed"
+      }
     }
   },
   "reception": {

@@ -1,11 +1,27 @@
 import { PharmacyGateway } from '../pharmacy.gateway';
 import {
   Adjustment, AdjustmentFilter, AdjustmentInput, Batch, Drug, Order, OrderFilter, OrderInput, OrderPage, OrderSummary, Suggestion, SuggestionList, Supplier, SupplierChanges, SupplierFilter, SupplierInput, DrugChanges, DrugFilter, DrugInput, DrugPage, DrugStock, ExpiryFilter, ExpiryPage, ExpiryRow, Movement, MovementFilter, Page, Receipt,
-  ReceiptFilter, ReceiptInput, ReceiptPage, ReceiptSummary, StockFilter, StockPage, StockRow, StockSummary,
+  ReceiptFilter, ReceiptInput, ReceiptPage, ReceiptSummary, StockFilter, StockPage, StockRow, StockSummary, DispenseInput, PrescriptionToDispense, QueueRow, RxLine,
 } from '../pharmacy.models';
 
 export const pharmacist = { id: 'u-pha', username: 'pharmacien' };
 export const colleague = { id: 'u-pha2', username: 'pharmacien2' };
+
+export const queueRow = (over: Partial<QueueRow> = {}): QueueRow => ({
+  id: 'rx-1', number: 'RX-0000001', issuedAt: '2026-10-24T08:20:00Z', patient: { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth', sex: 'FEMALE', birthDate: '1990-03-14' },
+  dispensing: 'NONE', lines: 1, remainingUnits: 21, allergyWarning: false, ...over,
+});
+
+export const rxLine = (over: Partial<RxLine> = {}): RxLine => ({
+  position: 0, drug: { id: 'd-1', code: 'AMOX500', name: 'Amoxicilline Biogaran', genericName: 'Amoxicilline', strength: '500 mg', form: 'CAPSULE', schedule: 'PRESCRIPTION', unit: 'gélule' },
+  dose: '1 gélule', frequency: '3 fois par jour', durationDays: 7, instructions: null, prescribed: 21, dispensed: 0, remaining: 21, allergyOverride: null, allergyAlerts: [], needsAcknowledgement: false,
+  dispensable: 120, suggestion: [{ batchNumber: 'LOT-A', expiry: '2027-05-31', quantity: 21 }], ...over,
+});
+
+export const toDispense = (over: Partial<PrescriptionToDispense> = {}): PrescriptionToDispense => ({
+  id: 'rx-1', number: 'RX-0000001', status: 'ISSUED', issuedAt: '2026-10-24T08:20:00Z', doctor: { id: 'u-doc', username: 'medecin' }, notes: null,
+  patient: { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth', sex: 'FEMALE', birthDate: '1990-03-14' }, dispensing: 'NONE', lines: [rxLine()], dispensations: [], ...over,
+});
 
 export const page = <T>(items: readonly T[], over: Partial<Page<T>> = {}): Page<T> => ({ items, total: items.length, offset: 0, limit: 25, ...over });
 
@@ -130,4 +146,12 @@ export class FakePharmacyGateway extends PharmacyGateway {
     Promise.resolve(order({ id, status: 'CLOSED', closedBy: pharmacist, closedAt: '2026-10-28T10:00:00Z', closedReason: reason })),
   );
   override getSuggestions = vi.fn<() => Promise<SuggestionList>>().mockResolvedValue({ items: [suggestion(), suggestion({ drug: { id: 'd-1', code: 'PARA500', name: 'Doliprane 500', genericName: 'Paracétamol', strength: '500 mg', unit: 'comprimé' }, level: 'LOW', dispensable: 120, suggested: 280, lastUnitCost: null })], currency: 'XAF' });
+  override getDispensingQueue = vi.fn<() => Promise<readonly QueueRow[]>>().mockResolvedValue([queueRow(), queueRow({ id: 'rx-2', number: 'RX-0000002', dispensing: 'PARTIAL', remainingUnits: 6, allergyWarning: true })]);
+  override getPrescription = vi.fn<(id: string) => Promise<PrescriptionToDispense>>().mockImplementation((id) => Promise.resolve(toDispense({ id })));
+  override dispense = vi.fn<(id: string, input: DispenseInput) => Promise<PrescriptionToDispense>>().mockImplementation((id) =>
+    Promise.resolve(toDispense({
+      id, dispensing: 'COMPLETE', lines: [rxLine({ dispensed: 21, remaining: 0, suggestion: [] })],
+      dispensations: [{ id: 'dsp-1', number: 'DSP-0000001', dispensedBy: pharmacist, dispensedAt: '2026-10-24T09:00:00Z', notes: null, lines: [{ prescriptionPosition: 0, drugId: 'd-1', batchNumber: 'LOT-A', expiry: '2027-05-31', quantity: 21, allergyOverride: null }] }],
+    })),
+  );
 }

@@ -434,3 +434,85 @@ export interface SuggestionList {
   readonly items: readonly Suggestion[];
   readonly currency: string;
 }
+
+
+export type DispensingState = 'NONE' | 'PARTIAL' | 'COMPLETE';
+
+export interface DispensingPatient {
+  readonly id: string;
+  readonly number: string;
+  readonly lastName: string;
+  readonly firstName: string;
+  readonly sex: string;
+  readonly birthDate: string;
+}
+
+/** Une ordonnance qui attend à la pharmacie. */
+export interface QueueRow {
+  readonly id: string;
+  readonly number: string;
+  readonly issuedAt: string;
+  readonly patient: DispensingPatient | null;
+  readonly dispensing: DispensingState;
+  readonly lines: number;
+  readonly remainingUnits: number;
+  /** Au moins une ligne a une allergie connue que le médecin n'a pas levée. */
+  readonly allergyWarning: boolean;
+}
+
+export interface RxDrug {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly genericName: string;
+  readonly strength: string | null;
+  readonly form: string;
+  readonly schedule: string;
+  readonly unit: string;
+}
+
+export interface RxLine {
+  readonly position: number;
+  readonly drug: RxDrug | null;
+  readonly dose: string;
+  readonly frequency: string;
+  readonly durationDays: number | null;
+  readonly instructions: string | null;
+  readonly prescribed: number;
+  readonly dispensed: number;
+  readonly remaining: number;
+  readonly allergyOverride: string | null;
+  readonly allergyAlerts: readonly { readonly substance: string; readonly severity: string }[];
+  /** Une allergie vise ce médicament et le médecin ne l'a pas levée : le pharmacien doit donner son motif. */
+  readonly needsAcknowledgement: boolean;
+  readonly dispensable: number;
+  /** Ce que « premier périmé, premier sorti » prélèverait pour le reste à délivrer. */
+  readonly suggestion: readonly { readonly batchNumber: string; readonly expiry: string; readonly quantity: number }[];
+}
+
+export interface Dispensation {
+  readonly id: string;
+  readonly number: string;
+  readonly dispensedBy: UserRef | null;
+  readonly dispensedAt: string;
+  readonly notes: string | null;
+  readonly lines: readonly { readonly prescriptionPosition: number; readonly drugId: string; readonly batchNumber: string; readonly expiry: string; readonly quantity: number; readonly allergyOverride: string | null }[];
+}
+
+export interface PrescriptionToDispense {
+  readonly id: string;
+  readonly number: string;
+  readonly status: string;
+  readonly issuedAt: string;
+  readonly doctor: UserRef | null;
+  readonly notes: string | null;
+  readonly patient: DispensingPatient | null;
+  readonly dispensing: DispensingState;
+  readonly lines: readonly RxLine[];
+  readonly dispensations: readonly Dispensation[];
+}
+
+export interface DispenseInput {
+  readonly lines: readonly { readonly position: number; readonly quantity: number; readonly allergyOverride?: string }[];
+  readonly notes?: string;
+}

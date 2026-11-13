@@ -207,3 +207,22 @@ export class PurchaseOrderNumber extends ValueObject<string> {
     return PurchaseOrderNumber.create(`PO-${String(n).padStart(7, '0')}`);
   }
 }
+
+export class DispensationId extends ValueObject<string> {
+  static create(raw: string): Result<DispensationId> {
+    const r = uuid(raw, 'PHARMACY_DISPENSATION_ID_INVALID', "L'identifiant de cette dispensation est invalide.");
+    return r.ok ? ok(new DispensationId(r.value)) : err(r.error);
+  }
+}
+
+/** Numéro de dispensation, attribué par le système. */
+export class DispensationNumber extends ValueObject<string> {
+  static create(raw: string): Result<DispensationNumber> {
+    const normalized = (raw ?? '').trim().toUpperCase();
+    return /^DSP-\d{7,12}$/.test(normalized) ? ok(new DispensationNumber(normalized)) : err(new DomainError('PHARMACY_DISPENSATION_NUMBER_INVALID', 'Numéro de dispensation invalide.'));
+  }
+
+  static fromSequence(n: number): Result<DispensationNumber> {
+    return DispensationNumber.create(`DSP-${String(n).padStart(7, '0')}`);
+  }
+}

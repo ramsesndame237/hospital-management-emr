@@ -249,7 +249,8 @@
     "receptionPatients": "Patients",
     "receptionNew": "Nouveau patient",
     "receptionAdmissions": "Admissions",
-    "receptionAgenda": "Agenda"
+    "receptionAgenda": "Agenda",
+    "pharmacyPrescriptions": "Ordonnances"
   },
   "admin": {
     "actions": "Actions",
@@ -1864,6 +1865,60 @@
       "draftCreated": "Brouillon {number} enregistré ({total}).",
       "draftUpdated": "Brouillon {number} mis à jour ({total}).",
       "addOf": "Ajouter {name} au bon"
+    },
+    "dispensing": {
+      "title": "Ordonnances à délivrer",
+      "lead": "Les ordonnances émises par les médecins, tous services confondus, que la pharmacie n’a pas encore entièrement délivrées. Les plus anciennes d’abord.",
+      "refresh": "Actualiser",
+      "number": "Ordonnance",
+      "patient": "Patient",
+      "issued": "Émise le",
+      "remaining": "Reste à délivrer",
+      "state": "État",
+      "actions": "Actions",
+      "units": "{n} unités · {lines} lignes",
+      "states": {
+        "NONE": "À délivrer",
+        "PARTIAL": "Délivrée en partie",
+        "COMPLETE": "Délivrée"
+      },
+      "cancelledTag": "Annulée",
+      "allergyTag": "Allergie connue",
+      "none": "Aucune ordonnance à délivrer.",
+      "open": "Ouvrir",
+      "openOf": "Ouvrir l’ordonnance {number}",
+      "back": "Retour aux ordonnances",
+      "prescription": "Ordonnance {number}",
+      "issuedBy": "Émise par {who} le {when}",
+      "lines": "Lignes de l’ordonnance",
+      "days": "{n} jours",
+      "amounts": "Prescrit {prescribed} · délivré {dispensed} · reste {remaining} ({unit})",
+      "stock": "Stock délivrable : {n}",
+      "fefo": "Prélèvement proposé (premier périmé, premier sorti) :",
+      "doctorOverride": "Le médecin a prescrit malgré une allergie connue : {reason}",
+      "alert": "Allergie connue : {substance} (gravité {severity}).",
+      "severity": {
+        "MILD": "légère",
+        "MODERATE": "modérée",
+        "SEVERE": "sévère"
+      },
+      "now": "À délivrer maintenant",
+      "ack": "Motif pour délivrer malgré l’allergie",
+      "notes": "Remarque (facultatif)",
+      "submit": "Délivrer",
+      "quantityInvalid": "Ligne {n} : la quantité doit être un entier positif.",
+      "tooMuch": "Ligne {n} : il ne reste que {remaining} unité(s) à délivrer.",
+      "noStock": "Ligne {n} : seulement {available} unité(s) en stock délivrable. Rien n’a été délivré.",
+      "ackRequired": "Ligne {n} : une allergie est connue que le médecin n’a pas levée, indiquez un motif (3 caractères au moins) pour délivrer.",
+      "nothing": "Indiquez au moins une quantité à délivrer.",
+      "done": "Dispensation {number} enregistrée.",
+      "cancelled": "Cette ordonnance est annulée : elle ne se délivre pas.",
+      "complete": "Cette ordonnance est entièrement délivrée.",
+      "history": "Délivrances",
+      "noneYet": "Rien n’a encore été délivré.",
+      "by": "par {who} le {when}",
+      "picked": "Ligne {line} : {qty} unité(s) du lot {batch} (péremption {expiry})",
+      "myOverride": "motif du pharmacien : {reason}"
     }
   },
   "clinical": {
@@ -2076,7 +2131,11 @@
       "frequencyRequired": "Ligne {n} : indiquez le rythme.",
       "quantityInvalid": "Ligne {n} : la quantité doit être un entier de 1 à 10 000.",
       "durationInvalid": "Ligne {n} : la durée doit être un entier de 1 à 365 jours.",
-      "overrideRequired": "Ligne {n} : une allergie est connue, indiquez un motif (3 caractères au moins) pour prescrire malgré tout."
+      "overrideRequired": "Ligne {n} : une allergie est connue, indiquez un motif (3 caractères au moins) pour prescrire malgré tout.",
+      "dispensing": {
+        "PARTIAL": "Délivrée en partie",
+        "COMPLETE": "Délivrée"
+      }
     }
   },
   "reception": {

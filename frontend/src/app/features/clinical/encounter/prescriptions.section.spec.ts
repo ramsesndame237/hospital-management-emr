@@ -90,6 +90,16 @@ describe('PrescriptionsSection', () => {
       expect(buttonNamed('Annuler l’ordonnance RX-0000002')).toBeUndefined();
     });
 
+    it('montre ce que la pharmacie a délivré et n\'offre plus d\'annuler une ordonnance délivrée, même en partie', async () => {
+      await setup({ prepare: (g) => g.listPrescriptions.mockResolvedValue([prescription({ dispensing: 'PARTIAL' }), prescription({ id: 'rx-2', number: 'RX-0000002', dispensing: 'COMPLETE' }), prescription({ id: 'rx-3', number: 'RX-0000003' })]) });
+      expect(textOf(q('[data-test="RX-0000001"]'))).toContain('Délivrée en partie');
+      expect(textOf(q('[data-test="RX-0000002"]'))).toContain('Délivrée');
+      expect(textOf(q('[data-test="RX-0000003"]'))).not.toContain('Délivrée');
+      expect(buttonNamed('Annuler l’ordonnance RX-0000001')).toBeUndefined();
+      expect(buttonNamed('Annuler l’ordonnance RX-0000002')).toBeUndefined();
+      expect(buttonNamed('Annuler l’ordonnance RX-0000003')).toBeDefined();
+    });
+
     it('dit qu\'il n\'y a pas d\'ordonnance', async () => {
       await setup();
       expect(text()).toContain('Aucune ordonnance pour cette consultation.');
