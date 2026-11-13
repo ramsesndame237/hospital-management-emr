@@ -1887,7 +1887,7 @@
       "remaining": "Reste à délivrer",
       "state": "État",
       "actions": "Actions",
-      "units": "{n} unités · {lines} lignes",
+      "units": "{n} unité(s) · {lines} ligne(s)",
       "states": {
         "NONE": "À délivrer",
         "PARTIAL": "Délivrée en partie",

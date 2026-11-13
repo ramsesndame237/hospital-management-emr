@@ -1887,7 +1887,7 @@
       "remaining": "Left to dispense",
       "state": "Status",
       "actions": "Actions",
-      "units": "{n} units · {lines} lines",
+      "units": "{n} unit(s) · {lines} line(s)",
       "states": {
         "NONE": "To dispense",
         "PARTIAL": "Partly dispensed",
