@@ -114,6 +114,7 @@ export class ManageUserUseCases {
     private readonly resolver: PermissionResolver,
     private readonly audit: AuditLog,
     private readonly clock: Clock,
+    private readonly hasher: PasswordHasher,
   ) {}
 
   async assignRoles(actorId: string, userId: string, roleCodes: readonly string[]): Promise<Result<UserView>> {
@@ -138,6 +139,27 @@ export class ManageUserUseCases {
   /** Perte de téléphone : l'administrateur efface la MFA ; l'utilisateur devra la réinscrire à la prochaine connexion. */
   resetMfa(actorId: string, userId: string): Promise<Result<UserView>> {
     return this.mutate(actorId, userId, 'iam.user.mfa-reset', (u) => u.resetMfa(), true);
+  }
+
+  /**
+   * Mot de passe oublié : l'administrateur génère un mot de passe provisoire (renvoyé une seule fois), le compte doit le changer
+   * à sa prochaine connexion, ses sessions sont coupées. Un administrateur ne réinitialise pas son propre compte (il a « changer le mot de passe »).
+   */
+  async resetPassword(actorId: string, userId: string): Promise<Result<{ user: UserView; temporaryPassword: string }>> {
+    if (actorId === userId) return err(SELF_MODIFICATION);
+    const id = UserId.create(userId);
+    const user = id.ok ? await this.users.findById(id.value) : null;
+    if (!user) return err(NOT_FOUND);
+    const temporary = randomPassword();
+    const password = PlainPassword.forVerification(temporary);
+    if (!password.ok) return err(password.error);
+    const now = this.clock.now();
+    user.resetPassword(await this.hasher.hash(password.value), now);
+    await this.users.save(user);
+    await this.store.revokeAllForUser(user.id.value);
+    await this.resolver.invalidate(user.id.value);
+    await this.audit.record({ action: 'iam.user.password-reset', outcome: 'SUCCESS', actorId, resourceType: 'user', resourceId: user.id.value, occurredAt: now });
+    return ok({ user: toUserView(user, now), temporaryPassword: temporary });
   }
 
   private async mutate(

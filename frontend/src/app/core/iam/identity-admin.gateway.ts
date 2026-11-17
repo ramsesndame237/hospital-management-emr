@@ -18,6 +18,8 @@ export abstract class IdentityAdminGateway {
   abstract unlock(id: string): Promise<ManagedUser>;
   /** Efface le secret et les codes de secours : le titulaire réinscrira sa double authentification. */
   abstract resetMfa(id: string): Promise<ManagedUser>;
+  /** Mot de passe oublié : renvoie un mot de passe provisoire (affiché une seule fois) ; le titulaire devra le changer, ses sessions sont coupées. */
+  abstract resetPassword(id: string): Promise<CreatedUser>;
   abstract access(id: string): Promise<UserAccess>;
   abstract roles(): Promise<readonly RoleInfo[]>;
 }
@@ -50,6 +52,10 @@ export class HttpIdentityAdminGateway extends IdentityAdminGateway {
 
   override resetMfa(id: string): Promise<ManagedUser> {
     return this.call(this.http.post<ManagedUser>(`${this.base}/users/${id}/reset-mfa`, null));
+  }
+
+  override resetPassword(id: string): Promise<CreatedUser> {
+    return this.call(this.http.post<CreatedUser>(`${this.base}/users/${id}/reset-password`, null));
   }
 
   override access(id: string): Promise<UserAccess> {

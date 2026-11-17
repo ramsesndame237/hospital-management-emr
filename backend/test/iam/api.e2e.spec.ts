@@ -282,6 +282,25 @@ describe('API IAM /api/v1 (HTTP réel, PostgreSQL réel, Argon2id réel)', () =>
       expect(after.body).toMatchObject({ scope: 'setup', mfaEnrollmentRequired: true });
       expect(before.body.accessToken).toBeTruthy();
     });
+    it("réinitialiser le mot de passe : provisoire renvoyé une fois, ancien refusé, changement obligatoire, sessions coupées", async () => {
+      const u = await w.seed({ username: 'oubli', password: PWD, roles: ['NURSE'] });
+      const before = await login('oubli').expect(200);
+      const res = await http().post(`/api/v1/users/${u.id.value}/reset-password`).set(bearer(adminToken)).expect(200);
+      expect(res.body.temporaryPassword).toHaveLength(16);
+      expect(res.body.user).toMatchObject({ username: 'oubli', mustChangePassword: true });
+      await login('oubli', PWD).expect(401);
+      const after = await login('oubli', res.body.temporaryPassword).expect(200);
+      expect(after.body).toMatchObject({ mustChangePassword: true });
+      await http().post('/api/v1/auth/refresh').set('Cookie', cookieOf(before)).expect(401);
+    });
+
+    it('ne réinitialise pas son propre mot de passe, ni sans droit, ni un compte inconnu', async () => {
+      const me = await http().get('/api/v1/auth/me').set(bearer(adminToken)).expect(200);
+      await http().post(`/api/v1/users/${me.body.id ?? me.body.userId}/reset-password`).set(bearer(adminToken)).expect(403);
+      const nurse = await login('caissier');
+      await http().post('/api/v1/users/00000000-0000-4000-8000-0000000000ff/reset-password').set(bearer(nurse.body.accessToken)).expect(403);
+      await http().post('/api/v1/users/00000000-0000-4000-8000-0000000000ff/reset-password').set(bearer(adminToken)).expect(404);
+    });
   });
 
   describe("journal d'audit", () => {

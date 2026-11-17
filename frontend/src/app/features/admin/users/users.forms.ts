@@ -75,9 +75,9 @@ export function confirmFields(o: { readonly title: string; readonly text: string
 }
 
 /** Après la création : le mot de passe provisoire, affiché une seule fois. */
-export function createdUserFields(o: { readonly username: string; readonly password: string }): FieldSchema[] {
+export function createdUserFields(o: { readonly username: string; readonly password: string; readonly reset?: boolean }): FieldSchema[] {
   return [
-    { type: 'message', name: 'created', tone: 'success', appearance: 'outlined', title: 'admin.users.createdTitle', text: 'admin.users.createdText', params: { username: o.username } },
+    { type: 'message', name: 'created', tone: 'success', appearance: 'outlined', title: o.reset ? 'admin.users.passwordResetTitle' : 'admin.users.createdTitle', text: o.reset ? 'admin.users.passwordResetDone' : 'admin.users.createdText', params: { username: o.username } },
     { type: 'secret', name: 'password', label: 'admin.users.temporaryPassword', value: o.password, grouped: false, copyLabel: 'common.copy', copiedLabel: 'common.copied' },
     { type: 'message', name: 'once', tone: 'warning', appearance: 'outlined', title: 'admin.users.onceTitle', text: 'admin.users.onceText' },
     { type: 'button', name: 'done', label: 'admin.users.done', variant: 'primary' },

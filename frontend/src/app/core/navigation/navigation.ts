@@ -36,6 +36,7 @@ export const NAVIGATION: readonly NavItem[] = [
       { id: 'admin-sites', labelKey: 'nav.adminSites', icon: 'site', route: '/admin/sites', permission: 'administration.facilities:read' },
       { id: 'admin-structure', labelKey: 'nav.adminStructure', icon: 'ward', route: '/admin/structure', permission: 'administration.structure:read' },
       { id: 'admin-users', labelKey: 'nav.adminUsers', icon: 'user', route: '/admin/users', permission: 'iam.users:read' },
+      { id: 'admin-staff', labelKey: 'nav.adminStaff', icon: 'user', route: '/admin/staff', permission: 'staff:read' },
       { id: 'admin-roles', labelKey: 'nav.adminRoles', icon: 'shield', route: '/admin/roles', permission: 'iam.roles:read' },
     ],
   },
