@@ -1,4 +1,5 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { requestLogger } from './common/http-logging';
 import { API_DOCS_ACCESS, PORTAL_TEXTS_PROVIDER, mountApiDocs } from './modules/api-docs';
 import type { ApiDocsAccess, ApiDocsOptions, PortalTextsProvider } from './modules/api-docs';
 import { Localizer } from './modules/i18n/application/localizer';
@@ -18,6 +19,8 @@ export interface AppSetupOptions {
   docs?: ApiDocsOptions;
   /** Attribut `Secure` des cookies (cookie de documentation). Vrai en production. */
   secureCookies?: boolean;
+  /** Une ligne de journal par requête (sans donnée personnelle) et en-tête `X-Request-Id`. Vrai en exploitation. */
+  requestLog?: boolean;
 }
 
 /**
@@ -32,6 +35,11 @@ function provided<T>(app: NestExpressApplication, token: symbol | (abstract new 
 export function configureApp(app: NestExpressApplication, options: AppSetupOptions): void {
   // Derrière le reverse proxy (Traefik/Dokploy) : sans cela `req.ip` serait celui du proxy et la limitation de débit globale.
   app.set('trust proxy', 1);
+  // En premier : l'identifiant de corrélation est posé même sur les requêtes refusées plus loin. Désactivé dans les tests (aucun bruit).
+  if (options.requestLog) {
+    const http = new Logger('Http');
+    app.use(requestLogger({ write: (line) => http.log(line) }));
+  }
   // CSP stricte partout, sauf sur la documentation : `upgrade-insecure-requests` (défaut de helmet) force le
   // chargement des scripts de l'interface en https et la casse en HTTP local. Sur ce seul chemin, on l'omet.
   const docsPath = `/${options.docs?.path ?? 'api-docs'}`;

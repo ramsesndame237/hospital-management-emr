@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
+import { JsonLogger } from './common/http-logging';
 import { buildApiDocsOptions } from './config/api-docs.config';
 import { validateEnv } from './config/env.validation';
 import { loadLocalEnv } from './config/load-env';
@@ -13,9 +14,11 @@ async function bootstrap() {
   loadLocalEnv();
   const env = validateEnv(process.env);
   configurePgTypes();
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.register());
+  // Journaux en JSON (une ligne par événement) pour Docker et les collecteurs ; LOG_FORMAT=text pour lire à l'œil nu. Texte hors production.
+  const json = (process.env.LOG_FORMAT ?? (env.NODE_ENV === 'production' ? 'json' : 'text')) === 'json';
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(), json ? { logger: new JsonLogger() } : {});
 
-  configureApp(app, { corsOrigins: env.CORS_ORIGINS, docs: buildApiDocsOptions(env.API_DOCS_ENABLED), secureCookies: env.COOKIE_SECURE });
+  configureApp(app, { corsOrigins: env.CORS_ORIGINS, docs: buildApiDocsOptions(env.API_DOCS_ENABLED), secureCookies: env.COOKIE_SECURE, requestLog: true });
 
   app.enableShutdownHooks();
   await app.listen(env.PORT, '0.0.0.0');

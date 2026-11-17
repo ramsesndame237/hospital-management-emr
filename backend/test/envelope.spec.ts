@@ -59,6 +59,6 @@ describe('enveloppe de réponse (contrat DanpheHTTPResponse)', () => {
 
   it('expose la sonde de santé sans base', async () => {
     const res = await request(app.getHttpServer()).get('/api/Health').expect(200);
-    expect(res.body).toEqual({ Status: 'OK', Results: { service: 'sanjeevani-api', status: 'up', database: 'disabled' } });
+    expect(res.body).toEqual({ Status: 'OK', Results: { service: 'sanjeevani-api', status: 'up', database: 'disabled', redis: 'disabled' } });
   });
 });

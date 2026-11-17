@@ -54,7 +54,7 @@ Elle affiche un **mot de passe temporaire, une seule fois**. À la première con
 
 Ensuite, depuis l'interface : **Organisation → Sites → Structure** (services, unités, lits), puis **Utilisateurs** (un compte par personne, avec son rôle).
 
-> ⚠️ **Limite actuelle :** il n'existe pas encore d'écran pour le **personnel** (fiches, affectations aux services, lien compte ↔ fiche). C'est pourtant ce lien qui limite un médecin ou un infirmier aux patients de son service : tant qu'il n'est pas fait, ces comptes ne voient aucun patient. Pour l'instant il se fait par l'API (documentation interactive `/api-docs`, avec `API_DOCS_ENABLED=true`, section « Personnel » et « Affectations »). Écran prévu au prochain lot.
+> ⚠️ **Ne pas oublier le personnel :** un médecin ou un infirmier ne voit que les patients de son service. Pour chaque soignant : **Administration → Personnel** → créer la **fiche**, l'**affecter** à un service, puis **relier son compte** (sinon il ne voit aucun patient).
 
 ## 5. Vérifier l'installation
 
@@ -72,9 +72,11 @@ git pull
 docker compose up -d --build
 ```
 
-L'API redémarre et rejoue les scripts de schéma (idempotents, verrouillés pour qu'une seule instance migre à la fois). Les données sont conservées (volume `pgdata`). **Sauvegarder avant chaque mise à jour.**
+L'API redémarre et rejoue les scripts de schéma (idempotents, verrouillés pour qu'une seule instance migre à la fois). Les données sont conservées (volume `pgdata`). **Sauvegarder avant chaque mise à jour** (`ops/backup.sh`, voir `EXPLOITATION.md`).
 
 ## 7. Servir en HTTPS
+
+> **Le plus simple :** `docker-compose.tls.yml` ajoute Caddy, qui obtient et renouvelle le certificat tout seul (voir `EXPLOITATION.md` § 6). Ce qui suit concerne un reverse proxy que vous gérez vous-même.
 
 L'interface écoute sur `WEB_PORT` (8080). Placer devant un reverse proxy qui termine le TLS et relaie vers ce port (Caddy, Traefik, nginx, Dokploy…). Exigences :
 
@@ -99,5 +101,5 @@ emr.hopital.example {
 | L'API redémarre en boucle | `docker compose logs api` : le plus souvent un secret trop court ou `COOKIE_SECURE=false` en production. |
 | La page de connexion s'affiche mais la connexion échoue en HTTP | Normal : le cookie de session est `Secure`. Utiliser HTTPS (ou `http://localhost`). |
 | Page sans style | Reconstruire l'interface : `docker compose build --no-cache web` (le build vérifie la présence des styles et échoue sinon). |
-| Mot de passe oublié | **Il n'existe pas encore de réinitialisation de mot de passe** (ni par l'utilisateur, ni par un administrateur ; l'écran « Mot de passe oublié » renvoie vers l'administrateur, qui n'a pas d'action pour le faire). Action prévue au prochain lot. D'ici là, désactiver le compte et en créer un nouveau. |
+| Mot de passe oublié | Administrateur : **Utilisateurs → Réinitialiser le mot de passe** : un mot de passe provisoire est affiché une seule fois (à transmettre par un canal sûr) et le titulaire doit le changer à sa connexion. Il n'y a pas de réinitialisation en libre-service par e-mail. |
 | Téléphone perdu (double authentification) | Un administrateur : Utilisateurs → « Réinitialiser la double authentification » ; l'utilisateur s'inscrit de nouveau à la prochaine connexion. |

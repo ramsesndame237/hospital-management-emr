@@ -22,5 +22,5 @@ COPY --chown=node:node migration/schema ./migration/schema
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/Health || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/api/Health | grep -q '"status":"up"' || exit 1
 CMD ["sh", "-c", "node tools/migrate.mjs && node dist/main.js"]
