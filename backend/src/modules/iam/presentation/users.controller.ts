@@ -128,6 +128,19 @@ export class UsersController {
   }
 
   @DocOperation({
+    summary: "Réinitialiser le mot de passe d'un compte",
+    description: "Mot de passe oublié : génère un **mot de passe provisoire** aléatoire, renvoyé une seule fois. Le compte devra le changer à sa prochaine connexion ; ses sessions sont coupées et un éventuel verrouillage est levé. Impossible sur son propre compte (utiliser « changer mon mot de passe »).",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Mot de passe réinitialisé.', type: CreatedUserDto }],
+    errors: [400, 403, 404],
+    params: [ID],
+  })
+  @RequirePermissions('iam.users:manage') @HttpCode(200) @Post('users/:id/reset-password')
+  async resetPassword(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string): Promise<CreatedUserDto> {
+    return unwrap(await this.manage.resetPassword(actor.userId, id));
+  }
+
+  @DocOperation({
     summary: 'Lister les rôles et leurs permissions',
     description: 'Les rôles sont des données (table `iam_roles`) : un établissement peut en ajouter. Portée des permissions : `own` < `department` < `all`.',
     auth: 'bearer',

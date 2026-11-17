@@ -136,6 +136,15 @@ export class User extends AggregateRoot {
     this.s.lockedUntil = null;
   }
 
+  /** Réinitialisation par un administrateur : mot de passe provisoire, changement obligatoire, compte déverrouillé.*/
+  resetPassword(hash: PasswordHash, now: Instant): void {
+    this.s.passwordHash = hash;
+    this.s.mustChangePassword = true;
+    this.s.passwordChangedAt = now;
+    this.s.failedAttempts = 0;
+    this.s.lockedUntil = null;
+  }
+
   /** Remplace l'empreinte par un schéma plus fort sans rien changer d'autre (migration transparente des comptes hérités). */
   upgradePasswordHash(hash: PasswordHash): void {
     this.s.passwordHash = hash;

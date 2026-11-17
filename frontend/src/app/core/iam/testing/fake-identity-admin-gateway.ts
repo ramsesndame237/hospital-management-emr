@@ -32,6 +32,9 @@ export class FakeIdentityAdminGateway extends IdentityAdminGateway {
   override setActive = vi.fn<(id: string, active: boolean) => Promise<ManagedUser>>().mockImplementation((id, active) => Promise.resolve(managedUser({ id, active })));
   override unlock = vi.fn<(id: string) => Promise<ManagedUser>>().mockImplementation((id) => Promise.resolve(managedUser({ id, locked: false })));
   override resetMfa = vi.fn<(id: string) => Promise<ManagedUser>>().mockImplementation((id) => Promise.resolve(managedUser({ id, mfaEnabled: false })));
+  override resetPassword = vi.fn<(id: string) => Promise<CreatedUser>>().mockImplementation((id) =>
+    Promise.resolve({ user: managedUser({ id, mustChangePassword: true, locked: false }), temporaryPassword: 'Zx9Lp3QrT7vNw2Kd' }),
+  );
   override access = vi.fn<(id: string) => Promise<UserAccess>>().mockImplementation((id) =>
     Promise.resolve({
       userId: id, username: 'marie.curie', active: true,

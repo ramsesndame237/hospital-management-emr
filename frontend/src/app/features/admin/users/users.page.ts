@@ -19,7 +19,8 @@ const LINK = 'rounded-[2px] font-medium text-primary underline-offset-4 hover:un
 
 type Panel =
   | { readonly kind: 'create' }
-  | { readonly kind: 'created'; readonly user: ManagedUser; readonly password: string }
+  | { readonly kind: 'created'; readonly user: ManagedUser; readonly password: string; readonly reset?: boolean }
+  | { readonly kind: 'resetPassword'; readonly user: ManagedUser }
   | { readonly kind: 'roles'; readonly user: ManagedUser }
   | { readonly kind: 'disable'; readonly user: ManagedUser }
   | { readonly kind: 'resetMfa'; readonly user: ManagedUser }
@@ -95,6 +96,7 @@ interface PanelView {
                             @if (user.locked) {
                               <button type="button" [class]="link" [attr.aria-label]="i18n.t('admin.users.unlockOf', { name: user.username })" (click)="unlock(user)">{{ i18n.t('admin.users.unlock') }}</button>
                             }
+                            <button type="button" [class]="link" [attr.aria-label]="i18n.t('admin.users.resetPasswordOf', { name: user.username })" (click)="open({ kind: 'resetPassword', user })">{{ i18n.t('admin.users.resetPassword') }}</button>
                             @if (user.mfaEnabled) {
                               <button type="button" [class]="link" [attr.aria-label]="i18n.t('admin.users.resetMfaOf', { name: user.username })" (click)="open({ kind: 'resetMfa', user })">{{ i18n.t('admin.users.resetMfa') }}</button>
                             }
@@ -209,7 +211,9 @@ export class UsersPage {
       case 'create':
         return [{ key: 'create', title: this.i18n.t('admin.users.addTitle'), fields: createUserFields({ roles: choices, notice }) }];
       case 'created':
-        return [{ key: `created-${panel.user.id}`, title: this.i18n.t('admin.users.createdPanel'), fields: createdUserFields({ username: panel.user.username, password: panel.password }) }];
+        return [{ key: `created-${panel.user.id}`, title: this.i18n.t('admin.users.createdPanel'), fields: createdUserFields({ username: panel.user.username, password: panel.password, reset: panel.reset }) }];
+      case 'resetPassword':
+        return [{ key: `resetpwd-${panel.user.id}`, title: this.i18n.t('admin.users.resetPasswordOf', { name: panel.user.username }), fields: confirmFields({ title: 'admin.users.resetPasswordTitle', text: 'admin.users.resetPasswordText', submit: 'admin.users.resetPassword', notice }) }];
       case 'roles':
         return [{ key: `roles-${panel.user.id}`, title: this.i18n.t('admin.users.rolesOf', { name: panel.user.username }), fields: editRolesFields({ roles: choices, selected: panel.user.roles, notice }) }];
       case 'disable':
@@ -360,6 +364,12 @@ export class UsersPage {
           await this.gateway.setActive(panel.user.id, false);
           this.toast.show(this.i18n.t('admin.users.disabled', { name: panel.user.username }));
           break;
+        case 'resetPassword': {
+          const reset = await this.gateway.resetPassword(panel.user.id);
+          this.panel.set({ kind: 'created', user: reset.user, password: reset.temporaryPassword, reset: true });
+          await this.loadUsers();
+          return;
+        }
         case 'resetMfa':
           await this.gateway.resetMfa(panel.user.id);
           this.toast.show(this.i18n.t('admin.users.mfaReset', { name: panel.user.username }));

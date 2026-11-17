@@ -184,8 +184,8 @@ export class IamModule {
         },
         {
           provide: ManageUserUseCases,
-          inject: [USER_REPOSITORY, ROLE_REPOSITORY, REFRESH_SESSION_STORE, PermissionResolver, AUDIT_LOG, CLOCK],
-          useFactory: (u: UserRepository, r: RoleRepository, st: RefreshSessionStore, res: PermissionResolver, a: AuditLog, c: Clock) => new ManageUserUseCases(u, r, st, res, a, c),
+          inject: [USER_REPOSITORY, ROLE_REPOSITORY, REFRESH_SESSION_STORE, PermissionResolver, AUDIT_LOG, CLOCK, PASSWORD_HASHER],
+          useFactory: (u: UserRepository, r: RoleRepository, st: RefreshSessionStore, res: PermissionResolver, a: AuditLog, c: Clock, h: PasswordHasher) => new ManageUserUseCases(u, r, st, res, a, c, h),
         },
 
         // --- gardes globaux, dans cet ordre : débit, authentification, permissions ---

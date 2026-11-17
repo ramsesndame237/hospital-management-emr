@@ -185,6 +185,15 @@ describe('UsersPage', () => {
     expect(admin.resetMfa).toHaveBeenCalledWith('u-1');
   });
 
+  it('réinitialise un mot de passe oublié et affiche le provisoire une seule fois', async () => {
+    await setup(MANAGE);
+    await click(buttonNamed('Réinitialiser le mot de passe de marie.curie'));
+    await submit('users-resetpwd-u-1');
+    expect(admin.resetPassword).toHaveBeenCalledWith('u-1');
+    expect(text()).toContain('Mot de passe réinitialisé');
+    expect(q('input[value="Zx9Lp3QrT7vNw2Kd"]') ?? q('[data-secret]') ?? document.body.innerHTML.includes('Zx9Lp3QrT7vNw2Kd')).toBeTruthy();
+  });
+
   it('affiche le refus du serveur sans détail technique', async () => {
     await setup(MANAGE, (g) => g.setActive.mockRejectedValue(new ApiError(503, 'UNKNOWN', 'UPDATE iam_users failed')));
     await click(buttonNamed('Désactiver marie.curie'));
