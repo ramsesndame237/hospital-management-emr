@@ -3,10 +3,9 @@ import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { PgliteSql } from '../iam/pglite-sql';
 
-/** Les migrations dans l'ordre où le conteneur les applique. */
-export const MIGRATIONS = ['iam', 'administration', 'referentials', 'staff', 'patients', 'appointments', 'admissions', 'billing', 'lab', 'pharmacy', 'clinical', 'dispensing', 'visit-links', 'portal', 'imaging'].map((f) =>
-  fs.readFileSync(path.join(__dirname, '../../migration/schema', `${f}.pg.sql`), 'utf8'),
-);
+/** Les migrations dans l'ordre où le conteneur les applique (migration/schema/manifest.json : source unique). */
+export const MIGRATION_FILES: string[] = JSON.parse(fs.readFileSync(path.join(__dirname, '../../migration/schema/manifest.json'), 'utf8'));
+export const MIGRATIONS = MIGRATION_FILES.map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8'));
 
 export const uuid = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 

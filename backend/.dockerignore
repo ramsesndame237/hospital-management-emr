@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.env
+*.tsbuildinfo
+test
+# Inventaire hérité (schéma déduit du code C#) : il n'est pas appliqué par l'application et pèse 250 Ko.
+migration/schema/schema.pg.sql
+migration/inventory

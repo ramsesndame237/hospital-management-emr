@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: API (compilation + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit -p tsconfig.json
+      # Les tests tournent sur PGlite (PostgreSQL embarqué) : aucune base à fournir. Peu de workers : la mémoire d'un runner est comptée.
+      - run: node --experimental-vm-modules node_modules/jest/bin/jest.js --maxWorkers=2
+
+  frontend:
+    name: Interface (i18n + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run i18n:check
+      - run: npx ng test --watch=false
+        env:
+          VITEST_MAX_WORKERS: 2
+      - run: npx ng build
+
+  # Installation complète à partir de rien, sur un vrai PostgreSQL : construit les images, démarre la pile, amorce le premier administrateur
+  # et déroule le test de fumée (première connexion, double authentification, chaque module, intégrité du journal d'audit).
+  deploy-smoke:
+    name: Installation Docker (test de fumée)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Préparer le .env (secrets jetables)
+        run: |
+          cp .env.example .env
+          sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -hex 16)|" .env
+          sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -hex 16)|" .env
+          sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$(openssl rand -hex 32)|" .env
+          sed -i "s|^SECRET_ENCRYPTION_KEY=.*|SECRET_ENCRYPTION_KEY=$(openssl rand -base64 32)|" .env
+          sed -i "s|^BREACH_CHECK_ENABLED=.*|BREACH_CHECK_ENABLED=false|" .env
+      - name: Construire et démarrer
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Amorcer le premier administrateur
+        id: admin
+        run: |
+          out=$(docker compose run --rm -e BOOTSTRAP_ADMIN_EMAIL=dsi@hopital.test api node dist/cli/bootstrap-admin.js)
+          echo "::add-mask::$(echo "$out" | sed -n 's/.*: //p' | tail -1)"
+          echo "password=$(echo "$out" | sed -n 's/.*: //p' | tail -1)" >> "$GITHUB_OUTPUT"
+      - name: Test de fumée
+        working-directory: backend
+        run: |
+          npm ci --ignore-scripts
+          BASE_URL=http://localhost:8080 SMOKE_ADMIN_TEMP_PASSWORD='${{ steps.admin.outputs.password }}' node tools/smoke.mjs
+      - name: Journaux en cas d'échec
+        if: failure()
+        run: docker compose logs --no-color --tail 200

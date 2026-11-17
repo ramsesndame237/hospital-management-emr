@@ -57,8 +57,8 @@ import { Temporal } from '../../src/shared-kernel/temporal';
 import { PgliteSql } from './pglite-sql';
 import { must } from './fakes';
 
-// Même ordre qu'au démarrage du conteneur : l'administration complète les rôles système créés par l'IAM.
-const DDL = ['iam.pg.sql', 'administration.pg.sql', 'referentials.pg.sql', 'staff.pg.sql', 'patients.pg.sql', 'appointments.pg.sql', 'admissions.pg.sql', 'billing.pg.sql', 'lab.pg.sql', 'pharmacy.pg.sql', 'clinical.pg.sql', 'dispensing.pg.sql', 'visit-links.pg.sql', 'portal.pg.sql', 'imaging.pg.sql'].map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
+// Même ordre qu'au démarrage du conteneur (migration/schema/manifest.json) : l'administration complète les rôles système créés par l'IAM.
+const DDL = (JSON.parse(fs.readFileSync(path.join(__dirname, '../../migration/schema/manifest.json'), 'utf8')) as string[]).map((f) => fs.readFileSync(path.join(__dirname, '../../migration/schema', f), 'utf8')).join('\n');
 
 // otplib v13 exige ≥ 16 octets ; 32 caractères base32 = 20 octets (taille standard RFC 4226).
 export const TOTP_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';

@@ -1,0 +1,17 @@
+[
+  "iam.pg.sql",
+  "administration.pg.sql",
+  "referentials.pg.sql",
+  "staff.pg.sql",
+  "patients.pg.sql",
+  "appointments.pg.sql",
+  "admissions.pg.sql",
+  "billing.pg.sql",
+  "lab.pg.sql",
+  "pharmacy.pg.sql",
+  "clinical.pg.sql",
+  "dispensing.pg.sql",
+  "visit-links.pg.sql",
+  "portal.pg.sql",
+  "imaging.pg.sql"
+]
