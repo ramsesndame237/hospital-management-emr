@@ -238,6 +238,34 @@
             float: left;
             margin-top: 1px;
         }
+
+    /* Mobile: the left marketing panel used a fixed 100vh height, which pushed
+       the login form entirely off-screen and made it unreachable on phones. */
+    @@media (max-width: 767px) {
+        .main-wrapper {
+            flex-direction: column;
+        }
+
+        .left-img {
+            height: auto;
+            min-height: 0;
+            padding: 24px 20px;
+        }
+
+        .left-img .left-footer {
+            position: static;
+            top: auto;
+        }
+
+        .left-img p.footer-btm-cprt {
+            position: static;
+            margin-top: 16px;
+        }
+
+        .l-c {
+            margin-top: 24px;
+        }
+    }
 </style>
 
 
