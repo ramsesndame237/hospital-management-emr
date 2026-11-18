@@ -1,7 +1,11 @@
 # Rendu au démarrage du conteneur : ${API_UPSTREAM} vient de l'environnement ; les variables nginx ($uri, $host…) sont laissées telles quelles.
+# Journal d'accès SANS chaîne de requête : $uri et non $request, car l'adresse peut porter un numéro de dossier patient (ex. ?patientNumber=).
+log_format sanjeevani '$remote_addr [$time_iso8601] "$request_method $uri" $status $body_bytes_sent $request_time';
+
 server {
   listen 8080;
   server_name _;
+  access_log /dev/stdout sanjeevani;
   root /usr/share/nginx/html;
   index index.html;
 

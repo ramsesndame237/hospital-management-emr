@@ -1,0 +1,29 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Les en-têtes de contenu (CSP, nosniff…) sont posés par l'interface elle-même ; ici seulement ce que seul le domaine connaît.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Pièces cliniques : même limite que l'interface et l'API.
+	request_body {
+		max_size 25MB
+	}
+
+	reverse_proxy web:8080 {
+		# Caddy renseigne X-Forwarded-For / -Proto ; l'API s'en sert pour la limitation de débit et le journal d'audit.
+		header_up X-Real-IP {remote_host}
+	}
+
+	# Pas de journal d'accès ici : il contiendrait les chaînes de requête (qui peuvent porter un numéro de dossier patient).
+	# Les accès sont journalisés sans chaîne de requête par nginx (conteneur web) et par l'API (une ligne par requête, route et statut).
+	log {
+		output discard
+	}
+}

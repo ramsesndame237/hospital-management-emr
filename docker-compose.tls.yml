@@ -1,0 +1,43 @@
+# HTTPS automatique (Let's Encrypt) devant l'interface, avec Caddy. À ajouter au fichier principal :
+#   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
+# Prérequis : un nom de domaine qui pointe vers ce serveur, les ports 80 et 443 ouverts depuis Internet, et dans .env :
+#   DOMAIN=emr.hopital.example
+#   ACME_EMAIL=dsi@hopital.example          # alertes d'expiration du certificat
+#   CORS_ORIGINS=https://emr.hopital.example
+# Sans accès à Internet (site isolé) : ne pas utiliser ce fichier ; mettre le reverse proxy et le certificat de l'établissement devant le port WEB_PORT.
+# Voir docs/deployment/EXPLOITATION.md.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN est obligatoire pour le HTTPS (voir docker-compose.tls.yml)}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL est obligatoire pour le HTTPS (voir docker-compose.tls.yml)}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificats et compte ACME : à conserver (sinon nouvelle demande de certificat à chaque redémarrage, avec des limites de débit).
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # L'interface n'est plus publiée sur le serveur : seul Caddy la joint, par le réseau interne.
+  web:
+    ports: !reset []
+
+volumes:
+  caddy_data:
+  caddy_config:

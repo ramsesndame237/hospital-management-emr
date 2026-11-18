@@ -6,10 +6,24 @@
 # Le schéma complet est appliqué par l'API à chaque démarrage (tools/migrate.mjs, ordre de migration/schema/manifest.json) : une mise à jour de l'image met la base à niveau.
 name: sanjeevani
 
+# Journaux des conteneurs : rotation obligatoire, sinon le disque se remplit en quelques mois (docker logs reste lisible, 5 x 10 Mo par service).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# Durcissement commun aux services applicatifs : aucun privilège Linux, aucune élévation possible.
+x-hardening: &hardening
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
 services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
+    logging: *logging
+    security_opt: ["no-new-privileges:true"]
     environment:
       POSTGRES_DB: ${DB_NAME:-sanjeevani}
       POSTGRES_USER: ${DB_USER:-sanjeevani}
@@ -28,6 +42,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    <<: *hardening
+    logging: *logging
+    # `sh -c exec redis-server` contourne la descente de privilèges de l'image : on la fait ici, Redis ne tourne jamais en root.
+    user: redis
+    read_only: true
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --save \"\" --appendonly no --maxmemory 256mb --maxmemory-policy volatile-lru"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD est obligatoire (voir .env.example)}
@@ -40,6 +59,13 @@ services:
   api:
     build: ./backend
     restart: unless-stopped
+    <<: *hardening
+    logging: *logging
+    # L'API n'écrit rien sur disque (ni téléversement ni cache) : système de fichiers en lecture seule.
+    read_only: true
+    tmpfs:
+      - /tmp
+    stop_grace_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -79,6 +105,8 @@ services:
   web:
     build: ./frontend
     restart: unless-stopped
+    <<: *hardening
+    logging: *logging
     depends_on:
       api:
         condition: service_healthy

@@ -21,3 +21,6 @@ HAMS_Requirements/
 # Installation Docker : les secrets restent hors du dépôt
 .env
 !.env.example
+
+# Sauvegardes de la base (ops/backup.sh) : données de santé, jamais dans git.
+/backups/
