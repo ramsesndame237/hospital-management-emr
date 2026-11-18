@@ -2,12 +2,6 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard, permissionGuard, setupGuard } from './core/auth/auth.guards';
 import { homeGuard } from './core/navigation/home.guard';
 
-/** Titre (clé de catalogue) de l'écran provisoire d'un module : celui de son entrée de menu. */
-const moduleTitle = (route: ActivatedRouteSnapshot): string => {
-  const id = route.paramMap.get('module') ?? '';
-  return findNavItem(id)?.labelKey ?? `nav.${id}`;
-};
-
 /**
  * Chaque écran est chargé à la demande (lazy) : la page de connexion n'embarque rien de l'espace connecté. Trois layouts :
  * authentification (panneau de confiance), espace de travail (navigation + barre de contexte) et, hors routes, le contexte masqué
