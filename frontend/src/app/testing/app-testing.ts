@@ -9,7 +9,8 @@ import { JsonTranslator } from '../core/i18n/json-translator';
 import { Translator } from '../core/i18n/translator';
 import { Clock } from '../core/time/clock';
 import { Temporal } from '../core/time/temporal';
-import { DashboardGateway, SampleDashboardGateway } from '../features/dashboard/dashboard.gateway';
+import { DashboardGateway } from '../features/dashboard/dashboard.gateway';
+import { FakeDashboardGateway } from '../features/dashboard/testing/fake-dashboard-gateway';
 
 /** Horloge figée au 24 octobre 2026, midi UTC. */
 export const FIXED_CLOCK: Clock = {
@@ -36,7 +37,7 @@ export function configureApp(options: AppTestOptions = {}): { gateway: FakeAuthG
       { provide: AuthGateway, useValue: gateway },
       { provide: Translator, useClass: JsonTranslator },
       { provide: Clock, useValue: FIXED_CLOCK },
-      { provide: DashboardGateway, useClass: SampleDashboardGateway },
+      { provide: DashboardGateway, useClass: FakeDashboardGateway },
       ...(options.providers ?? []),
     ],
   });

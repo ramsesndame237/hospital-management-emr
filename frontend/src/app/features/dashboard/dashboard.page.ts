@@ -19,14 +19,14 @@ export function perimeterOf(permissions: readonly string[]): Perimeter {
   return scopes.includes('all') ? 'all' : scopes.includes('department') ? 'department' : 'own';
 }
 
+/** Accès rapides : seulement les écrans qui existent ET que le rôle peut ouvrir. */
 const QUICK_ACCESS = [
-  { labelKey: 'nav.agenda', route: '/modules/agenda' },
-  { labelKey: 'nav.consultations', route: '/modules/consultations' },
-  { labelKey: 'dashboard.quick.profile', route: '/profile' },
-  { labelKey: 'dashboard.quick.help', route: '/modules/help' },
+  { labelKey: 'nav.agenda', route: '/appointments', permission: 'appointments:read:department' },
+  { labelKey: 'nav.consultations', route: '/clinical/queue', permission: 'clinical.encounters:read:department' },
+  { labelKey: 'dashboard.quick.profile', route: '/profile', permission: undefined },
 ] as const;
 
-/** « Mon espace de travail » : vue du jour, périmètre du rôle, activité et accès rapides (design SHELL-01). */
+/** « Mon espace de travail » : chiffres réels du jour, rendez-vous, périmètre du rôle et accès rapides (design SHELL-01). */
 @Component({
   selector: 'app-dashboard-page',
   imports: [RouterLink, PanelCard, FormBuilderComponent],
@@ -40,22 +40,23 @@ const QUICK_ACCESS = [
       </header>
 
       @if (data(); as d) {
-        @if (d.openPatient; as patient) {
-          <p class="w-full max-w-[340px] border border-border bg-card p-2.5 text-xs leading-[18px] text-foreground">
-            {{ patient.name }} · {{ patient.record }} · {{ i18n.t('dashboard.recordOpen') }}
-          </p>
-        }
-
         <app-form-builder [fields]="scopeNotice()" formId="dashboard-scope" />
 
         <div class="grid items-start gap-6 lg:grid-cols-2">
           <div class="flex flex-col gap-6">
             <app-panel-card [heading]="i18n.t('dashboard.today')">
-              <dl class="flex flex-col gap-3 text-sm leading-6">
-                <div class="flex justify-between gap-4"><dt>{{ i18n.t('dashboard.consultations') }}</dt><dd class="font-mono">{{ d.consultationsToday }}</dd></div>
-                <div class="flex justify-between gap-4"><dt>{{ i18n.t('dashboard.results') }}</dt><dd class="font-mono">{{ d.resultsToReview }}</dd></div>
-                <div class="flex justify-between gap-4"><dt>{{ i18n.t('dashboard.documents') }}</dt><dd class="font-mono">{{ d.documentsToSign }}</dd></div>
-              </dl>
+              @if (d.tiles.length === 0) {
+                <p class="text-sm leading-6 text-muted-foreground">{{ i18n.t('dashboard.noTiles') }}</p>
+              } @else {
+                <dl class="flex flex-col gap-3 text-sm leading-6">
+                  @for (tile of d.tiles; track tile.id) {
+                    <div class="flex justify-between gap-4">
+                      <dt><a [routerLink]="tile.route" class="rounded-[2px] text-foreground hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">{{ i18n.t(tile.labelKey) }}</a></dt>
+                      <dd class="font-mono">{{ tile.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
             </app-panel-card>
 
             <app-panel-card [heading]="i18n.t('dashboard.perimeter')">
@@ -69,22 +70,24 @@ const QUICK_ACCESS = [
           </div>
 
           <div class="flex flex-col gap-6">
-            <app-panel-card [heading]="i18n.t('dashboard.activity')">
-              <ul class="flex flex-col gap-4 text-sm leading-6">
-                @for (visit of d.visits; track visit.time) {
-                  <li>
-                    <p>{{ visit.time }} · {{ visit.patient }}</p>
-                    <p class="text-muted-foreground">{{ i18n.t(visit.kindKey) }} · {{ i18n.t(visit.statusKey) }}</p>
-                  </li>
-                } @empty {
-                  <li class="text-muted-foreground">{{ i18n.t('dashboard.noActivity') }}</li>
-                }
-              </ul>
-            </app-panel-card>
+            @if (showAgenda()) {
+              <app-panel-card [heading]="i18n.t('dashboard.activity')">
+                <ul class="flex flex-col gap-4 text-sm leading-6">
+                  @for (visit of d.visits; track visit.id) {
+                    <li>
+                      <p>{{ visit.time }} · {{ visit.patient }}</p>
+                      <p class="text-muted-foreground">{{ i18n.t(visit.statusKey) }}</p>
+                    </li>
+                  } @empty {
+                    <li class="text-muted-foreground">{{ i18n.t('dashboard.noActivity') }}</li>
+                  }
+                </ul>
+              </app-panel-card>
+            }
 
             <app-panel-card [heading]="i18n.t('dashboard.quick.title')">
               <ul class="flex flex-col text-sm leading-6">
-                @for (link of quickAccess; track link.route) {
+                @for (link of quickAccess(); track link.route) {
                   <li>
                     <a [routerLink]="link.route" class="block rounded-[2px] py-2 text-foreground hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">{{ i18n.t(link.labelKey) }}</a>
                   </li>
@@ -93,6 +96,8 @@ const QUICK_ACCESS = [
             </app-panel-card>
           </div>
         </div>
+      } @else if (failed()) {
+        <p class="text-sm text-status-critical" role="alert">{{ i18n.t('dashboard.unavailable') }}</p>
       } @else {
         <p class="text-sm text-muted-foreground" role="status">{{ i18n.t('common.loading') }}</p>
       }
@@ -107,24 +112,28 @@ export class DashboardPage {
   protected readonly establishment = inject(ESTABLISHMENT);
 
   protected readonly data = signal<DashboardSnapshot | null>(null);
-  protected readonly quickAccess = QUICK_ACCESS;
+  protected readonly failed = signal(false);
 
+  private readonly permissions = computed(() => this.user()?.permissions ?? []);
   protected readonly today = computed(() => this.formatter.date(this.now));
-  protected readonly perimeter = computed(() => perimeterOf(this.user()?.permissions ?? []));
+  protected readonly perimeter = computed(() => perimeterOf(this.permissions()));
+  protected readonly showAgenda = computed(() => hasPermission(this.permissions(), 'appointments:read:department'));
+  protected readonly quickAccess = computed(() => QUICK_ACCESS.filter((l) => !l.permission || hasPermission(this.permissions(), l.permission)));
   protected readonly roleLabel = computed(() => {
     const role = this.user()?.roles[0];
     return role ? this.i18n.t(`roles.${role}`) : '';
   });
   /** Le rôle n'administre pas les rôles : on le dit, plutôt que de laisser croire à un oubli. */
-  protected readonly rolesLocked = computed(() => !hasPermission(this.user()?.permissions ?? [], 'iam.roles:manage'));
+  protected readonly rolesLocked = computed(() => !hasPermission(this.permissions(), 'iam.roles:manage'));
 
   protected readonly scopeNotice = computed<FieldSchema[]>(() => [
     { type: 'message', name: 'scope', tone: 'info', appearance: 'outlined', title: `dashboard.perimeterOf.${this.perimeter()}`, text: 'dashboard.scopeText' },
   ]);
 
   constructor() {
-    void inject(DashboardGateway)
-      .snapshot()
-      .then((snapshot) => this.data.set(snapshot));
+    inject(DashboardGateway)
+      .snapshot(this.permissions())
+      .then((snapshot) => this.data.set(snapshot))
+      .catch(() => this.failed.set(true));
   }
 }

@@ -10,8 +10,9 @@ import { DraftStatus } from './core/session/draft-status';
 import { IdleService } from './core/session/idle.service';
 import { Temporal } from './core/time/temporal';
 import { SessionExpiredPage } from './features/auth/session-expired/session-expired.page';
+import { DashboardGateway } from './features/dashboard/dashboard.gateway';
 import { DashboardPage, perimeterOf } from './features/dashboard/dashboard.page';
-import { ModulePlaceholderPage } from './features/modules/module-placeholder.page';
+import { FakeDashboardGateway } from './features/dashboard/testing/fake-dashboard-gateway';
 import { ProfilePage } from './features/profile/profile.page';
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
 import { InactivityOverlay } from './layouts/context-layout/inactivity-overlay';
@@ -34,7 +35,7 @@ const DOCTOR_PERMISSIONS = ['clinical.encounters:read:department', 'patients:rea
 
 describe('menu de navigation', () => {
   it('montre au médecin son menu complet et aux autres rôles seulement ce qui leur est commun', () => {
-    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], DOCTOR_PERMISSIONS).length).toBe(14);
+    expect(visibleNavigation(NAVIGATION, ['DOCTOR'], DOCTOR_PERMISSIONS).length).toBe(6);
     expect(visibleNavigation(NAVIGATION, ['CASHIER'], []).map((i) => i.id)).toEqual(['dashboard']);
   });
 
@@ -175,8 +176,8 @@ describe('SessionExpiredPage', () => {
 });
 
 describe('DashboardPage', () => {
-  it("affiche la vue du jour, le périmètre du rôle et l'activité (données d'exemple)", async () => {
-    const { i18n } = configureApp({ roles: ['DOCTOR'], permissions: ['files.clinical:read:department'] });
+  it("affiche les chiffres réels du jour, les rendez-vous, le périmètre du rôle et des accès rapides permis", async () => {
+    const { i18n } = configureApp({ roles: ['DOCTOR'], permissions: ['appointments:read:department', 'clinical.encounters:read:department'] });
     const missing = watchMissingKeys(i18n);
     const fixture = TestBed.createComponent(DashboardPage);
     await settle(fixture);
@@ -184,20 +185,49 @@ describe('DashboardPage', () => {
     expect(content).toContain('Mon espace de travail');
     expect(content).toContain('Vue du 24 oct. 2026');
     expect(content).toContain('Médecin');
-    expect(content).toContain('Consultations du jour');
-    expect(content).toContain('Patients avec relation de soin · Mon service');
+    expect(content).toContain('Rendez-vous du jour');
+    expect(content).toContain('Patients en attente de consultation');
+    expect(content).toContain('09:30 · Ndom Évelyne');
+    expect(content).toContain('Arrivé(e)');
     expect(content).toContain('Verrouillé : Administration des rôles');
-    expect(content).toContain('09:30 · Évelyne Ndom');
+    expect(content).toContain('Mon agenda');
     expect(content).toContain('Mon profil et ma sécurité');
+    expect(content).not.toContain('Aide et support');
+    expect(content).not.toContain('Documents à signer');
     expect(missing()).toEqual([]);
   });
 
-  it("ne dit pas « verrouillé » à qui administre les rôles", async () => {
-    configureApp({ roles: ['SYSTEM_ADMIN'], permissions: ['iam.roles:manage:all'] });
+  it("ne propose en accès rapide que ce que le rôle peut ouvrir, et masque l'agenda sans droit", async () => {
+    configureApp({ roles: ['CASHIER'], permissions: ['billing.invoices:read'] });
+    (TestBed.inject(DashboardGateway) as unknown as FakeDashboardGateway).snapshotValue = { tiles: [], visits: [] };
     const fixture = TestBed.createComponent(DashboardPage);
     await settle(fixture);
+    const links = [...fixture.nativeElement.querySelectorAll('a')].map((a) => (a as HTMLAnchorElement).getAttribute('href'));
+    expect(links).not.toContain('/appointments');
+    expect(links).not.toContain('/clinical/queue');
+    expect(links).toContain('/profile');
+    expect(text(fixture)).not.toContain('Mon activité');
+  });
+
+  it("dit qu'il n'y a rien à traiter quand le rôle n'a aucun chiffre", async () => {
+    configureApp({ roles: ['SYSTEM_ADMIN'], permissions: ['iam.roles:manage:all'] });
+    const gateway = TestBed.inject(DashboardGateway) as unknown as FakeDashboardGateway;
+    gateway.snapshotValue = { tiles: [], visits: [] };
+    const fixture = TestBed.createComponent(DashboardPage);
+    await settle(fixture);
+    expect(text(fixture)).toContain('Rien à traiter');
     expect(text(fixture)).not.toContain('Verrouillé');
     expect(text(fixture)).toContain('Tous les patients de l’établissement');
+  });
+
+  it("annonce une panne de chargement au lieu d'inventer des chiffres", async () => {
+    configureApp({ roles: ['DOCTOR'], permissions: ['appointments:read:department'] });
+    const gateway = TestBed.inject(DashboardGateway) as unknown as FakeDashboardGateway;
+    gateway.snapshot = () => Promise.reject(new Error('boom'));
+    const fixture = TestBed.createComponent(DashboardPage);
+    await settle(fixture);
+    expect(text(fixture)).toContain('Impossible de charger la vue du jour');
+    expect(text(fixture)).not.toContain('Rendez-vous du jour');
   });
 });
 
@@ -256,16 +286,6 @@ describe('ProfilePage', () => {
   });
 });
 
-describe('ModulePlaceholderPage', () => {
-  it("porte le nom du module du menu et dit qu'il arrive", async () => {
-    configureApp({ providers: [{ provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ module: 'agenda' })) } }] });
-    const fixture = TestBed.createComponent(ModulePlaceholderPage);
-    await settle(fixture);
-    expect(text(fixture)).toContain('Mon agenda');
-    expect(text(fixture)).toContain('disponible prochainement');
-  });
-});
-
 describe('AuthLayout', () => {
   it('affiche le panneau de confiance, les quatre engagements numérotés, la ligne de vie et la date du jour', async () => {
     const { i18n } = configureApp({ signedIn: false });
@@ -306,10 +326,11 @@ describe('ShellLayout', () => {
 
   const links = () => [...(fixture.nativeElement as HTMLElement).querySelectorAll('nav a')].map((a) => a.textContent?.replace(/\s+/g, ' ').trim());
 
-  it('montre au médecin ses 16 entrées et son identité (rôle, établissement)', async () => {
+  it('montre au médecin ses entrées réelles (aucun module provisoire) et son identité (rôle, établissement)', async () => {
     const { missing } = await setup(['DOCTOR'], DOCTOR_PERMISSIONS);
-    expect(links()).toHaveLength(16);
-    expect(links()).toContain('Hospitalisation (tournées)');
+    expect(links()).toHaveLength(8);
+    expect(links()).not.toContain('Hospitalisation (tournées)');
+    expect(links()).not.toContain('Bloc opératoire');
     expect(text(fixture)).toContain('Médecin');
     expect(text(fixture)).toContain('Bonapriso · Douala');
     expect(text(fixture)).toContain('Accès limité à votre rôle');

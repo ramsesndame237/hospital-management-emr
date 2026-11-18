@@ -2,8 +2,7 @@ import { IconName } from '../../shared/icons/icon';
 import { hasPermission } from '../auth/permissions';
 
 /**
- * Entrée du menu principal. `labelKey` est une clé de catalogue ; `route` pointe vers l'écran (ou vers l'écran provisoire
- * `/modules/<id>` tant que le module n'existe pas). Une entrée sans `roles` ni `permission` est visible de tous ; sinon il
+ * Entrée du menu principal. `labelKey` est une clé de catalogue ; `route` pointe vers l'écran . Une entrée sans `roles` ni `permission` est visible de tous ; sinon il
  * suffit de posséder l'un des rôles listés ET la permission demandée. Le menu ne fait que refléter les droits : l'API tranche.
  *
  * Un GROUPE (« Administration ») n'a pas d'écran : il porte des `children` (un seul niveau) et se déplie. Il n'apparaît que
@@ -104,15 +103,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { id: 'portal', labelKey: 'nav.portal', icon: 'user', route: '/portal', permission: 'portal:read:own' },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/appointments', permission: 'appointments:read:department' },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/clinical/queue', permission: 'clinical.encounters:read:department' },
-  { id: 'rounds', labelKey: 'nav.rounds', icon: 'ward', route: '/modules/rounds', roles: DOCTOR },
-  { id: 'emergency', labelKey: 'nav.emergency', icon: 'emergency', route: '/modules/emergency', roles: DOCTOR },
   { id: 'results', labelKey: 'nav.results', icon: 'dashboard', route: '/results', permission: 'lab.requisitions:read:own', roles: DOCTOR },
-  { id: 'tasks', labelKey: 'nav.tasks', icon: 'agenda', route: '/modules/tasks', roles: DOCTOR },
-  { id: 'surgery', labelKey: 'nav.surgery', icon: 'ward', route: '/modules/surgery', roles: DOCTOR },
-  { id: 'maternity', labelKey: 'nav.maternity', icon: 'emergency', route: '/modules/maternity', roles: DOCTOR },
-  { id: 'documents', labelKey: 'nav.documents', icon: 'dashboard', route: '/modules/documents', roles: DOCTOR },
-  { id: 'planning', labelKey: 'nav.planning', icon: 'agenda', route: '/modules/planning', roles: DOCTOR },
-  { id: 'reports', labelKey: 'nav.reports', icon: 'consultations', route: '/modules/reports', roles: DOCTOR },
 ];
 
 /** Entrées auxquelles l'utilisateur a droit, dans l'ordre du menu. */

@@ -1,7 +1,6 @@
-import { ActivatedRouteSnapshot, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { authGuard, guestGuard, permissionGuard, setupGuard } from './core/auth/auth.guards';
 import { homeGuard } from './core/navigation/home.guard';
-import { findNavItem } from './core/navigation/navigation';
 
 /** Titre (clé de catalogue) de l'écran provisoire d'un module : celui de son entrée de menu. */
 const moduleTitle = (route: ActivatedRouteSnapshot): string => {
@@ -76,7 +75,6 @@ export const routes: Routes = [
       { path: 'admin/roles', canActivate: [permissionGuard('iam.roles:read')], title: 'nav.adminRoles', loadComponent: () => import('./features/admin/roles/roles.page').then((m) => m.RolesPage) },
       { path: 'admin/structure/:facilityId', canActivate: [permissionGuard('administration.structure:read')], title: 'nav.adminStructure', loadComponent: () => import('./features/admin/structure/structure.page').then((m) => m.StructurePage) },
       { path: 'profile', title: 'profile.title', loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage) },
-      { path: 'modules/:module', title: moduleTitle, loadComponent: () => import('./features/modules/module-placeholder.page').then((m) => m.ModulePlaceholderPage) },
     ],
   },
   {

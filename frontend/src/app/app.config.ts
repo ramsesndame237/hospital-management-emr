@@ -24,7 +24,7 @@ import { reloadOnStaleChunk } from './core/navigation/stale-chunk';
 import { localeInterceptor } from './core/i18n/locale.interceptor';
 import { TranslatedTitleStrategy } from './core/i18n/translated-title.strategy';
 import { Translator } from './core/i18n/translator';
-import { DashboardGateway, SampleDashboardGateway } from './features/dashboard/dashboard.gateway';
+import { DashboardGateway, HttpDashboardGateway } from './features/dashboard/dashboard.gateway';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -53,6 +53,6 @@ export const appConfig: ApplicationConfig = {
     { provide: PasswordResetGateway, useClass: UnavailablePasswordResetGateway },
     { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },
     // Données d'exemple du tableau de bord, jusqu'à la migration des modules cliniques (voir `dashboard.gateway.ts`).
-    { provide: DashboardGateway, useClass: SampleDashboardGateway },
+    { provide: DashboardGateway, useClass: HttpDashboardGateway },
   ],
 };
