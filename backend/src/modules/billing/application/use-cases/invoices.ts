@@ -94,7 +94,7 @@ const toPaymentView = (p: Payment): PaymentView => ({
   id: p.id.value, receiptNumber: p.receiptNumber.value, mode: p.mode, amount: p.amount.value, reference: p.reference, receivedAt: p.receivedAt.toString(),
 });
 
-async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<InvoiceView> {
+export async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<InvoiceView> {
   const s = invoice.state;
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
   const approvals = await summarize(d.users, (await d.approvals.list({ invoiceId: s.id }, 0, 50)).items);
@@ -127,7 +127,7 @@ async function ensureNoPendingApproval(d: InvoiceDependencies, invoice: Invoice)
   return (await d.approvals.hasPending(invoice.id)) ? err(APPROVAL_PENDING) : ok(undefined);
 }
 
-function record(d: InvoiceDependencies, actorId: string, action: string, invoice: Invoice, extra: Record<string, string | number | boolean | null> = {}, reason?: string): Promise<void> {
+export function record(d: InvoiceDependencies, actorId: string, action: string, invoice: Invoice, extra: Record<string, string | number | boolean | null> = {}, reason?: string): Promise<void> {
   return d.audit.record({
     action, outcome: 'SUCCESS', actorId, resourceType: 'invoice', resourceId: invoice.id.value, ...(reason ? { reason } : {}),
     metadata: { invoiceNumber: invoice.state.number.value, patientId: invoice.state.patientId.value, ...extra }, occurredAt: d.clock.now(),

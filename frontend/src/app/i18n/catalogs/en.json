@@ -256,7 +256,8 @@
     "imaging": "Imaging",
     "imagingWorklist": "Worklist",
     "imagingNew": "New order",
-    "imagingCatalog": "Exam catalogue"
+    "imagingCatalog": "Exam catalogue",
+    "billingToInvoice": "To invoice"
   },
   "admin": {
     "actions": "Actions",
@@ -916,7 +917,31 @@
       "name": "Name",
       "price": "Price",
       "empty": "No item matches.",
-      "pagination": "Catalog pagination"
+      "pagination": "Catalog pagination",
+      "leadManage": "Billable items and their price. A laboratory, radiology or pharmacy item carries the source code of the test, exam or drug it prices: without it, a performed request cannot be invoiced.",
+      "add": "Add an item",
+      "addTitle": "New item",
+      "create": "Add the item",
+      "created": "Item “{name}” added.",
+      "updated": "Item “{name}” updated.",
+      "edit": "Edit",
+      "editOf": "Edit {name}",
+      "deactivate": "Withdraw",
+      "activate": "Reactivate",
+      "deactivateOf": "Withdraw {name} from the catalog",
+      "activateOf": "Reactivate {name}",
+      "deactivated": "Item “{name}” withdrawn from the catalog.",
+      "activated": "Item “{name}” reactivated.",
+      "inactive": "Withdrawn",
+      "sourceCode": "Source code",
+      "sourceCodeHint": "Code of the test, exam or drug this item prices (laboratory, imaging or pharmacy catalog).",
+      "sourceCodeFormat": "Letters, digits, “_”, “-” and “.” only.",
+      "noSource": "No source code",
+      "codeHint": "Letters, digits, “_”, “-”, “.”. Cannot be changed later.",
+      "codeRequired": "Enter the item code.",
+      "codeFormat": "Letters, digits, “_”, “-” and “.” only.",
+      "nameRequired": "Enter the item name.",
+      "priceHint": "Unit price in the facility currency."
     },
     "session": {
       "title": "My cash drawer",
@@ -1066,6 +1091,26 @@
       "submit": "Send the request",
       "reason": "Reason for the cancellation",
       "keep": "Keep the invoice"
+    },
+    "save": "Save",
+    "toInvoice": {
+      "title": "To invoice",
+      "lead": "What was done and has no invoice yet: lab requests, imaging exams performed, drugs dispensed. The invoice is built at the catalog price.",
+      "typeLabel": "Type of item to invoice",
+      "type": {
+        "LAB_REQUISITION": "Lab tests",
+        "IMAGING_ORDER": "Imaging",
+        "DISPENSATION": "Drugs"
+      },
+      "noPrice": "no price for “{code}”",
+      "unpriced": "Cannot invoice: no catalog item prices {codes}.",
+      "openCatalog": "Open the catalog",
+      "bill": "Create the invoice",
+      "billOf": "Create the invoice of {reference}",
+      "billed": "Invoice {number} created (draft).",
+      "empty": "Nothing to invoice right now.",
+      "pagination": "Items to invoice pagination",
+      "unknownPatient": "Unknown patient"
     }
   },
   "lab": {

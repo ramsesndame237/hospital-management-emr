@@ -14,7 +14,7 @@ import {
   CollectPaymentUseCase, CreateInvoiceUseCase, GetInvoiceUseCase, InvoiceDependencies, ListInvoicesUseCase, ManageInvoiceUseCases, ReprintReceiptUseCase,
 } from './application/use-cases/invoices';
 import {
-  AdmissionDirectory, APPROVAL_REPOSITORY, ApprovalRepository, BILLING_ADMISSIONS, BILLING_CURRENCY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, CASH_SESSION_REPOSITORY, CashSessionRepository, INVOICE_REPOSITORY, InvoiceRepository, ITEM_REPOSITORY, ItemRepository,
+  AdmissionDirectory, APPROVAL_REPOSITORY, ApprovalRepository, BILLING_ADMISSIONS, BILLING_SOURCES, SourceDirectory, BILLING_CURRENCY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_PATIENTS, BILLING_SERVICES, BILLING_USERS, BILLING_VARIANCE_LIMIT, CASH_SESSION_REPOSITORY, CashSessionRepository, INVOICE_REPOSITORY, InvoiceRepository, ITEM_REPOSITORY, ItemRepository,
   PatientDirectory, ServiceDirectory, UserDirectory,
 } from './domain/ports';
 import { Currency } from './domain/values';
@@ -26,11 +26,14 @@ import { BillingApprovalsController } from './presentation/approvals.controller'
 import { BillingCatalogController } from './presentation/catalog.controller';
 import { BillingInvoicesController } from './presentation/invoices.controller';
 import { BillingSessionsController } from './presentation/sessions.controller';
+import { BillingSourcesController } from './presentation/sources.controller';
+import { BillFromSourceUseCase, ListBillableUseCase, SourceDependencies } from './application/use-cases/sources';
 
 const CATALOG_DEPENDENCIES = Symbol('BILLING_CATALOG_DEPENDENCIES');
 const INVOICE_DEPENDENCIES = Symbol('BILLING_INVOICE_DEPENDENCIES');
 const SESSION_DEPENDENCIES = Symbol('BILLING_SESSION_DEPENDENCIES');
 const APPROVAL_DEPENDENCIES = Symbol('BILLING_APPROVAL_DEPENDENCIES');
+const SOURCE_DEPENDENCIES = Symbol('BILLING_SOURCE_DEPENDENCIES');
 
 /**
  * Module Facturation. Les ports de persistance sont reliés à PostgreSQL ici ; les patients, les services et la devise de
@@ -45,7 +48,7 @@ export class BillingModule {
       // Global, et n'exporte que les factures : la racine de composition les branche au portail du patient.
       global: true,
       exports: [INVOICE_REPOSITORY],
-      controllers: [BillingCatalogController, BillingInvoicesController, BillingSessionsController, BillingApprovalsController],
+      controllers: [BillingCatalogController, BillingInvoicesController, BillingSessionsController, BillingApprovalsController, BillingSourcesController],
       providers: [
         { provide: ITEM_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgItemRepository(sql) },
         { provide: INVOICE_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgInvoiceRepository(sql) },
@@ -78,6 +81,9 @@ export class BillingModule {
             sessions, users, access, currency, varianceLimit, audit, clock,
           }),
         },
+        { provide: SOURCE_DEPENDENCIES, inject: [BILLING_SOURCES], useFactory: (sources: SourceDirectory): SourceDependencies => ({ sources }) },
+        { provide: ListBillableUseCase, inject: [INVOICE_DEPENDENCIES, SOURCE_DEPENDENCIES], useFactory: (d: InvoiceDependencies, s: SourceDependencies) => new ListBillableUseCase(d, s) },
+        { provide: BillFromSourceUseCase, inject: [INVOICE_DEPENDENCIES, SOURCE_DEPENDENCIES, ID_GENERATOR], useFactory: (d: InvoiceDependencies, s: SourceDependencies, ids: IdGenerator) => new BillFromSourceUseCase(d, s, ids) },
         { provide: CreateItemUseCase, inject: [CATALOG_DEPENDENCIES, ID_GENERATOR], useFactory: (d: CatalogDependencies, ids: IdGenerator) => new CreateItemUseCase(d, ids) },
         { provide: ManageItemUseCases, inject: [CATALOG_DEPENDENCIES], useFactory: (d: CatalogDependencies) => new ManageItemUseCases(d) },
         { provide: GetItemUseCase, inject: [CATALOG_DEPENDENCIES], useFactory: (d: CatalogDependencies) => new GetItemUseCase(d) },

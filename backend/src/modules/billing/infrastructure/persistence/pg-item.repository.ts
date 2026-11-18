@@ -10,10 +10,11 @@ interface ItemRow {
   category: string;
   unit_price: string | number;
   service_id: string | null;
+  source_code: string | null;
   active: boolean;
 }
 
-const COLUMNS = 'id, code, name, category, unit_price, service_id, active';
+const COLUMNS = 'id, code, name, category, unit_price, service_id, source_code, active';
 
 function toItem(row: ItemRow): BillableItem {
   const need = <T>(r: { ok: true; value: T } | { ok: false }): T => {
@@ -27,6 +28,7 @@ function toItem(row: ItemRow): BillableItem {
     category: need(parseCategory(row.category)) as ItemCategory,
     unitPrice: Amount.restore(Number(row.unit_price)),
     serviceId: row.service_id === null ? null : need(ServiceRef.create(row.service_id)),
+    sourceCode: row.source_code,
     active: row.active,
   });
 }
@@ -44,11 +46,16 @@ export class PgItemRepository implements ItemRepository {
     return rows[0] ? toItem(rows[0]) : null;
   }
 
+  async findBySource(category: ItemCategory, sourceCode: string): Promise<BillableItem | null> {
+    const rows = await this.sql.query<ItemRow>(`SELECT ${COLUMNS} FROM billing_items WHERE category = $1 AND source_code = $2 AND active`, [category, sourceCode]);
+    return rows[0] ? toItem(rows[0]) : null;
+  }
+
   async insert(item: BillableItem): Promise<boolean> {
     const s = item.state;
     const rows = await this.sql.query<{ id: string }>(
-      `INSERT INTO billing_items (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (code) DO NOTHING RETURNING id`,
-      [s.id.value, s.code.value, s.name.value, s.category, s.unitPrice.value, s.serviceId?.value ?? null, s.active],
+      `INSERT INTO billing_items (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (code) DO NOTHING RETURNING id`,
+      [s.id.value, s.code.value, s.name.value, s.category, s.unitPrice.value, s.serviceId?.value ?? null, s.sourceCode, s.active],
     );
     return rows.length === 1;
   }
@@ -57,8 +64,8 @@ export class PgItemRepository implements ItemRepository {
     // Le code ne change jamais : les factures y renvoient.
     const s = item.state;
     await this.sql.query(
-      'UPDATE billing_items SET name = $2, category = $3, unit_price = $4, service_id = $5, active = $6, updated_at = now() WHERE id = $1',
-      [s.id.value, s.name.value, s.category, s.unitPrice.value, s.serviceId?.value ?? null, s.active],
+      'UPDATE billing_items SET name = $2, category = $3, unit_price = $4, service_id = $5, source_code = $6, active = $7, updated_at = now() WHERE id = $1',
+      [s.id.value, s.name.value, s.category, s.unitPrice.value, s.serviceId?.value ?? null, s.sourceCode, s.active],
     );
   }
 

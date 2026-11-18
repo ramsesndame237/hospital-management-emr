@@ -135,7 +135,59 @@ export interface BillableItem {
   readonly unitPrice: number;
   readonly currency: string;
   readonly serviceId: string | null;
+  /** Code de l'analyse, de l'examen d'imagerie ou du médicament que cet acte tarifie (catégories laboratoire, radiologie, pharmacie). */
+  readonly sourceCode: string | null;
   readonly active: boolean;
+}
+
+/** Catégories dont un acte peut tarifier une analyse, un examen ou un médicament. */
+export const SOURCE_CATEGORIES: readonly ItemCategory[] = ['LABORATORY', 'RADIOLOGY', 'PHARMACY'];
+
+export interface ItemInput {
+  readonly code: string;
+  readonly name: string;
+  readonly category: ItemCategory;
+  /** Plus petite unité de la devise (entier). */
+  readonly unitPrice: number;
+  readonly sourceCode?: string;
+}
+
+/** `null` retire le code source ; une clé absente ne change rien. */
+export interface ItemChanges {
+  readonly name?: string;
+  readonly category?: ItemCategory;
+  readonly unitPrice?: number;
+  readonly sourceCode?: string | null;
+}
+
+export const SOURCE_TYPES = ['LAB_REQUISITION', 'IMAGING_ORDER', 'DISPENSATION'] as const;
+export type SourceType = (typeof SOURCE_TYPES)[number];
+
+export interface BillableLine {
+  readonly code: string;
+  readonly label: string;
+  readonly quantity: number;
+  /** Acte du catalogue qui tarifie la ligne ; `null` : aucun prix configuré. */
+  readonly itemName: string | null;
+  readonly unitPrice: number | null;
+}
+
+/** Ce qui a été fait (demande d'analyses, examen réalisé, délivrance) et n'a pas encore de facture. */
+export interface Billable {
+  readonly type: SourceType;
+  readonly id: string;
+  readonly reference: string;
+  readonly patient: { readonly id: string; readonly number: string; readonly lastName: string; readonly firstName: string } | null;
+  readonly occurredAt: string;
+  readonly lines: readonly BillableLine[];
+  /** Codes sans acte du catalogue : la facture est refusée tant qu'ils ne sont pas tarifés. */
+  readonly unpriced: readonly string[];
+  readonly total: number | null;
+}
+
+/** Une page de choses à facturer, avec la devise de l'installation (les prix sont des entiers dans sa plus petite unité). */
+export interface BillablePage extends Page<Billable> {
+  readonly currency: string;
 }
 
 export interface ItemFilter {

@@ -9,6 +9,25 @@ const NOT_FOUND = new DomainError('BILLING_ITEM_NOT_FOUND', 'Acte introuvable.')
 const SERVICE_NOT_FOUND = new DomainError('BILLING_SERVICE_NOT_FOUND', 'Service introuvable.');
 const SERVICE_INACTIVE = new DomainError('BILLING_SERVICE_INACTIVE', 'Ce service est désactivé.');
 const CODE_TAKEN = new DomainError('BILLING_ITEM_CODE_ALREADY_EXISTS', 'Un acte utilise déjà ce code.');
+const SOURCE_CODE_INVALID = new DomainError('BILLING_ITEM_SOURCE_CODE_INVALID', "Le code source est invalide (lettres, chiffres, « _ », « - », « . », 30 caractères au plus).");
+const SOURCE_CATEGORY = new DomainError('BILLING_ITEM_SOURCE_CATEGORY', "Seuls les actes de laboratoire, de radiologie et de pharmacie peuvent être mis en correspondance avec une analyse, un examen ou un médicament.");
+const SOURCE_TAKEN = new DomainError('BILLING_ITEM_SOURCE_ALREADY_MAPPED', 'Un autre acte actif tarifie déjà ce code : deux prix pour la même analyse, le même examen ou le même médicament seraient ambigus.');
+const SOURCE_CATEGORIES: readonly string[] = [ItemCategory.LABORATORY, ItemCategory.RADIOLOGY, ItemCategory.PHARMACY];
+
+/** Code source normalisé en majuscules ; vide = aucun. */
+function parseSourceCode(raw: string | null | undefined): Result<string | null> {
+  const text = String(raw ?? '').trim().toUpperCase();
+  if (text === '') return ok(null);
+  return /^[A-Z0-9][A-Z0-9_.-]{0,29}$/.test(text) ? ok(text) : err(SOURCE_CODE_INVALID);
+}
+
+/** Cohérence d'une correspondance : catégorie compatible, et un seul acte actif par code. */
+async function checkSource(d: CatalogDependencies, category: ItemCategory, sourceCode: string | null, ownId: string | null): Promise<Result<void>> {
+  if (sourceCode === null) return ok(undefined);
+  if (!SOURCE_CATEGORIES.includes(category)) return err(SOURCE_CATEGORY);
+  const other = await d.items.findBySource(category, sourceCode);
+  return other && other.id.value !== ownId ? err(SOURCE_TAKEN) : ok(undefined);
+}
 
 export interface ItemView {
   readonly id: string;
@@ -19,6 +38,8 @@ export interface ItemView {
   readonly unitPrice: number;
   readonly currency: string;
   readonly serviceId: string | null;
+  /** Code de l'analyse, de l'examen d'imagerie ou du médicament que cet acte tarifie. */
+  readonly sourceCode: string | null;
   readonly active: boolean;
 }
 
@@ -32,7 +53,7 @@ export interface CatalogDependencies {
 
 export function toItemView(d: Pick<CatalogDependencies, 'currency'>, item: BillableItem): ItemView {
   const s = item.state;
-  return { id: s.id.value, code: s.code.value, name: s.name.value, category: s.category, unitPrice: s.unitPrice.value, currency: d.currency.value, serviceId: s.serviceId?.value ?? null, active: s.active };
+  return { id: s.id.value, code: s.code.value, name: s.name.value, category: s.category, unitPrice: s.unitPrice.value, currency: d.currency.value, serviceId: s.serviceId?.value ?? null, sourceCode: s.sourceCode, active: s.active };
 }
 
 async function loadItem(d: CatalogDependencies, rawId: string): Promise<Result<BillableItem>> {
@@ -61,7 +82,7 @@ function record(d: CatalogDependencies, actorId: string, action: string, item: B
 export class CreateItemUseCase {
   constructor(private readonly d: CatalogDependencies, private readonly ids: IdGenerator) {}
 
-  async execute(actorId: string, input: { code: string; name: string; category: string; unitPrice: number; serviceId?: string | null }): Promise<Result<ItemView>> {
+  async execute(actorId: string, input: { code: string; name: string; category: string; unitPrice: number; serviceId?: string | null; sourceCode?: string | null }): Promise<Result<ItemView>> {
     const code = ItemCode.create(input.code);
     if (!code.ok) return err(code.error);
     const name = ItemName.create(input.name);
@@ -70,6 +91,10 @@ export class CreateItemUseCase {
     if (!category.ok) return err(category.error);
     const price = Amount.create(input.unitPrice);
     if (!price.ok) return err(price.error);
+    const sourceCode = parseSourceCode(input.sourceCode);
+    if (!sourceCode.ok) return err(sourceCode.error);
+    const source = await checkSource(this.d, category.value as ItemCategory, sourceCode.value, null);
+    if (!source.ok) return err(source.error);
     let serviceId: ServiceRef | null = null;
     if (input.serviceId !== undefined && input.serviceId !== null) {
       const service = await checkService(this.d, input.serviceId);
@@ -78,7 +103,7 @@ export class CreateItemUseCase {
     }
     const id = ItemId.create(this.ids.next());
     if (!id.ok) return err(id.error);
-    const item = BillableItem.create({ id: id.value, code: code.value, name: name.value, category: category.value as ItemCategory, unitPrice: price.value, serviceId });
+    const item = BillableItem.create({ id: id.value, code: code.value, name: name.value, category: category.value as ItemCategory, unitPrice: price.value, serviceId, sourceCode: sourceCode.value });
     if (!(await this.d.items.insert(item))) return err(CODE_TAKEN);
     await record(this.d, actorId, 'billing.item.create', item, { unitPrice: price.value.value, category: category.value });
     return ok(toItemView(this.d, item));
@@ -89,7 +114,7 @@ export class ManageItemUseCases {
   constructor(private readonly d: CatalogDependencies) {}
 
   /** Champs absents : inchangés ; `serviceId: null` détache l'acte. Le changement de prix est inscrit au journal avec l'ancien prix. */
-  async update(actorId: string, id: string, input: { name?: string; category?: string; unitPrice?: number; serviceId?: string | null }): Promise<Result<ItemView>> {
+  async update(actorId: string, id: string, input: { name?: string; category?: string; unitPrice?: number; serviceId?: string | null; sourceCode?: string | null }): Promise<Result<ItemView>> {
     const loaded = await loadItem(this.d, id);
     if (!loaded.ok) return err(loaded.error);
     const item = loaded.value;
@@ -109,11 +134,23 @@ export class ManageItemUseCases {
       serviceId = service.value;
     }
 
-    item.update({ name: name.value, category: category.value as ItemCategory | undefined, unitPrice: price.value, serviceId });
+    let sourceCode: string | null | undefined;
+    if (input.sourceCode !== undefined) {
+      const parsed = parseSourceCode(input.sourceCode);
+      if (!parsed.ok) return err(parsed.error);
+      sourceCode = parsed.value;
+    }
+    // La correspondance finale (nouvelle ou conservée) doit rester cohérente avec la catégorie finale.
+    const finalCategory = (category.value as ItemCategory | undefined) ?? before.category;
+    const finalSource = sourceCode === undefined ? before.sourceCode : sourceCode;
+    const consistent = await checkSource(this.d, finalCategory, finalSource, item.id.value);
+    if (!consistent.ok) return err(consistent.error);
+
+    item.update({ name: name.value, category: category.value as ItemCategory | undefined, unitPrice: price.value, serviceId, sourceCode });
     const after = item.state;
     const changed = [
       after.name.value !== before.name.value && 'name', after.category !== before.category && 'category', after.unitPrice.value !== before.unitPrice.value && 'price',
-      (after.serviceId?.value ?? null) !== (before.serviceId?.value ?? null) && 'service',
+      (after.serviceId?.value ?? null) !== (before.serviceId?.value ?? null) && 'service', after.sourceCode !== before.sourceCode && 'source',
     ].filter(Boolean) as string[];
     if (changed.length === 0) return ok(toItemView(this.d, item));
     await this.d.items.update(item);
@@ -128,6 +165,11 @@ export class ManageItemUseCases {
     if (!loaded.ok) return err(loaded.error);
     const item = loaded.value;
     if (item.active === active) return ok(toItemView(this.d, item));
+    // Réactiver un acte ne doit pas créer un doublon de correspondance.
+    if (active) {
+      const consistent = await checkSource(this.d, item.state.category, item.state.sourceCode, item.id.value);
+      if (!consistent.ok) return err(consistent.error);
+    }
     item.setActive(active);
     await this.d.items.update(item);
     await record(this.d, actorId, active ? 'billing.item.activate' : 'billing.item.deactivate', item);

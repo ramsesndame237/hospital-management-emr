@@ -1,5 +1,5 @@
 import { APPROVAL_KINDS, APPROVAL_STATUSES } from '../../core/billing/approval.models';
-import { INVOICE_STATUSES, PAYMENT_MODES, ITEM_CATEGORIES } from '../../core/billing/billing.models';
+import { BillableItem, INVOICE_STATUSES, PAYMENT_MODES, ITEM_CATEGORIES, SOURCE_CATEGORIES } from '../../core/billing/billing.models';
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 import { failureNotice } from '../../shared/failure-message';
 
@@ -162,5 +162,33 @@ export function decisionFields(o: { readonly approve: boolean; readonly notice: 
     { type: 'paragraph', name: 'audit', text: 'billing.auditNote', tone: 'muted' },
     { type: 'submit', name: 'submit', label: o.approve ? 'billing.approval.approveSubmit' : 'billing.approval.rejectSubmit', busyLabel: 'billing.saving' },
     { type: 'button', name: 'cancel', label: 'billing.approval.keep', variant: 'outline' },
+  ];
+}
+
+/** Création (code compris) ou modification d'un acte du catalogue ; le code ne change jamais. Le code source n'existe que pour laboratoire, radiologie et pharmacie. */
+export function itemFields(o: { readonly item: BillableItem | null; readonly digits: number; readonly price: string; readonly notice: string | null }): FieldSchema[] {
+  const creating = o.item === null;
+  return [
+    ...failureNotice(o.notice),
+    ...(creating
+      ? ([{
+          type: 'code', name: 'code', label: 'billing.catalog.code', hint: 'billing.catalog.codeHint', value: '', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono',
+          validators: [{ type: 'required', message: 'billing.catalog.codeRequired' }, { type: 'maxLength', value: 32 }, { type: 'pattern', value: '^\s*[A-Za-z0-9][A-Za-z0-9_.-]*\s*$', message: 'billing.catalog.codeFormat' }],
+        }] as const)
+      : []),
+    { type: 'text', name: 'name', label: 'billing.catalog.name', value: o.item?.name ?? '', autofocus: !creating, normalize: 'trim', validators: [{ type: 'required', message: 'billing.catalog.nameRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'select', name: 'category', label: 'billing.catalog.category', value: o.item?.category ?? 'CONSULTATION', options: ITEM_CATEGORIES.map((c) => ({ value: c, label: `billing.category.${c}` })), validators: [{ type: 'required' }] },
+    {
+      type: 'text', name: 'unitPrice', label: 'billing.catalog.price', hint: 'billing.catalog.priceHint', value: o.price, inputMode: 'decimal', inputClass: 'font-mono',
+      validators: [{ type: 'required', message: 'billing.amount.required' }, { type: 'pattern', value: amountPattern(o.digits), message: 'billing.amount.invalid' }],
+    },
+    {
+      type: 'code', name: 'sourceCode', label: 'billing.catalog.sourceCode', hint: 'billing.catalog.sourceCodeHint', value: o.item?.sourceCode ?? '', normalize: 'uppercase', inputClass: 'font-mono',
+      showIf: { field: 'category', in: SOURCE_CATEGORIES },
+      validators: [{ type: 'maxLength', value: 30 }, { type: 'pattern', value: '^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)?\s*$', message: 'billing.catalog.sourceCodeFormat' }],
+    },
+    { type: 'paragraph', name: 'audit', text: 'billing.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: creating ? 'billing.catalog.create' : 'billing.save', busyLabel: 'billing.saving' },
+    { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
   ];
 }

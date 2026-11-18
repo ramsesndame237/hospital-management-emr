@@ -16,6 +16,7 @@ import { AdministrationIntegrationModule } from '../../src/integration/administr
 import { AdmissionsIntegrationModule } from '../../src/integration/admissions.integration';
 import { AppointmentsIntegrationModule } from '../../src/integration/appointments.integration';
 import { BillingIntegrationModule } from '../../src/integration/billing.integration';
+import { BillingSourcesIntegrationModule } from '../../src/integration/billing-sources.integration';
 import { LabIntegrationModule } from '../../src/integration/lab.integration';
 import { PharmacyIntegrationModule } from '../../src/integration/pharmacy.integration';
 import { ClinicalIntegrationModule } from '../../src/integration/clinical.integration';
@@ -121,6 +122,7 @@ export async function createTestWorld(options: {
       AdmissionsIntegrationModule.register(),
       AdmissionsModule.register(),
       BillingIntegrationModule.register(),
+      BillingSourcesIntegrationModule.register(),
       BillingModule.register(),
       LabIntegrationModule.register(),
       LabModule.register(),
