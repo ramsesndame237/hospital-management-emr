@@ -1,6 +1,6 @@
 import { Controller, Get, Inject, Optional } from '@nestjs/common';
-import type { Redis } from 'ioredis';
 import { REDIS } from '../platform/platform.module';
+import type { RedisClient } from '../platform/platform.module';
 import { DocGroup, DocOperation } from '../modules/api-docs';
 import { DataSource } from 'typeorm';
 import { DanpheApi } from '../common/danphe-response';
@@ -12,7 +12,7 @@ import { Public } from '../modules/iam/presentation/decorators';
 export class HealthController {
   constructor(
     @Optional() private readonly dataSource?: DataSource,
-    @Optional() @Inject(REDIS) private readonly redis?: Redis | null,
+    @Optional() @Inject(REDIS) private readonly redis?: RedisClient | null,
   ) {}
 
   /** Sonde de disponibilité (Dokploy, Docker HEALTHCHECK). La base est testée si elle est activée. */
