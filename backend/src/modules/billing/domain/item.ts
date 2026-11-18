@@ -9,6 +9,8 @@ export interface ItemState {
   readonly unitPrice: Amount;
   /** Service qui réalise l'acte (facultatif). */
   readonly serviceId: ServiceRef | null;
+  /** Code de l'analyse, de l'examen d'imagerie ou du médicament auquel cet acte correspond : c'est ainsi qu'une facture est établie d'après ce qui a été fait. */
+  readonly sourceCode: string | null;
   readonly active: boolean;
 }
 
@@ -32,7 +34,7 @@ export class BillableItem {
   get active(): boolean { return this.current.active; }
 
   /** Champs absents : inchangés ; `serviceId: null` détache l'acte de son service. */
-  update(changes: { name?: ItemName; category?: ItemCategory; unitPrice?: Amount; serviceId?: ServiceRef | null }): void {
+  update(changes: { name?: ItemName; category?: ItemCategory; unitPrice?: Amount; serviceId?: ServiceRef | null; sourceCode?: string | null }): void {
     this.current = { ...this.current, ...Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)) };
   }
 

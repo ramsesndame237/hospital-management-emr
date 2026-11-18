@@ -13,5 +13,6 @@
   "dispensing.pg.sql",
   "visit-links.pg.sql",
   "portal.pg.sql",
-  "imaging.pg.sql"
+  "imaging.pg.sql",
+  "billing-links.pg.sql"
 ]

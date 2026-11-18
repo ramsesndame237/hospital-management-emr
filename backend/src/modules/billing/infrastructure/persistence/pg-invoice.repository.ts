@@ -1,7 +1,7 @@
 import { SqlExecutor } from '../../../../database/sql-executor';
 import { instantFromDb, requiredInstantFromDb } from '../../../../database/temporal-mapping';
 import { Invoice, InvoiceLine, InvoiceState, Payment, statusFor } from '../../domain/invoice';
-import { InvoiceFilter, InvoiceRepository, InvoiceSummary, SaveOutcome } from '../../domain/ports';
+import { InvoiceFilter, InvoiceRepository, InvoiceSummary, SaveOutcome, SourceType } from '../../domain/ports';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemCode, ItemId, ItemName, LineId, parseInvoiceStatus, parsePaymentMode, PatientRef, PaymentId, Quantity, Reason, ReceiptNumber,
 } from '../../domain/values';
@@ -134,13 +134,41 @@ export class PgInvoiceRepository implements InvoiceRepository {
   }
 
   async insert(invoice: Invoice): Promise<void> {
+    await this.insertWith(this.sql, invoice);
+  }
+
+  async insertFromSource(invoice: Invoice, type: SourceType, sourceId: string): Promise<'SAVED' | 'ALREADY_BILLED'> {
+    const rollback = new Error('ALREADY_BILLED');
+    try {
+      return await this.sql.transaction(async (tx) => {
+        // Une facture annulée libère sa source ; une facture vivante la garde.
+        await tx.query(
+          `DELETE FROM billing_invoice_sources s USING billing_invoices i WHERE s.invoice_id = i.id AND i.status = 'CANCELLED' AND s.source_type = $1 AND s.source_id = $2`,
+          [type, sourceId],
+        );
+        await this.insertWith(tx, invoice);
+        // La clé primaire fait attendre la seconde caisse jusqu'à la fin de la première : elle ne gagne rien, et la transaction est annulée.
+        const claimed = await tx.query<{ source_id: string }>(
+          'INSERT INTO billing_invoice_sources (source_type, source_id, invoice_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING source_id',
+          [type, sourceId, invoice.id.value],
+        );
+        if (claimed.length === 0) throw rollback;
+        return 'SAVED' as const;
+      });
+    } catch (error) {
+      if (error === rollback) return 'ALREADY_BILLED';
+      throw error;
+    }
+  }
+
+  private async insertWith(db: SqlExecutor, invoice: Invoice): Promise<void> {
     const s = invoice.state;
-    await this.sql.query(
+    await db.query(
       `INSERT INTO billing_invoices (id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [s.id.value, s.number.value, s.patientId.value, s.status, s.currency.value, s.discount.value, s.discountReason?.value ?? null, s.note, s.admissionId, s.createdBy],
     );
-    if (s.lines.length > 0) await this.writeLines(this.sql, invoice);
+    if (s.lines.length > 0) await this.writeLines(db, invoice);
   }
 
   private async writeLines(db: SqlExecutor, invoice: Invoice): Promise<void> {

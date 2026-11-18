@@ -256,7 +256,8 @@
     "imaging": "Imagerie",
     "imagingWorklist": "Liste de travail",
     "imagingNew": "Nouvelle demande",
-    "imagingCatalog": "Catalogue des examens"
+    "imagingCatalog": "Catalogue des examens",
+    "billingToInvoice": "À facturer"
   },
   "admin": {
     "actions": "Actions",
@@ -916,7 +917,31 @@
       "name": "Libellé",
       "price": "Prix",
       "empty": "Aucun acte ne correspond.",
-      "pagination": "Pagination du catalogue"
+      "pagination": "Pagination du catalogue",
+      "leadManage": "Les actes facturables et leur prix. Un acte de laboratoire, de radiologie ou de pharmacie porte le code source de l’analyse, de l’examen ou du médicament qu’il tarifie : sans lui, la demande réalisée ne peut pas être facturée.",
+      "add": "Ajouter un acte",
+      "addTitle": "Nouvel acte",
+      "create": "Ajouter l’acte",
+      "created": "Acte « {name} » ajouté.",
+      "updated": "Acte « {name} » mis à jour.",
+      "edit": "Modifier",
+      "editOf": "Modifier {name}",
+      "deactivate": "Retirer",
+      "activate": "Réactiver",
+      "deactivateOf": "Retirer {name} du catalogue",
+      "activateOf": "Réactiver {name}",
+      "deactivated": "Acte « {name} » retiré du catalogue.",
+      "activated": "Acte « {name} » réactivé.",
+      "inactive": "Retiré",
+      "sourceCode": "Code source",
+      "sourceCodeHint": "Code de l’analyse, de l’examen ou du médicament que cet acte tarifie (catalogue du laboratoire, de l’imagerie ou de la pharmacie).",
+      "sourceCodeFormat": "Lettres, chiffres, « _ », « - » et « . » seulement.",
+      "noSource": "Sans code source",
+      "codeHint": "Lettres, chiffres, « _ », « - », « . ». Ne pourra plus être modifié.",
+      "codeRequired": "Saisissez le code de l’acte.",
+      "codeFormat": "Lettres, chiffres, « _ », « - » et « . » seulement.",
+      "nameRequired": "Saisissez le libellé de l’acte.",
+      "priceHint": "Prix unitaire dans la devise de l’établissement."
     },
     "session": {
       "title": "Ma caisse",
@@ -1066,6 +1091,26 @@
       "submit": "Envoyer la demande",
       "reason": "Motif de l’annulation",
       "keep": "Garder la facture"
+    },
+    "save": "Enregistrer",
+    "toInvoice": {
+      "title": "À facturer",
+      "lead": "Ce qui a été fait et n’a pas encore de facture : demandes d’analyses, examens d’imagerie réalisés, médicaments délivrés. La facture est établie au prix du catalogue.",
+      "typeLabel": "Type d’élément à facturer",
+      "type": {
+        "LAB_REQUISITION": "Analyses",
+        "IMAGING_ORDER": "Imagerie",
+        "DISPENSATION": "Médicaments"
+      },
+      "noPrice": "aucun prix pour « {code} »",
+      "unpriced": "Facture impossible : aucun acte du catalogue ne tarifie {codes}.",
+      "openCatalog": "Ouvrir le catalogue",
+      "bill": "Établir la facture",
+      "billOf": "Établir la facture de {reference}",
+      "billed": "Facture {number} établie (brouillon).",
+      "empty": "Rien à facturer pour le moment.",
+      "pagination": "Pagination des éléments à facturer",
+      "unknownPatient": "Patient inconnu"
     }
   },
   "lab": {

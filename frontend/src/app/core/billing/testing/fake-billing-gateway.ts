@@ -1,5 +1,5 @@
 import { BillingGateway } from '../billing.gateway';
-import { BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceLine, InvoiceSummary, ItemFilter, Page, Payment, Receipt } from '../billing.models';
+import { Billable, BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceLine, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Payment, Receipt, SourceType } from '../billing.models';
 
 export const patient = { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth' };
 
@@ -31,13 +31,25 @@ export const summary = (over: Partial<InvoiceSummary> = {}): InvoiceSummary => (
 });
 
 export const item = (over: Partial<BillableItem> = {}): BillableItem => ({
-  id: 'i-1', code: 'CONS-GEN', name: 'Consultation générale', category: 'CONSULTATION', unitPrice: 5000, currency: 'XAF', serviceId: null, active: true, ...over,
+  id: 'i-1', code: 'CONS-GEN', name: 'Consultation générale', category: 'CONSULTATION', unitPrice: 5000, currency: 'XAF', serviceId: null, sourceCode: null, active: true, ...over,
+});
+
+export const billable = (over: Partial<Billable> = {}): Billable => ({
+  type: 'LAB_REQUISITION', id: 'src-1', reference: 'LAB-0000123', patient, occurredAt: '2026-10-24T09:05:00Z',
+  lines: [{ code: 'NFS', label: 'Numération formule sanguine', quantity: 1, itemName: 'NFS complète', unitPrice: 3500 }], unpriced: [], total: 3500, ...over,
 });
 
 export const page = <T>(items: readonly T[], over: Partial<Page<T>> = {}): Page<T> => ({ items, total: items.length, offset: 0, limit: 25, ...over });
 
 /** Double de test du port `BillingGateway` : chaque méthode est un mock Vitest que le test configure. */
 export class FakeBillingGateway extends BillingGateway {
+  override createItem = vi.fn<(input: ItemInput) => Promise<BillableItem>>().mockImplementation((input) =>
+    Promise.resolve(item({ id: 'i-new', code: input.code, name: input.name, category: input.category, unitPrice: input.unitPrice, sourceCode: input.sourceCode ?? null })),
+  );
+  override updateItem = vi.fn<(id: string, changes: ItemChanges) => Promise<BillableItem>>().mockImplementation((id, changes) => Promise.resolve(item({ id, ...changes } as Partial<BillableItem>)));
+  override setItemActive = vi.fn<(id: string, active: boolean) => Promise<BillableItem>>().mockImplementation((id, active) => Promise.resolve(item({ id, active })));
+  override listBillable = vi.fn<(type: SourceType, offset: number, limit: number) => Promise<BillablePage>>().mockImplementation((type) => Promise.resolve({ ...page([billable({ type })]), currency: 'XAF' }));
+  override billFromSource = vi.fn<(type: SourceType, sourceId: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice({ id: 'inv-from-source' })));
   override listInvoices = vi.fn<(filter: InvoiceFilter, offset: number, limit: number) => Promise<Page<InvoiceSummary>>>().mockResolvedValue(
     page([summary(), summary({ id: 'inv-2', number: 'FAC-0000122', status: 'PAID', paid: 3000, total: 3000, subtotal: 3000, balance: 0 })]),
   );

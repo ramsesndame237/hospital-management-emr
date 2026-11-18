@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
-import { BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceSummary, ItemFilter, Page, Receipt } from './billing.models';
+import { BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Receipt, SourceType } from './billing.models';
 
 /**
  * Port d'accès à la facturation : factures, encaissements, reçus et catalogue des tarifs. Les écrans ne connaissent que ce
@@ -25,6 +25,14 @@ export abstract class BillingGateway {
   /** Renvoie les données du reçu comme copie ; la réimpression est tracée avec son motif. */
   abstract reprintReceipt(paymentId: string, reason: string): Promise<Receipt>;
   abstract listItems(filter: ItemFilter, offset: number, limit: number): Promise<Page<BillableItem>>;
+  abstract createItem(input: ItemInput): Promise<BillableItem>;
+  abstract updateItem(id: string, changes: ItemChanges): Promise<BillableItem>;
+  /** Un acte retiré reste lisible mais ne peut plus être facturé. */
+  abstract setItemActive(id: string, active: boolean): Promise<BillableItem>;
+  /** Ce qui a été fait et n'est pas encore facturé (demandes d'analyses, examens réalisés, délivrances), avec le prix du catalogue. */
+  abstract listBillable(type: SourceType, offset: number, limit: number): Promise<BillablePage>;
+  /** Établit le brouillon de facture d'une source (422 `BILLING_SOURCE_UNPRICED` si un code n'a pas de prix, 409 si déjà facturée). */
+  abstract billFromSource(type: SourceType, sourceId: string): Promise<Invoice>;
 }
 
 /** Adaptateur HTTP de l'API `/api/v1/billing`. */
@@ -82,6 +90,26 @@ export class HttpBillingGateway extends BillingGateway {
     if (filter.search) params['search'] = filter.search;
     if (filter.category) params['category'] = filter.category;
     return this.call(this.http.get<Page<BillableItem>>(`${this.base}/items`, { params }));
+  }
+
+  override createItem(input: ItemInput): Promise<BillableItem> {
+    return this.call(this.http.post<BillableItem>(`${this.base}/items`, input));
+  }
+
+  override updateItem(id: string, changes: ItemChanges): Promise<BillableItem> {
+    return this.call(this.http.patch<BillableItem>(`${this.base}/items/${id}`, changes));
+  }
+
+  override setItemActive(id: string, active: boolean): Promise<BillableItem> {
+    return this.call(this.http.post<BillableItem>(`${this.base}/items/${id}/${active ? 'activate' : 'deactivate'}`, null));
+  }
+
+  override listBillable(type: SourceType, offset: number, limit: number): Promise<BillablePage> {
+    return this.call(this.http.get<BillablePage>(`${this.base}/billable`, { params: { type, offset, limit } }));
+  }
+
+  override billFromSource(type: SourceType, sourceId: string): Promise<Invoice> {
+    return this.call(this.http.post<Invoice>(`${this.base}/invoices/from-source`, { sourceType: type, sourceId }));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

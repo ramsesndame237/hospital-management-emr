@@ -17,6 +17,8 @@ export interface ItemFilter {
 export interface ItemRepository {
   findById(id: ItemId): Promise<BillableItem | null>;
   findByCode(code: ItemCode): Promise<BillableItem | null>;
+  /** L'acte ACTIF mis en correspondance avec ce code d'analyse, d'examen ou de médicament, dans cette catégorie. */
+  findBySource(category: ItemCategory, sourceCode: string): Promise<BillableItem | null>;
   /** Refuse (`false`) un code déjà pris ; la vérification et l'écriture se font ensemble (index unique). */
   insert(item: BillableItem): Promise<boolean>;
   update(item: BillableItem): Promise<void>;
@@ -59,6 +61,11 @@ export interface InvoiceRepository {
   findByPayment(paymentId: PaymentId): Promise<{ invoice: Invoice; payment: Payment } | null>;
   /** Crée la facture (brouillon). */
   insert(invoice: Invoice): Promise<void>;
+  /**
+   * Crée la facture ET la lie à sa source, en une seule transaction : si la source a déjà une facture non annulée (même si deux caisses la
+   * facturent en même temps), rien n'est écrit (`ALREADY_BILLED`). Une facture annulée libère sa source.
+   */
+  insertFromSource(invoice: Invoice, type: SourceType, sourceId: string): Promise<'SAVED' | 'ALREADY_BILLED'>;
   /**
    * Enregistre une modification de la facture (lignes, remise, émission, annulation). Refusée (`CHANGED`) si quelqu'un l'a modifiée
    * depuis sa lecture : la comparaison de version et l'écriture se font ensemble.
@@ -209,3 +216,39 @@ export const BILLING_PATIENTS = Symbol('BILLING_PATIENTS');
 export const BILLING_ADMISSIONS = Symbol('BILLING_ADMISSIONS');
 export const BILLING_SERVICES = Symbol('BILLING_SERVICES');
 export const BILLING_CURRENCY = Symbol('BILLING_CURRENCY');
+
+export type SourceType = 'LAB_REQUISITION' | 'IMAGING_ORDER' | 'DISPENSATION';
+
+/** Catégorie d'acte du catalogue qui tarifie chaque type de source. */
+export const CATEGORY_OF_SOURCE: Readonly<Record<SourceType, ItemCategory>> = {
+  LAB_REQUISITION: ItemCategory.LABORATORY,
+  IMAGING_ORDER: ItemCategory.RADIOLOGY,
+  DISPENSATION: ItemCategory.PHARMACY,
+};
+
+export interface BillableLine {
+  /** Code de l'analyse, de l'examen ou du médicament (celui du catalogue clinique). */
+  readonly code: string;
+  readonly label: string;
+  readonly quantity: number;
+}
+
+/** Ce qui a été fait et peut être facturé : une demande d'analyses, un examen d'imagerie réalisé ou une délivrance de médicaments. Aucune donnée clinique. */
+export interface BillableSource {
+  readonly type: SourceType;
+  readonly id: string;
+  /** Numéro lisible (LAB-…, IMG-…, DSP-…). */
+  readonly reference: string;
+  readonly patientId: string;
+  readonly occurredAt: string;
+  readonly lines: readonly BillableLine[];
+}
+
+/** Annuaire des actes réalisés, branché par la racine de composition sur le Laboratoire, l'Imagerie et la Pharmacie (la Facturation ne les connaît pas). */
+export interface SourceDirectory {
+  find(type: SourceType, id: string): Promise<BillableSource | null>;
+  /** Les sources pas encore facturées (ou dont la facture est annulée), les plus anciennes d'abord. */
+  pending(type: SourceType, offset: number, limit: number): Promise<{ items: BillableSource[]; total: number }>;
+}
+
+export const BILLING_SOURCES = Symbol('BILLING_SOURCES');

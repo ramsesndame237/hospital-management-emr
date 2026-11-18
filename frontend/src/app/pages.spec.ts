@@ -73,7 +73,7 @@ describe('menu de la caisse', () => {
   it('range factures, nouvelle facture et catalogue dans le groupe « Facturation »', () => {
     const menu = visibleNavigation(NAVIGATION, ['CASHIER'], granted);
     expect(menu.map((i) => i.id)).toEqual(['dashboard', 'billing']);
-    expect(menu[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-new', 'billing-session', 'billing-sessions', 'billing-catalog']);
+    expect(menu[1].children?.map((i) => i.id)).toEqual(['billing-invoices', 'billing-new', 'billing-to-invoice', 'billing-session', 'billing-sessions', 'billing-catalog']);
   });
 
   it("adapte le groupe aux droits : la comptabilité lit sans créer, l'accueil ne voit que le catalogue", () => {

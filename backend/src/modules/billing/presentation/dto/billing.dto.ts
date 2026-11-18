@@ -31,6 +31,10 @@ export class CreateItemDto {
   @DocProperty({ description: 'Service qui réalise l\'acte (facultatif ; `/api/v1/structure`).', example: '9b1c0a5e-34d2-4b8e-a8c1-52f3b7a1d001', format: 'uuid', optional: true, nullable: true })
   @IsOptional() @IsUUID()
   serviceId?: string | null;
+
+  @DocProperty({ description: "Code de l'analyse (laboratoire), de l'examen d'imagerie (radiologie) ou du médicament (pharmacie) que cet acte tarifie : c'est ainsi qu'une demande réalisée devient une facture. Réservé à ces trois catégories ; un seul acte actif par code.", example: 'NFS', maxLength: 30, optional: true, nullable: true })
+  @IsOptional() @IsString() @MaxLength(30)
+  sourceCode?: string | null;
 }
 
 export class UpdateItemDto {
@@ -49,6 +53,10 @@ export class UpdateItemDto {
   @DocProperty({ description: 'Nouveau service ; `null` détache l\'acte de son service.', example: '9b1c0a5e-34d2-4b8e-a8c1-52f3b7a1d001', format: 'uuid', optional: true, nullable: true })
   @IsOptional() @IsUUID()
   serviceId?: string | null;
+
+  @DocProperty({ description: "Nouveau code source ; `null` ou vide retire la correspondance. Code de l'analyse (laboratoire), de l'examen d'imagerie (radiologie) ou du médicament (pharmacie) que cet acte tarifie : c'est ainsi qu'une demande réalisée devient une facture. Réservé à ces trois catégories ; un seul acte actif par code.", example: 'NFS', maxLength: 30, optional: true, nullable: true })
+  @IsOptional() @IsString() @MaxLength(30)
+  sourceCode?: string | null;
 }
 
 export class ItemDto {
@@ -72,6 +80,9 @@ export class ItemDto {
 
   @DocProperty({ description: 'Service qui réalise l\'acte.', example: null, format: 'uuid', nullable: true })
   serviceId!: string | null;
+
+  @DocProperty({ description: "Code de l'analyse, de l'examen ou du médicament que cet acte tarifie.", example: 'NFS', nullable: true })
+  sourceCode!: string | null;
 
   @DocProperty({ description: "Faux si l'acte est retiré du catalogue (il reste lisible, mais ne peut plus être facturé).", example: true })
   active!: boolean;
