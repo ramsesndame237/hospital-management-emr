@@ -2,6 +2,8 @@
 
 Ce guide installe l'application complète (base de données, API, interface web) sur **un serveur Linux avec Docker**. Compter une demi-heure.
 
+> **Suite :** la check-list complète de passage en service est dans `MISE-EN-SERVICE.md` ; l'exploitation (sauvegardes, journaux, HTTPS, incidents) dans `EXPLOITATION.md` ; la recette dans `../recette/SCENARIOS.md` ; les guides par métier dans `../guides/GUIDE-UTILISATEUR.md`.
+
 ## 1. Ce qu'il faut
 
 | Élément | Minimum conseillé |
