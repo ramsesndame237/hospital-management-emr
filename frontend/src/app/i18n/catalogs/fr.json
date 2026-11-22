@@ -257,7 +257,8 @@
     "imagingWorklist": "Liste de travail",
     "imagingNew": "Nouvelle demande",
     "imagingCatalog": "Catalogue des examens",
-    "billingToInvoice": "À facturer"
+    "billingToInvoice": "À facturer",
+    "ward": "Patients hospitalisés"
   },
   "admin": {
     "actions": "Actions",
@@ -2874,6 +2875,104 @@
         "CANCELLED": "Annulée"
       },
       "amounts": "Total {total} · payé {paid} · reste {balance}"
+    }
+  },
+  "inpatient": {
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "actions": "Actions",
+    "unknownPatient": "Patient inconnu",
+    "score": "NEWS2 {score} · {risk}",
+    "risk": {
+      "LOW": "Faible",
+      "MEDIUM": "Moyen",
+      "HIGH": "Élevé"
+    },
+    "consciousness": {
+      "ALERT": "Alerte",
+      "CONFUSION": "Confusion",
+      "VOICE": "Répond à la voix",
+      "PAIN": "Répond à la douleur",
+      "UNRESPONSIVE": "Aucune réponse"
+    },
+    "ward": {
+      "title": "Patients hospitalisés",
+      "lead": "Vos patients hospitalisés, par lit, avec leur dernier score d’alerte (NEWS2).",
+      "alerts": "Patient(s) à score élevé : {count}. À voir sans attendre.",
+      "bed": "Lit",
+      "patient": "Patient",
+      "day": "Jour",
+      "latest": "Dernier relevé",
+      "noObservation": "Aucun relevé",
+      "open": "Dossier de soins",
+      "openOf": "Ouvrir le dossier de soins de {name}",
+      "empty": "Aucun patient hospitalisé dans vos services."
+    },
+    "chart": {
+      "back": "Patients hospitalisés",
+      "stay": "Lit {bed} · jour {day} d’hospitalisation",
+      "round": "Faire la tournée",
+      "ended": "Hospitalisation terminée : le dossier reste consultable, mais plus aucun soin ne peut y être ajouté.",
+      "escalate": "Score NEWS2 {score} : état préoccupant. Prévenez le médecin sans attendre.",
+      "highRisk": "Dernier score NEWS2 : {score} ({when}). État préoccupant : le médecin doit être prévenu."
+    },
+    "obs": {
+      "title": "Constantes",
+      "empty": "Aucun relevé pour le moment.",
+      "when": "Relevé",
+      "score": "Score",
+      "values": "Valeurs",
+      "line": "{temperature} °C · pouls {pulse} · TA {pressure} · FR {rr} · SpO₂ {spo2} % · {level}",
+      "oxygen": "sous oxygène",
+      "saved": "Relevé enregistré (NEWS2 {score}).",
+      "temperature": "Température (°C)",
+      "pulse": "Pouls (/min)",
+      "systolic": "Systolique (mmHg)",
+      "diastolic": "Diastolique (mmHg)",
+      "respiratoryRate": "Fréquence respiratoire (/min)",
+      "spo2": "SpO₂ (%)",
+      "consciousness": "Conscience",
+      "supplementalOxygen": "Sous oxygène supplémentaire",
+      "note": "Remarque",
+      "submit": "Enregistrer le relevé",
+      "required": "Valeur obligatoire pour le score.",
+      "integerInvalid": "Saisissez un nombre entier.",
+      "decimalInvalid": "Saisissez un nombre, avec une décimale au plus (ex. 37,2)."
+    },
+    "mar": {
+      "title": "Médicaments à administrer",
+      "empty": "Aucun médicament prescrit pendant cette hospitalisation. Ils apparaissent ici quand le médecin prescrit lors de sa tournée.",
+      "allergy": "Prescrit malgré une allergie connue : vérifiez avant d’administrer.",
+      "none": "Rien n’a encore été fait.",
+      "given": "doses données : {count}",
+      "last": {
+        "GIVEN": "Dernière action : donné le {when} par {by}",
+        "REFUSED": "Dernière action : refusé par le patient le {when} ({by})",
+        "HELD": "Dernière action : suspendu le {when} par {by}"
+      },
+      "give": "Donné",
+      "giveOf": "Noter {name} comme donné",
+      "refuse": "Refusé",
+      "refuseOf": "Noter {name} comme refusé par le patient",
+      "hold": "Suspendu",
+      "holdOf": "Suspendre {name}",
+      "refuseReason": "Motif du refus",
+      "holdReason": "Motif de la suspension",
+      "reasonRequired": "Saisissez le motif.",
+      "saved": {
+        "GIVEN": "{name} : dose notée comme donnée.",
+        "REFUSED": "{name} : refus noté.",
+        "HELD": "{name} : suspension notée."
+      }
+    },
+    "notes": {
+      "title": "Notes de soins",
+      "text": "Nouvelle note",
+      "hint": "Une note ne se modifie pas : elle est datée et signée.",
+      "required": "Saisissez la note.",
+      "submit": "Ajouter la note",
+      "empty": "Aucune note.",
+      "saved": "Note ajoutée."
     }
   }
 }

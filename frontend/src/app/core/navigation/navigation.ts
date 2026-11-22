@@ -104,6 +104,7 @@ export const NAVIGATION: readonly NavItem[] = [
   { id: 'portal', labelKey: 'nav.portal', icon: 'user', route: '/portal', permission: 'portal:read:own' },
   { id: 'agenda', labelKey: 'nav.agenda', icon: 'agenda', route: '/appointments', permission: 'appointments:read:department' },
   { id: 'consultations', labelKey: 'nav.consultations', icon: 'consultations', route: '/clinical/queue', permission: 'clinical.encounters:read:department' },
+  { id: 'ward', labelKey: 'nav.ward', icon: 'ward', route: '/ward', permission: 'inpatient.chart:read:department' },
   { id: 'results', labelKey: 'nav.results', icon: 'dashboard', route: '/results', permission: 'lab.requisitions:read:own', roles: DOCTOR },
 ];
 

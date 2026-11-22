@@ -257,7 +257,8 @@
     "imagingWorklist": "Worklist",
     "imagingNew": "New order",
     "imagingCatalog": "Exam catalogue",
-    "billingToInvoice": "To invoice"
+    "billingToInvoice": "To invoice",
+    "ward": "Inpatients"
   },
   "admin": {
     "actions": "Actions",
@@ -2874,6 +2875,104 @@
         "CANCELLED": "Cancelled"
       },
       "amounts": "Total {total} · paid {paid} · balance {balance}"
+    }
+  },
+  "inpatient": {
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "actions": "Actions",
+    "unknownPatient": "Unknown patient",
+    "score": "NEWS2 {score} · {risk}",
+    "risk": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High"
+    },
+    "consciousness": {
+      "ALERT": "Alert",
+      "CONFUSION": "Confusion",
+      "VOICE": "Responds to voice",
+      "PAIN": "Responds to pain",
+      "UNRESPONSIVE": "Unresponsive"
+    },
+    "ward": {
+      "title": "Inpatients",
+      "lead": "Your inpatients, by bed, with their latest early-warning score (NEWS2).",
+      "alerts": "Patient(s) with a high score: {count}. See them without delay.",
+      "bed": "Bed",
+      "patient": "Patient",
+      "day": "Day",
+      "latest": "Latest reading",
+      "noObservation": "No reading",
+      "open": "Care chart",
+      "openOf": "Open the care chart of {name}",
+      "empty": "No inpatient in your departments."
+    },
+    "chart": {
+      "back": "Inpatients",
+      "stay": "Bed {bed} · hospital day {day}",
+      "round": "Start the round",
+      "ended": "Stay ended: the chart remains readable, but no more care can be added.",
+      "escalate": "NEWS2 score {score}: worrying condition. Call the doctor without delay.",
+      "highRisk": "Latest NEWS2 score: {score} ({when}). Worrying condition: the doctor must be called."
+    },
+    "obs": {
+      "title": "Vital signs",
+      "empty": "No reading yet.",
+      "when": "Reading",
+      "score": "Score",
+      "values": "Values",
+      "line": "{temperature} °C · pulse {pulse} · BP {pressure} · RR {rr} · SpO₂ {spo2} % · {level}",
+      "oxygen": "on oxygen",
+      "saved": "Reading saved (NEWS2 {score}).",
+      "temperature": "Temperature (°C)",
+      "pulse": "Pulse (/min)",
+      "systolic": "Systolic (mmHg)",
+      "diastolic": "Diastolic (mmHg)",
+      "respiratoryRate": "Respiratory rate (/min)",
+      "spo2": "SpO₂ (%)",
+      "consciousness": "Consciousness",
+      "supplementalOxygen": "On supplemental oxygen",
+      "note": "Remark",
+      "submit": "Save the reading",
+      "required": "Required for the score.",
+      "integerInvalid": "Enter a whole number.",
+      "decimalInvalid": "Enter a number with at most one decimal (e.g. 37.2)."
+    },
+    "mar": {
+      "title": "Medicines to give",
+      "empty": "No medicine prescribed during this stay. They appear here when the doctor prescribes on the round.",
+      "allergy": "Prescribed despite a known allergy: check before giving.",
+      "none": "Nothing done yet.",
+      "given": "doses given: {count}",
+      "last": {
+        "GIVEN": "Last action: given on {when} by {by}",
+        "REFUSED": "Last action: refused by the patient on {when} ({by})",
+        "HELD": "Last action: held on {when} by {by}"
+      },
+      "give": "Given",
+      "giveOf": "Record {name} as given",
+      "refuse": "Refused",
+      "refuseOf": "Record {name} as refused by the patient",
+      "hold": "Held",
+      "holdOf": "Hold {name}",
+      "refuseReason": "Reason for refusal",
+      "holdReason": "Reason for holding",
+      "reasonRequired": "Enter the reason.",
+      "saved": {
+        "GIVEN": "{name}: dose recorded as given.",
+        "REFUSED": "{name}: refusal recorded.",
+        "HELD": "{name}: hold recorded."
+      }
+    },
+    "notes": {
+      "title": "Nursing notes",
+      "text": "New note",
+      "hint": "A note cannot be edited: it is dated and signed.",
+      "required": "Enter the note.",
+      "submit": "Add the note",
+      "empty": "No note.",
+      "saved": "Note added."
     }
   }
 }

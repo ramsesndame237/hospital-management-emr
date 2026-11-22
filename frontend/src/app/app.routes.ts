@@ -19,6 +19,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', canActivate: [homeGuard], title: 'nav.dashboard', loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage) },
       // Administration de l'installation (administrateur système) : organisation, sites, structure des sites.
       // Facturation (caisse) : « new » avant « :id », sinon « new » serait pris pour un identifiant de facture.
+      { path: 'ward', canActivate: [permissionGuard('inpatient.chart:read')], title: 'nav.ward', loadComponent: () => import('./features/inpatient/ward/ward.page').then((m) => m.WardPage) },
+      { path: 'ward/:id', canActivate: [permissionGuard('inpatient.chart:read')], title: 'nav.ward', loadComponent: () => import('./features/inpatient/chart/chart.page').then((m) => m.InpatientChartPage) },
       { path: 'billing/invoices', canActivate: [permissionGuard('billing.invoices:read')], title: 'nav.billingInvoices', loadComponent: () => import('./features/billing/invoices/invoices.page').then((m) => m.InvoicesPage) },
       { path: 'billing/invoices/new', canActivate: [permissionGuard('billing.invoices:write')], title: 'nav.billingNew', loadComponent: () => import('./features/billing/invoice-new/new-invoice.page').then((m) => m.NewInvoicePage) },
       { path: 'billing/invoices/:id', canActivate: [permissionGuard('billing.invoices:read')], title: 'nav.billingInvoices', loadComponent: () => import('./features/billing/invoice-detail/invoice-detail.page').then((m) => m.InvoiceDetailPage) },

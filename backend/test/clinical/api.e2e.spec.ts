@@ -75,7 +75,7 @@ describe('API clinique : consultations et allergies', () => {
       expect(queue.find((q) => q.admission.id === adm)!.encounter).toMatchObject({ id: first.id, mine: true });
     });
 
-    it('refuse une admission inconnue, d\'un autre service, terminée ou d\'hospitalisation', async () => {
+    it('refuse une admission inconnue, d\'un autre service, terminée ; accepte la tournée d\'un patient hospitalisé', async () => {
       expect((await post('medecin', '/clinical/encounters', { admissionId: UNKNOWN })).status).toBe(404);
       const chi = await arrive(0, ids.chi);
       expect((await post('medecin', '/clinical/encounters', { admissionId: chi })).status).toBe(404);
@@ -84,8 +84,10 @@ describe('API clinique : consultations et allergies', () => {
       const closed = await post('medecin', '/clinical/encounters', { admissionId: done });
       expect([closed.status, JSON.stringify(closed.body)]).toEqual([409, expect.stringContaining('CLINICAL_VISIT_CLOSED')]);
       const inpatient = (await post('accueil', '/admissions', { patientId: ids.patients[2], type: 'INPATIENT', serviceId: ids.ped, bedId: ids.pedBed1 }).expect(201)).body.id;
-      const ward = await post('medecin', '/clinical/encounters', { admissionId: inpatient });
-      expect([ward.status, JSON.stringify(ward.body)]).toEqual([409, expect.stringContaining('CLINICAL_VISIT_INPATIENT')]);
+      // La tournée d'un patient hospitalisé est une consultation sur son admission (une seule en cours à la fois).
+      const round = await post('medecin', '/clinical/encounters', { admissionId: inpatient });
+      expect(round.status).toBe(201);
+      expect((await post('medecin', '/clinical/encounters', { admissionId: inpatient })).body.code).toBe('CLINICAL_ENCOUNTER_ALREADY_OPEN');
       expect((await post('medecin', '/clinical/encounters', { admissionId: 'pas-un-uuid' })).status).toBe(400);
     });
 

@@ -35,7 +35,6 @@ export class StartEncounterUseCase {
     const visit = await this.d.visits.find((admissionId ?? '').trim().toLowerCase());
     if (!visit || !(await this.d.access.canAccess(actorId, 'clinical.encounters:write', visit.serviceId))) return err(VISIT_NOT_FOUND);
     if (!visit.inProgress) return err(new DomainError('CLINICAL_VISIT_CLOSED', 'Cette admission est terminée ou annulée : on ne peut plus ouvrir de consultation.'));
-    if (visit.type === 'INPATIENT') return err(new DomainError('CLINICAL_VISIT_INPATIENT', 'La visite d’un patient hospitalisé se fait en tournée, pas en consultation externe.'));
     const id = EncounterId.create(this.d.ids.next());
     const patientId = PatientRef.create(visit.patientId);
     if (!id.ok || !patientId.ok) return err(VISIT_NOT_FOUND);

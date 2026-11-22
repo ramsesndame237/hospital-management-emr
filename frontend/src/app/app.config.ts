@@ -16,6 +16,7 @@ import { HttpPharmacyGateway, PharmacyGateway } from './core/pharmacy/pharmacy.g
 import { HttpPatientSearchGateway, PatientSearchGateway } from './core/patients/patient-search.gateway';
 import { HttpAuthGateway, AuthGateway } from './core/auth/auth.gateway';
 import { HttpStaffGateway, StaffGateway } from './core/staff/staff.gateway';
+import { HttpInpatientGateway, InpatientGateway } from './core/inpatient/inpatient.gateway';
 import { HttpIdentityAdminGateway, IdentityAdminGateway } from './core/iam/identity-admin.gateway';
 import { PasswordResetGateway, UnavailablePasswordResetGateway } from './core/auth/password-reset.gateway';
 import { authInterceptor } from './core/auth/auth.interceptor';
@@ -39,6 +40,7 @@ export const appConfig: ApplicationConfig = {
     { provide: AdministrationGateway, useClass: HttpAdministrationGateway },
     { provide: IdentityAdminGateway, useClass: HttpIdentityAdminGateway },
     { provide: StaffGateway, useClass: HttpStaffGateway },
+    { provide: InpatientGateway, useClass: HttpInpatientGateway },
     { provide: BillingGateway, useClass: HttpBillingGateway },
     { provide: CashSessionGateway, useClass: HttpCashSessionGateway },
     { provide: ApprovalGateway, useClass: HttpApprovalGateway },

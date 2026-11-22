@@ -17,6 +17,8 @@ import { AdmissionsIntegrationModule } from '../../src/integration/admissions.in
 import { AppointmentsIntegrationModule } from '../../src/integration/appointments.integration';
 import { BillingIntegrationModule } from '../../src/integration/billing.integration';
 import { BillingSourcesIntegrationModule } from '../../src/integration/billing-sources.integration';
+import { InpatientIntegrationModule } from '../../src/integration/inpatient.integration';
+import { InpatientModule } from '../../src/modules/inpatient/inpatient.module';
 import { LabIntegrationModule } from '../../src/integration/lab.integration';
 import { PharmacyIntegrationModule } from '../../src/integration/pharmacy.integration';
 import { ClinicalIntegrationModule } from '../../src/integration/clinical.integration';
@@ -136,6 +138,8 @@ export async function createTestWorld(options: {
       PortalModule.register(),
       ImagingIntegrationModule.register(),
       ImagingModule.register(),
+      InpatientIntegrationModule.register(),
+      InpatientModule.register(),
     ],
   })
     .overrideProvider(SQL_EXECUTOR).useValue(sql)

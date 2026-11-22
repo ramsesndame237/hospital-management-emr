@@ -14,5 +14,6 @@
   "visit-links.pg.sql",
   "portal.pg.sql",
   "imaging.pg.sql",
-  "billing-links.pg.sql"
+  "billing-links.pg.sql",
+  "inpatient.pg.sql"
 ]
