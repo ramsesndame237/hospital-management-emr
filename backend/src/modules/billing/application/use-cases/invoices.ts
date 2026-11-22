@@ -4,6 +4,7 @@ import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { Temporal } from '../../../../shared-kernel/temporal';
 import { discountNeedsApproval } from '../../domain/approval';
 import { Invoice, InvoiceLine, lineTotal, Payment } from '../../domain/invoice';
+import { PayerRepository } from '../../domain/payer';
 import { AdmissionDirectory, ApprovalRepository, CashSessionRepository, InvoiceRepository, ItemRepository, PatientDirectory, SaveOutcome, UserDirectory } from '../../domain/ports';
 import { ApprovalSummaryView, summarize } from './approval-views';
 import {
@@ -48,6 +49,17 @@ export interface PatientSummary {
   readonly firstName: string;
 }
 
+export interface InvoiceCoverageView {
+  readonly payerId: string;
+  readonly payerName: string | null;
+  readonly policyNumber: string | null;
+  readonly percent: number;
+  /** La part de l'assureur, entier dans la plus petite unité de la devise. */
+  readonly amount: number;
+  readonly settledAt: string | null;
+  readonly settlementReference: string | null;
+}
+
 export interface InvoiceView {
   readonly id: string;
   readonly number: string;
@@ -60,6 +72,11 @@ export interface InvoiceView {
   readonly subtotal: number;
   readonly discount: number;
   readonly discountReason: string | null;
+  /** Sous-total moins remise : ce que coûtent les soins avant la part de l'assureur. */
+  readonly grossTotal: number;
+  /** La prise en charge d'un assureur ; `null` sans assurance. */
+  readonly coverage: InvoiceCoverageView | null;
+  /** À payer par le patient (après la part de l'assureur). */
   readonly total: number;
   readonly paid: number;
   readonly balance: number;
@@ -83,6 +100,7 @@ export interface InvoiceDependencies {
   readonly sessions: CashSessionRepository;
   readonly approvals: ApprovalRepository;
   readonly users: UserDirectory;
+  readonly payers: PayerRepository;
   /** Remise (en % du sous-total) au-delà de laquelle un responsable doit l'approuver. */
   readonly discountApprovalPercent: number;
   readonly currency: Currency;
@@ -98,13 +116,16 @@ export async function toView(d: InvoiceDependencies, invoice: Invoice): Promise<
   const s = invoice.state;
   const patient = (await d.patients.find([s.patientId.value])).get(s.patientId.value) ?? null;
   const approvals = await summarize(d.users, (await d.approvals.list({ invoiceId: s.id }, 0, 50)).items);
+  const payer = s.coverage ? await d.payers.findById(s.coverage.payerId) : null;
   return {
     id: s.id.value, number: s.number.value, status: s.status, currency: s.currency.value, currencyDigits: s.currency.minorDigits,
     patient: patient ? { id: patient.id, number: patient.number, lastName: patient.lastName, firstName: patient.firstName } : null,
     lines: s.lines.map((l): InvoiceLineView => ({
       id: l.id.value, itemId: l.itemId.value, itemCode: l.itemCode.value, itemName: l.itemName.value, unitPrice: l.unitPrice.value, quantity: l.quantity.value, total: lineTotal(l).value,
     })),
-    subtotal: invoice.subtotal.value, discount: s.discount.value, discountReason: s.discountReason?.value ?? null, total: invoice.total.value, paid: invoice.paid.value, balance: invoice.balance.value,
+    subtotal: invoice.subtotal.value, discount: s.discount.value, discountReason: s.discountReason?.value ?? null, grossTotal: invoice.grossTotal.value,
+    coverage: s.coverage ? { payerId: s.coverage.payerId, payerName: payer?.name ?? null, policyNumber: s.coverage.policyNumber, percent: s.coverage.percent, amount: invoice.coverageAmount.value, settledAt: s.settlement?.at.toString() ?? null, settlementReference: s.settlement?.reference ?? null } : null,
+    total: invoice.total.value, paid: invoice.paid.value, balance: invoice.balance.value,
     note: s.note, admissionId: s.admissionId, cancellationReason: s.cancellationReason?.value ?? null, issuedAt: s.issuedAt?.toString() ?? null, payments: s.payments.map(toPaymentView),
     approvals, discountApprovalPercent: d.discountApprovalPercent,
   };
@@ -403,6 +424,9 @@ export interface InvoiceSummaryView {
   readonly patient: PatientSummary | null;
   readonly subtotal: number;
   readonly discount: number;
+  /** La part de l'assureur (0 sans prise en charge). */
+  readonly payerShare: number;
+  /** À payer par le patient. */
   readonly total: number;
   readonly paid: number;
   readonly balance: number;
@@ -448,7 +472,7 @@ export class ListInvoicesUseCase {
         const p = patients.get(i.patientId);
         return {
           id: i.id, number: i.number, status: i.status, currency: i.currency, patient: p ? { id: p.id, number: p.number, lastName: p.lastName, firstName: p.firstName } : null,
-          subtotal: i.subtotal, discount: i.discount, total: i.total, paid: i.paid, balance: Math.max(0, i.total - i.paid), issuedAt: i.issuedAt?.toString() ?? null, createdAt: i.createdAt.toString(),
+          subtotal: i.subtotal, discount: i.discount, payerShare: i.payerShare, total: i.total, paid: i.paid, balance: Math.max(0, i.total - i.paid), issuedAt: i.issuedAt?.toString() ?? null, createdAt: i.createdAt.toString(),
         };
       }),
       total: page.total, offset, limit,

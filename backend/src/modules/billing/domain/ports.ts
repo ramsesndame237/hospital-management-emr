@@ -4,6 +4,7 @@ import { ApprovalId, ApprovalKind, ApprovalRequest, ApprovalStatus } from './app
 import { BillableItem } from './item';
 import { CashSession, SessionId, SessionNumber, SessionStatus, Takings } from './cash-session';
 import { Invoice, Payment } from './invoice';
+import { Claim, ClaimFilter } from './payer';
 import { InvoiceNumber, InvoiceId, InvoiceStatus, ItemCategory, ItemCode, ItemId, PatientRef, PaymentId, ReceiptNumber, ServiceRef } from './values';
 
 export interface ItemFilter {
@@ -34,6 +35,9 @@ export interface InvoiceSummary {
   readonly currency: string;
   readonly subtotal: number;
   readonly discount: number;
+  /** La part de l'assureur (0 sans prise en charge). */
+  readonly payerShare: number;
+  /** À payer par le patient. */
   readonly total: number;
   readonly paid: number;
   readonly issuedAt: Instant | null;
@@ -77,6 +81,8 @@ export interface InvoiceRepository {
    */
   addPayment(invoice: Invoice, payment: Payment): Promise<SaveOutcome>;
   list(filter: InvoiceFilter, offset: number, limit: number): Promise<{ items: InvoiceSummary[]; total: number }>;
+  /** Créances d'assureurs : les parts des factures émises, les plus anciennes d'abord. */
+  claims(filter: ClaimFilter, offset: number, limit: number): Promise<{ items: Claim[]; total: number }>;
 }
 
 export interface PatientInfo {

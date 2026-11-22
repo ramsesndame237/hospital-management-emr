@@ -15,5 +15,6 @@
   "portal.pg.sql",
   "imaging.pg.sql",
   "billing-links.pg.sql",
-  "inpatient.pg.sql"
+  "inpatient.pg.sql",
+  "billing-payers.pg.sql"
 ]

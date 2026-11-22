@@ -1,6 +1,7 @@
 import { SqlExecutor } from '../../../../database/sql-executor';
 import { instantFromDb, requiredInstantFromDb } from '../../../../database/temporal-mapping';
 import { Invoice, InvoiceLine, InvoiceState, Payment, statusFor } from '../../domain/invoice';
+import { Claim, ClaimFilter } from '../../domain/payer';
 import { InvoiceFilter, InvoiceRepository, InvoiceSummary, SaveOutcome, SourceType } from '../../domain/ports';
 import {
   Amount, Currency, InvoiceId, InvoiceNumber, InvoiceStatus, ItemCode, ItemId, ItemName, LineId, parseInvoiceStatus, parsePaymentMode, PatientRef, PaymentId, Quantity, Reason, ReceiptNumber,
@@ -14,6 +15,12 @@ interface InvoiceRow {
   currency: string;
   discount_amount: string | number;
   discount_reason: string | null;
+  payer_id: string | null;
+  coverage_percent: number | null;
+  coverage_policy: string | null;
+  payer_settled_at: Date | string | null;
+  payer_settled_by: string | null;
+  payer_settlement_reference: string | null;
   note: string | null;
   admission_id: string | null;
   cancellation_reason: string | null;
@@ -43,7 +50,7 @@ interface PaymentRow {
   session_id: string | null;
 }
 
-const COLUMNS = 'id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, cancellation_reason, issued_at, version, created_by';
+const COLUMNS = 'id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, cancellation_reason, issued_at, version, created_by, payer_id, coverage_percent, coverage_policy, payer_settled_at, payer_settled_by, payer_settlement_reference';
 
 function need<T>(r: { ok: true; value: T } | { ok: false }, what: string): T {
   if (!r.ok) throw new Error(`${what} corrompu en base`);
@@ -83,6 +90,8 @@ function toInvoice(row: InvoiceRow, lines: LineRow[], payments: PaymentRow[]): I
     payments: payments.map(toPayment),
     createdBy: row.created_by,
     issuedAt: instantFromDb(row.issued_at),
+    coverage: row.payer_id && row.coverage_percent ? { payerId: row.payer_id, percent: row.coverage_percent, policyNumber: row.coverage_policy } : null,
+    settlement: row.payer_settled_at && row.payer_settled_by && row.payer_settlement_reference ? { at: requiredInstantFromDb(row.payer_settled_at), by: row.payer_settled_by, reference: row.payer_settlement_reference } : null,
     version: row.version,
   };
   return Invoice.restore(state);
@@ -164,9 +173,9 @@ export class PgInvoiceRepository implements InvoiceRepository {
   private async insertWith(db: SqlExecutor, invoice: Invoice): Promise<void> {
     const s = invoice.state;
     await db.query(
-      `INSERT INTO billing_invoices (id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [s.id.value, s.number.value, s.patientId.value, s.status, s.currency.value, s.discount.value, s.discountReason?.value ?? null, s.note, s.admissionId, s.createdBy],
+      `INSERT INTO billing_invoices (id, invoice_number, patient_id, status, currency, discount_amount, discount_reason, note, admission_id, created_by, payer_id, coverage_percent, coverage_policy)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [s.id.value, s.number.value, s.patientId.value, s.status, s.currency.value, s.discount.value, s.discountReason?.value ?? null, s.note, s.admissionId, s.createdBy, s.coverage?.payerId ?? null, s.coverage?.percent ?? null, s.coverage?.policyNumber ?? null],
     );
     if (s.lines.length > 0) await this.writeLines(db, invoice);
   }
@@ -188,9 +197,13 @@ export class PgInvoiceRepository implements InvoiceRepository {
       // Version comparée à celle lue : si quelqu'un est passé entre-temps, aucune ligne n'est touchée.
       const updated = await tx.query<{ id: string }>(
         `UPDATE billing_invoices SET status = $3, discount_amount = $4, discount_reason = $5, cancellation_reason = $6, issued_at = $7::timestamptz,
-                note = $8, version = version + 1, updated_at = now()
+                note = $8, payer_id = $9, coverage_percent = $10, coverage_policy = $11, payer_settled_at = $12::timestamptz, payer_settled_by = $13, payer_settlement_reference = $14,
+                version = version + 1, updated_at = now()
           WHERE id = $1 AND version = $2 RETURNING id`,
-        [s.id.value, s.version, s.status, s.discount.value, s.discountReason?.value ?? null, s.cancellationReason?.value ?? null, s.issuedAt?.toString() ?? null, s.note],
+        [
+          s.id.value, s.version, s.status, s.discount.value, s.discountReason?.value ?? null, s.cancellationReason?.value ?? null, s.issuedAt?.toString() ?? null, s.note,
+          s.coverage?.payerId ?? null, s.coverage?.percent ?? null, s.coverage?.policyNumber ?? null, s.settlement?.at.toString() ?? null, s.settlement?.by ?? null, s.settlement?.reference ?? null,
+        ],
       );
       if (updated.length === 0) return 'CHANGED';
       await this.writeLines(tx, invoice);
@@ -235,9 +248,9 @@ export class PgInvoiceRepository implements InvoiceRepository {
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const rows = await this.sql.query<{
       id: string; invoice_number: string; patient_id: string; status: string; currency: string; discount_amount: string | number; issued_at: Date | string | null; created_at: Date | string;
-      subtotal: string | number; paid: string | number;
+      subtotal: string | number; paid: string | number; coverage_percent: number | null;
     }>(
-      `SELECT i.id, i.invoice_number, i.patient_id, i.status, i.currency, i.discount_amount, i.issued_at, i.created_at,
+      `SELECT i.id, i.invoice_number, i.patient_id, i.status, i.currency, i.discount_amount, i.issued_at, i.created_at, i.coverage_percent,
               COALESCE((SELECT sum(l.unit_price * l.quantity) FROM billing_invoice_lines l WHERE l.invoice_id = i.id), 0) AS subtotal,
               COALESCE((SELECT sum(p.amount) FROM billing_payments p WHERE p.invoice_id = i.id), 0) AS paid
          FROM billing_invoices i ${condition} ORDER BY i.created_at DESC, i.id OFFSET ${arg(offset)} LIMIT ${arg(limit)}`,
@@ -248,11 +261,45 @@ export class PgInvoiceRepository implements InvoiceRepository {
       items: rows.map((r): InvoiceSummary => {
         const subtotal = Number(r.subtotal);
         const discount = Number(r.discount_amount);
+        const gross = Math.max(0, subtotal - discount);
+        // Même calcul que le domaine : la part de l'assureur est son pourcentage de ce qui reste après remise, le patient règle le reste.
+        const payerShare = r.coverage_percent ? Math.round((gross * r.coverage_percent) / 100) : 0;
         return {
           id: r.id, number: r.invoice_number, patientId: r.patient_id, status: need(parseInvoiceStatus(r.status), `Facture ${r.id}`), currency: r.currency,
-          subtotal, discount, total: Math.max(0, subtotal - discount), paid: Number(r.paid), issuedAt: instantFromDb(r.issued_at), createdAt: requiredInstantFromDb(r.created_at),
+          subtotal, discount, payerShare, total: gross - payerShare, paid: Number(r.paid), issuedAt: instantFromDb(r.issued_at), createdAt: requiredInstantFromDb(r.created_at),
         };
       }),
+      total: total[0]?.n ?? 0,
+    };
+  }
+
+  async claims(filter: ClaimFilter, offset: number, limit: number): Promise<{ items: Claim[]; total: number }> {
+    // Seules les factures émises (ou soldées) ont une créance ; une facture annulée ou en brouillon n'en a pas. La part est calculée comme dans le domaine.
+    const where: string[] = ["i.payer_id IS NOT NULL", "i.status IN ('ISSUED', 'PARTIALLY_PAID', 'PAID')"];
+    const args: unknown[] = [];
+    const arg = (v: unknown) => (args.push(v), `$${args.length}`);
+    if (filter.payerId) where.push(`i.payer_id = ${arg(filter.payerId)}::uuid`);
+    if (filter.settled === true) where.push('i.payer_settled_at IS NOT NULL');
+    if (filter.settled === false) where.push('i.payer_settled_at IS NULL');
+    const gross = '(COALESCE((SELECT sum(l.unit_price * l.quantity) FROM billing_invoice_lines l WHERE l.invoice_id = i.id), 0) - i.discount_amount)';
+    const share = `round(${gross} * i.coverage_percent / 100.0)::bigint`;
+    // Une prise en charge qui ne laisse rien à l'assureur (facture à zéro) n'est pas une créance.
+    where.push(`${share} > 0`);
+    const condition = `WHERE ${where.join(' AND ')}`;
+    const rows = await this.sql.query<{
+      id: string; invoice_number: string; patient_id: string; payer_id: string; payer_name: string; coverage_policy: string | null; coverage_percent: number; amount: string | number;
+      issued_at: Date | string; payer_settled_at: Date | string | null; payer_settlement_reference: string | null;
+    }>(
+      `SELECT i.id, i.invoice_number, i.patient_id, i.payer_id, p.name AS payer_name, i.coverage_policy, i.coverage_percent, ${share} AS amount, i.issued_at, i.payer_settled_at, i.payer_settlement_reference
+         FROM billing_invoices i JOIN billing_payers p ON p.id = i.payer_id ${condition} ORDER BY i.issued_at, i.id OFFSET ${arg(offset)} LIMIT ${arg(limit)}`,
+      args,
+    );
+    const total = await this.sql.query<{ n: number }>(`SELECT count(*)::int AS n FROM billing_invoices i ${condition}`, args.slice(0, args.length - 2));
+    return {
+      items: rows.map((r): Claim => ({
+        invoiceId: r.id, invoiceNumber: r.invoice_number, patientId: r.patient_id, payerId: r.payer_id, payerName: r.payer_name, policyNumber: r.coverage_policy, percent: r.coverage_percent,
+        amount: Number(r.amount), issuedAt: requiredInstantFromDb(r.issued_at).toString(), settledAt: instantFromDb(r.payer_settled_at)?.toString() ?? null, settlementReference: r.payer_settlement_reference,
+      })),
       total: total[0]?.n ?? 0,
     };
   }

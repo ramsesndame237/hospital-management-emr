@@ -29,6 +29,21 @@ export interface Payment {
   readonly sessionId: string | null;
 }
 
+/** Prise en charge par un assureur (tiers payant) : sa part, en pourcentage de ce qui reste après remise, est réglée par lui ; le patient ne règle que le reste. */
+export interface Coverage {
+  readonly payerId: string;
+  /** De 1 à 100. */
+  readonly percent: number;
+  readonly policyNumber: string | null;
+}
+
+/** Règlement de la part de l'assureur : qui l'a constaté, quand, avec quelle référence (virement, bordereau). */
+export interface Settlement {
+  readonly at: Instant;
+  readonly by: string;
+  readonly reference: string;
+}
+
 export interface InvoiceState {
   readonly id: InvoiceId;
   readonly number: InvoiceNumber;
@@ -45,6 +60,10 @@ export interface InvoiceState {
   readonly payments: readonly Payment[];
   readonly createdBy: string;
   readonly issuedAt: Instant | null;
+  /** Prise en charge par un assureur, quand il y en a une. */
+  readonly coverage: Coverage | null;
+  /** Règlement de la part de l'assureur, une fois constaté. */
+  readonly settlement: Settlement | null;
   /** Compteur de modifications : deux caissiers qui modifient la même facture ne s'écrasent pas (le second est refusé). */
   readonly version: number;
 }
@@ -65,13 +84,13 @@ export function statusFor(total: Amount, paid: Amount): InvoiceStatus {
 export class Invoice {
   private constructor(private current: InvoiceState) {}
 
-  static restore(state: InvoiceState): Invoice {
-    return new Invoice(state);
+  static restore(state: Omit<InvoiceState, 'coverage' | 'settlement'> & { readonly coverage?: Coverage | null; readonly settlement?: Settlement | null }): Invoice {
+    return new Invoice({ ...state, coverage: state.coverage ?? null, settlement: state.settlement ?? null });
   }
 
   static draft(state: Pick<InvoiceState, 'id' | 'number' | 'patientId' | 'currency' | 'note' | 'createdBy'> & { readonly admissionId?: string | null }): Invoice {
     return new Invoice({
-      ...state, admissionId: state.admissionId ?? null, status: InvoiceStatus.DRAFT, lines: [], discount: Amount.ZERO, discountReason: null, cancellationReason: null, payments: [], issuedAt: null, version: 0,
+      ...state, admissionId: state.admissionId ?? null, status: InvoiceStatus.DRAFT, lines: [], discount: Amount.ZERO, discountReason: null, cancellationReason: null, payments: [], issuedAt: null, coverage: null, settlement: null, version: 0,
     });
   }
 
@@ -83,9 +102,20 @@ export class Invoice {
     return this.current.lines.reduce((sum, line) => sum.plus(lineTotal(line)), Amount.ZERO);
   }
 
-  /** À payer : le sous-total moins la remise. */
-  get total(): Amount {
+  /** Le sous-total moins la remise : ce que coûtent les soins, avant la part de l'assureur. */
+  get grossTotal(): Amount {
     return this.subtotal.minus(this.current.discount);
+  }
+
+  /** La part de l'assureur : son pourcentage de ce qui reste après remise (arrondi à l'entier le plus proche). */
+  get coverageAmount(): Amount {
+    const coverage = this.current.coverage;
+    return coverage ? Amount.restore(Math.round((this.grossTotal.value * coverage.percent) / 100)) : Amount.ZERO;
+  }
+
+  /** À payer PAR LE PATIENT : ce qui reste après la remise et la part de l'assureur. */
+  get total(): Amount {
+    return this.grossTotal.minus(this.coverageAmount);
   }
 
   get paid(): Amount {
@@ -130,12 +160,37 @@ export class Invoice {
     return ok(undefined);
   }
 
-  /** Émet la facture : verrouille les lignes. Une facture vide, ou dont le total est nul, n'a rien à régler et ne s'émet pas. */
+  /** Applique une prise en charge à un brouillon (elle remplace la précédente). Sa part se recalcule si les lignes ou la remise changent, jusqu'à l'émission. */
+  applyCoverage(coverage: Coverage): Result<void> {
+    if (this.current.status !== InvoiceStatus.DRAFT) return err(NOT_DRAFT(this.current.status));
+    if (!Number.isInteger(coverage.percent) || coverage.percent < 1 || coverage.percent > 100) return err(new DomainError('BILLING_COVERAGE_PERCENT_INVALID', 'Le pourcentage pris en charge doit être un entier de 1 à 100.'));
+    this.current = { ...this.current, coverage };
+    return ok(undefined);
+  }
+
+  removeCoverage(): Result<void> {
+    if (this.current.status !== InvoiceStatus.DRAFT) return err(NOT_DRAFT(this.current.status));
+    this.current = { ...this.current, coverage: null };
+    return ok(undefined);
+  }
+
+  /** Constate que l'assureur a réglé sa part. Une seule fois, sur une facture émise dont l'assureur doit quelque chose. */
+  settle(settlement: Settlement): Result<void> {
+    const status = this.current.status;
+    if (status === InvoiceStatus.DRAFT || status === InvoiceStatus.CANCELLED) return err(new DomainError('BILLING_SETTLEMENT_NOT_ALLOWED', "Seule une facture émise peut avoir sa part d'assureur réglée.", { status }));
+    if (!this.current.coverage || this.coverageAmount.value === 0) return err(new DomainError('BILLING_NO_PAYER_SHARE', "Cette facture n'a pas de part d'assureur à régler."));
+    if (this.current.settlement) return err(new DomainError('BILLING_ALREADY_SETTLED', "La part de l'assureur est déjà réglée."));
+    this.current = { ...this.current, settlement };
+    return ok(undefined);
+  }
+
+  /** Émet la facture : verrouille les lignes. Une facture vide ne s'émet pas ; une facture entièrement prise en charge s'émet déjà soldée pour le patient. */
   issue(now: Instant): Result<void> {
     if (this.current.status !== InvoiceStatus.DRAFT) return err(NOT_DRAFT(this.current.status));
     if (this.current.lines.length === 0) return err(new DomainError('BILLING_INVOICE_EMPTY', 'Une facture sans ligne ne peut pas être émise.'));
-    if (this.total.value === 0) return err(new DomainError('BILLING_INVOICE_EMPTY', 'Le total de la facture est nul : il n\'y a rien à régler.'));
-    this.current = { ...this.current, status: InvoiceStatus.ISSUED, issuedAt: now };
+    if (this.grossTotal.value === 0) return err(new DomainError('BILLING_INVOICE_EMPTY', 'Le total de la facture est nul : il n\'y a rien à régler.'));
+    // Prise en charge à 100 % : le patient ne doit rien, la facture naît soldée (la créance de l'assureur se suit à part).
+    this.current = { ...this.current, status: this.total.value === 0 ? InvoiceStatus.PAID : InvoiceStatus.ISSUED, issuedAt: now };
     return ok(undefined);
   }
 
@@ -166,6 +221,7 @@ export class Invoice {
   cancel(reason: Reason): Result<void> {
     const status = this.current.status;
     if (status === InvoiceStatus.CANCELLED) return err(new DomainError('BILLING_INVOICE_ALREADY_CANCELLED', 'Cette facture est déjà annulée.'));
+    if (this.current.settlement) return err(new DomainError('BILLING_INVOICE_PAYER_SETTLED', "L'assureur a déjà réglé sa part : cette facture ne peut plus être annulée."));
     if (this.current.payments.length > 0) return err(new DomainError('BILLING_INVOICE_HAS_PAYMENTS', 'Cette facture a des encaissements : elle ne peut pas être annulée (un remboursement est nécessaire).', { paid: this.paid.value }));
     this.current = { ...this.current, status: InvoiceStatus.CANCELLED, cancellationReason: reason };
     return ok(undefined);

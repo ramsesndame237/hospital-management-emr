@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { toApiError } from '../http/api-error';
-import { BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Receipt, SourceType } from './billing.models';
+import { Claim, ClaimFilter, CoverageInput, Invoice as InvoiceModel, PatientCoverage, Payer, BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Receipt, SourceType } from './billing.models';
 
 /**
  * Port d'accès à la facturation : factures, encaissements, reçus et catalogue des tarifs. Les écrans ne connaissent que ce
@@ -31,6 +31,19 @@ export abstract class BillingGateway {
   abstract setItemActive(id: string, active: boolean): Promise<BillableItem>;
   /** Ce qui a été fait et n'est pas encore facturé (demandes d'analyses, examens réalisés, délivrances), avec le prix du catalogue. */
   abstract listBillable(type: SourceType, offset: number, limit: number): Promise<BillablePage>;
+  abstract listPayers(search: string, includeInactive: boolean, offset: number, limit: number): Promise<Page<Payer>>;
+  abstract createPayer(code: string, name: string): Promise<Payer>;
+  abstract renamePayer(id: string, name: string): Promise<Payer>;
+  abstract setPayerActive(id: string, active: boolean): Promise<Payer>;
+  /** Couvertures actives d'un patient. */
+  abstract listCoverages(patientId: string): Promise<readonly PatientCoverage[]>;
+  abstract recordCoverage(patientId: string, input: CoverageInput): Promise<PatientCoverage>;
+  /** Applique une couverture valable à un brouillon : la part de l'assureur se calcule, le patient ne doit que le reste. */
+  abstract applyCoverage(invoiceId: string, coverageId: string): Promise<InvoiceModel>;
+  abstract removeCoverage(invoiceId: string): Promise<InvoiceModel>;
+  abstract listClaims(filter: ClaimFilter, offset: number, limit: number): Promise<Page<Claim>>;
+  /** La comptabilité constate que l'assureur a réglé sa part (référence obligatoire, une seule fois). */
+  abstract settleClaim(invoiceId: string, reference: string): Promise<InvoiceModel>;
   /** Établit le brouillon de facture d'une source (422 `BILLING_SOURCE_UNPRICED` si un code n'a pas de prix, 409 si déjà facturée). */
   abstract billFromSource(type: SourceType, sourceId: string): Promise<Invoice>;
 }
@@ -110,6 +123,51 @@ export class HttpBillingGateway extends BillingGateway {
 
   override billFromSource(type: SourceType, sourceId: string): Promise<Invoice> {
     return this.call(this.http.post<Invoice>(`${this.base}/invoices/from-source`, { sourceType: type, sourceId }));
+  }
+
+  override listPayers(search: string, includeInactive: boolean, offset: number, limit: number): Promise<Page<Payer>> {
+    const params: Record<string, string | number | boolean> = { offset, limit, includeInactive };
+    if (search) params['search'] = search;
+    return this.call(this.http.get<Page<Payer>>(`${this.base}/payers`, { params }));
+  }
+
+  override createPayer(code: string, name: string): Promise<Payer> {
+    return this.call(this.http.post<Payer>(`${this.base}/payers`, { code, name }));
+  }
+
+  override renamePayer(id: string, name: string): Promise<Payer> {
+    return this.call(this.http.patch<Payer>(`${this.base}/payers/${id}`, { name }));
+  }
+
+  override setPayerActive(id: string, active: boolean): Promise<Payer> {
+    return this.call(this.http.post<Payer>(`${this.base}/payers/${id}/${active ? 'activate' : 'deactivate'}`, null));
+  }
+
+  override listCoverages(patientId: string): Promise<readonly PatientCoverage[]> {
+    return this.call(this.http.get<PatientCoverage[]>(`${this.base}/patients/${patientId}/coverages`));
+  }
+
+  override recordCoverage(patientId: string, input: CoverageInput): Promise<PatientCoverage> {
+    return this.call(this.http.post<PatientCoverage>(`${this.base}/patients/${patientId}/coverages`, input));
+  }
+
+  override applyCoverage(invoiceId: string, coverageId: string): Promise<InvoiceModel> {
+    return this.call(this.http.put<InvoiceModel>(`${this.base}/invoices/${invoiceId}/coverage`, { coverageId }));
+  }
+
+  override removeCoverage(invoiceId: string): Promise<InvoiceModel> {
+    return this.call(this.http.delete<InvoiceModel>(`${this.base}/invoices/${invoiceId}/coverage`));
+  }
+
+  override listClaims(filter: ClaimFilter, offset: number, limit: number): Promise<Page<Claim>> {
+    const params: Record<string, string | number | boolean> = { offset, limit };
+    if (filter.payerId) params['payerId'] = filter.payerId;
+    if (filter.settled !== undefined) params['settled'] = filter.settled;
+    return this.call(this.http.get<Page<Claim>>(`${this.base}/claims`, { params }));
+  }
+
+  override settleClaim(invoiceId: string, reference: string): Promise<InvoiceModel> {
+    return this.call(this.http.post<InvoiceModel>(`${this.base}/invoices/${invoiceId}/payer-settlement`, { reference }));
   }
 
   private async call<T>(request: Observable<T>): Promise<T> {

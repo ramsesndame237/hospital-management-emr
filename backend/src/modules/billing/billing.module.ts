@@ -28,12 +28,17 @@ import { BillingInvoicesController } from './presentation/invoices.controller';
 import { BillingSessionsController } from './presentation/sessions.controller';
 import { BillingSourcesController } from './presentation/sources.controller';
 import { BillFromSourceUseCase, ListBillableUseCase, SourceDependencies } from './application/use-cases/sources';
+import { CoverageUseCases, InvoiceCoverageUseCases, ListClaimsUseCase, PayerDependencies, PayerUseCases } from './application/use-cases/payers';
+import { COVERAGE_REPOSITORY, CoverageRepository, PAYER_REPOSITORY, PayerRepository } from './domain/payer';
+import { PgCoverageRepository, PgPayerRepository } from './infrastructure/persistence/pg-payer.repository';
+import { BillingPayersController } from './presentation/payers.controller';
 
 const CATALOG_DEPENDENCIES = Symbol('BILLING_CATALOG_DEPENDENCIES');
 const INVOICE_DEPENDENCIES = Symbol('BILLING_INVOICE_DEPENDENCIES');
 const SESSION_DEPENDENCIES = Symbol('BILLING_SESSION_DEPENDENCIES');
 const APPROVAL_DEPENDENCIES = Symbol('BILLING_APPROVAL_DEPENDENCIES');
 const SOURCE_DEPENDENCIES = Symbol('BILLING_SOURCE_DEPENDENCIES');
+const PAYER_DEPENDENCIES = Symbol('BILLING_PAYER_DEPENDENCIES');
 
 /**
  * Module Facturation. Les ports de persistance sont reliés à PostgreSQL ici ; les patients, les services et la devise de
@@ -48,9 +53,11 @@ export class BillingModule {
       // Global, et n'exporte que les factures : la racine de composition les branche au portail du patient.
       global: true,
       exports: [INVOICE_REPOSITORY],
-      controllers: [BillingCatalogController, BillingInvoicesController, BillingSessionsController, BillingApprovalsController, BillingSourcesController],
+      controllers: [BillingCatalogController, BillingInvoicesController, BillingSessionsController, BillingApprovalsController, BillingSourcesController, BillingPayersController],
       providers: [
         { provide: ITEM_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgItemRepository(sql) },
+        { provide: PAYER_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgPayerRepository(sql) },
+        { provide: COVERAGE_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgCoverageRepository(sql) },
         { provide: INVOICE_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgInvoiceRepository(sql) },
         { provide: CASH_SESSION_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgCashSessionRepository(sql) },
         { provide: APPROVAL_REPOSITORY, inject: [SQL_EXECUTOR], useFactory: (sql: SqlExecutor) => new PgApprovalRepository(sql) },
@@ -61,11 +68,11 @@ export class BillingModule {
         },
         {
           provide: INVOICE_DEPENDENCIES,
-          inject: [INVOICE_REPOSITORY, ITEM_REPOSITORY, BILLING_PATIENTS, BILLING_ADMISSIONS, CASH_SESSION_REPOSITORY, APPROVAL_REPOSITORY, BILLING_USERS, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_CURRENCY, AUDIT_LOG, CLOCK],
+          inject: [INVOICE_REPOSITORY, ITEM_REPOSITORY, BILLING_PATIENTS, BILLING_ADMISSIONS, CASH_SESSION_REPOSITORY, APPROVAL_REPOSITORY, BILLING_USERS, PAYER_REPOSITORY, BILLING_DISCOUNT_APPROVAL_PERCENT, BILLING_CURRENCY, AUDIT_LOG, CLOCK],
           useFactory: (
             invoices: InvoiceRepository, items: ItemRepository, patients: PatientDirectory, admissions: AdmissionDirectory, sessions: CashSessionRepository, approvals: ApprovalRepository, users: UserDirectory,
-            discountApprovalPercent: number, currency: Currency, audit: AuditLog, clock: Clock,
-          ): InvoiceDependencies => ({ invoices, items, patients, admissions, sessions, approvals, users, discountApprovalPercent, currency, audit, clock }),
+            payers: PayerRepository, discountApprovalPercent: number, currency: Currency, audit: AuditLog, clock: Clock,
+          ): InvoiceDependencies => ({ invoices, items, patients, admissions, sessions, approvals, users, payers, discountApprovalPercent, currency, audit, clock }),
         },
         {
           provide: APPROVAL_DEPENDENCIES,
@@ -81,6 +88,15 @@ export class BillingModule {
             sessions, users, access, currency, varianceLimit, audit, clock,
           }),
         },
+        {
+          provide: PAYER_DEPENDENCIES,
+          inject: [PAYER_REPOSITORY, COVERAGE_REPOSITORY, INVOICE_REPOSITORY, BILLING_PATIENTS, AUDIT_LOG, CLOCK],
+          useFactory: (payers: PayerRepository, coverages: CoverageRepository, invoices: InvoiceRepository, patients: PatientDirectory, audit: AuditLog, clock: Clock): PayerDependencies => ({ payers, coverages, invoices, patients, audit, clock }),
+        },
+        { provide: PayerUseCases, inject: [PAYER_DEPENDENCIES, ID_GENERATOR], useFactory: (d: PayerDependencies, ids: IdGenerator) => new PayerUseCases(d, ids) },
+        { provide: CoverageUseCases, inject: [PAYER_DEPENDENCIES, ID_GENERATOR], useFactory: (d: PayerDependencies, ids: IdGenerator) => new CoverageUseCases(d, ids) },
+        { provide: InvoiceCoverageUseCases, inject: [INVOICE_DEPENDENCIES, PAYER_DEPENDENCIES], useFactory: (d: InvoiceDependencies, p: PayerDependencies) => new InvoiceCoverageUseCases(d, p) },
+        { provide: ListClaimsUseCase, inject: [PAYER_DEPENDENCIES], useFactory: (p: PayerDependencies) => new ListClaimsUseCase(p) },
         { provide: SOURCE_DEPENDENCIES, inject: [BILLING_SOURCES], useFactory: (sources: SourceDirectory): SourceDependencies => ({ sources }) },
         { provide: ListBillableUseCase, inject: [INVOICE_DEPENDENCIES, SOURCE_DEPENDENCIES], useFactory: (d: InvoiceDependencies, s: SourceDependencies) => new ListBillableUseCase(d, s) },
         { provide: BillFromSourceUseCase, inject: [INVOICE_DEPENDENCIES, SOURCE_DEPENDENCIES, ID_GENERATOR], useFactory: (d: InvoiceDependencies, s: SourceDependencies, ids: IdGenerator) => new BillFromSourceUseCase(d, s, ids) },

@@ -1,5 +1,5 @@
 import { BillingGateway } from '../billing.gateway';
-import { Billable, BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceLine, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Payment, Receipt, SourceType } from '../billing.models';
+import { Claim, ClaimFilter, CoverageInput, PatientCoverage, Payer, Billable, BillablePage, BillableItem, CollectInput, CollectedPayment, Invoice, InvoiceFilter, InvoiceLine, InvoiceSummary, ItemChanges, ItemFilter, ItemInput, Page, Payment, Receipt, SourceType } from '../billing.models';
 
 export const patient = { id: 'p-1', number: 'PAT-0000001', lastName: 'Mbarga', firstName: 'Élisabeth' };
 
@@ -21,12 +21,12 @@ export function invoice(over: Partial<Invoice> = {}): Invoice {
   const paid = payments.reduce((sum, p) => sum + p.amount, 0);
   return {
     id: 'inv-1', number: 'FAC-0000123', status: 'DRAFT', currency: 'XAF', currencyDigits: 0, patient, admissionId: null, lines, subtotal, discount, discountReason: discount > 0 ? 'Personnel' : null,
-    total, paid, balance: total - paid, note: null, cancellationReason: null, issuedAt: null, payments, approvals: [], discountApprovalPercent: 10, ...over,
+    grossTotal: subtotal - discount, coverage: null, total, paid, balance: total - paid, note: null, cancellationReason: null, issuedAt: null, payments, approvals: [], discountApprovalPercent: 10, ...over,
   };
 }
 
 export const summary = (over: Partial<InvoiceSummary> = {}): InvoiceSummary => ({
-  id: 'inv-1', number: 'FAC-0000123', status: 'ISSUED', currency: 'XAF', patient, subtotal: 11500, discount: 0, total: 11500, paid: 0, balance: 11500,
+  id: 'inv-1', number: 'FAC-0000123', status: 'ISSUED', currency: 'XAF', patient, subtotal: 11500, discount: 0, payerShare: 0, total: 11500, paid: 0, balance: 11500,
   issuedAt: '2026-10-24T09:10:00Z', createdAt: '2026-10-24T09:05:00Z', ...over,
 });
 
@@ -39,10 +39,35 @@ export const billable = (over: Partial<Billable> = {}): Billable => ({
   lines: [{ code: 'NFS', label: 'Numération formule sanguine', quantity: 1, itemName: 'NFS complète', unitPrice: 3500 }], unpriced: [], total: 3500, ...over,
 });
 
+export const payer = (over: Partial<Payer> = {}): Payer => ({ id: 'py-1', code: 'ASP', name: 'Assurance Santé Plus', active: true, ...over });
+
+export const coverage = (over: Partial<PatientCoverage> = {}): PatientCoverage => ({
+  id: 'cv-1', patientId: 'p-1', payer: { id: 'py-1', code: 'ASP', name: 'Assurance Santé Plus' }, policyNumber: 'AS-123456', percent: 80, validFrom: '2026-01-01', validUntil: null, validToday: true, ...over,
+});
+
+export const claim = (over: Partial<Claim> = {}): Claim => ({
+  invoiceId: 'inv-9', invoiceNumber: 'FAC-0000199', patient, payerId: 'py-1', payerName: 'Assurance Santé Plus', policyNumber: 'AS-123456', percent: 80, amount: 7200,
+  issuedAt: '2026-10-24T09:10:00Z', settledAt: null, settlementReference: null, ...over,
+});
+
 export const page = <T>(items: readonly T[], over: Partial<Page<T>> = {}): Page<T> => ({ items, total: items.length, offset: 0, limit: 25, ...over });
 
 /** Double de test du port `BillingGateway` : chaque méthode est un mock Vitest que le test configure. */
 export class FakeBillingGateway extends BillingGateway {
+  override listPayers = vi.fn<(search: string, includeInactive: boolean, offset: number, limit: number) => Promise<Page<Payer>>>().mockResolvedValue(page([payer(), payer({ id: 'py-2', code: 'MUT', name: 'Mutuelle Nationale', active: false })]));
+  override createPayer = vi.fn<(code: string, name: string) => Promise<Payer>>().mockImplementation((code, name) => Promise.resolve(payer({ id: 'py-new', code, name })));
+  override renamePayer = vi.fn<(id: string, name: string) => Promise<Payer>>().mockImplementation((id, name) => Promise.resolve(payer({ id, name })));
+  override setPayerActive = vi.fn<(id: string, active: boolean) => Promise<Payer>>().mockImplementation((id, active) => Promise.resolve(payer({ id, active })));
+  override listCoverages = vi.fn<(patientId: string) => Promise<readonly PatientCoverage[]>>().mockResolvedValue([coverage()]);
+  override recordCoverage = vi.fn<(patientId: string, input: CoverageInput) => Promise<PatientCoverage>>().mockImplementation((patientId, input) =>
+    Promise.resolve(coverage({ id: 'cv-new', patientId, policyNumber: input.policyNumber, percent: input.percent })),
+  );
+  override applyCoverage = vi.fn<(invoiceId: string, coverageId: string) => Promise<Invoice>>().mockImplementation(() =>
+    Promise.resolve(invoice({ coverage: { payerId: 'py-1', payerName: 'Assurance Santé Plus', policyNumber: 'AS-123456', percent: 80, amount: 9200, settledAt: null, settlementReference: null }, total: 2300, grossTotal: 11500, balance: 2300 })),
+  );
+  override removeCoverage = vi.fn<(invoiceId: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice()));
+  override listClaims = vi.fn<(filter: ClaimFilter, offset: number, limit: number) => Promise<Page<Claim>>>().mockResolvedValue(page([claim(), claim({ invoiceId: 'inv-8', invoiceNumber: 'FAC-0000188', amount: 3000, settledAt: '2026-11-02T10:00:00Z', settlementReference: 'VIR-1' })]));
+  override settleClaim = vi.fn<(invoiceId: string, reference: string) => Promise<Invoice>>().mockImplementation(() => Promise.resolve(invoice()));
   override createItem = vi.fn<(input: ItemInput) => Promise<BillableItem>>().mockImplementation((input) =>
     Promise.resolve(item({ id: 'i-new', code: input.code, name: input.name, category: input.category, unitPrice: input.unitPrice, sourceCode: input.sourceCode ?? null })),
   );

@@ -18,6 +18,7 @@ import { failureMessage, failureNotice } from '../../../shared/failure-message';
 import { FormBuilderComponent } from '../../../shared/form-builder/form-builder';
 import { FieldSchema, FormAction } from '../../../shared/form-builder/form-schema';
 import { StatusTag } from '../../../shared/status-tag';
+import { InvoiceCoverageSection } from './invoice-coverage.section';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { collectFields, confirmFields, discountFields, itemSearchFields, reprintFields } from '../billing.forms';
 import { approvalTag } from '../approval-status';
@@ -65,7 +66,7 @@ interface PanelView {
  */
 @Component({
   selector: 'app-invoice-detail-page',
-  imports: [RouterLink, HlmButtonImports, FormBuilderComponent, StatusTag],
+  imports: [RouterLink, HlmButtonImports, FormBuilderComponent, StatusTag, InvoiceCoverageSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -187,13 +188,21 @@ interface PanelView {
                     <dd class="font-mono">− {{ money(inv.discount) }}</dd>
                   </div>
                 }
-                <div class="flex justify-between gap-4 text-base font-semibold"><dt>{{ i18n.t('billing.detail.total') }}</dt><dd class="font-mono">{{ money(inv.total) }}</dd></div>
+                @if (inv.coverage; as cov) {
+                  <div class="flex justify-between gap-4">
+                    <dt class="text-muted-foreground">{{ i18n.t('billing.detail.coverageOf', { payer: cov.payerName ?? '', percent: cov.percent }) }}</dt>
+                    <dd class="font-mono">− {{ money(cov.amount) }}</dd>
+                  </div>
+                }
+                <div class="flex justify-between gap-4 text-base font-semibold"><dt>{{ i18n.t(inv.coverage ? 'billing.detail.totalPatient' : 'billing.detail.total') }}</dt><dd class="font-mono">{{ money(inv.total) }}</dd></div>
                 <div class="flex justify-between gap-4"><dt class="text-muted-foreground">{{ i18n.t('billing.detail.paid') }}</dt><dd class="font-mono">{{ money(inv.paid) }}</dd></div>
                 <div class="flex justify-between gap-4 text-base font-semibold" [class.text-status-warning]="inv.balance > 0 && inv.status !== 'CANCELLED'">
                   <dt>{{ i18n.t('billing.detail.balance') }}</dt><dd class="font-mono">{{ money(inv.status === 'CANCELLED' ? 0 : inv.balance) }}</dd>
                 </div>
               </dl>
             </section>
+
+            <app-invoice-coverage [invoice]="inv" (updated)="invoice.set($event)" />
 
             <section class="border border-border bg-card">
               <h2 class="border-b border-border px-4 py-3 text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t('billing.detail.payments') }}</h2>

@@ -61,6 +61,8 @@ export const NAVIGATION: readonly NavItem[] = [
       { id: 'billing-session', labelKey: 'nav.billingSession', icon: 'consultations', route: '/billing/session', permission: 'billing.sessions:operate' },
       { id: 'billing-sessions', labelKey: 'nav.billingSessions', icon: 'agenda', route: '/billing/sessions', permission: 'billing.sessions:read:own' },
       { id: 'billing-approvals', labelKey: 'nav.billingApprovals', icon: 'shield', route: '/billing/approvals', permission: 'billing.approvals:read:own' },
+      { id: 'billing-claims', labelKey: 'nav.billingClaims', icon: 'invoice', route: '/billing/claims', permission: 'billing.payers:settle' },
+      { id: 'billing-payers', labelKey: 'nav.billingPayers', icon: 'organization', route: '/billing/payers', permission: 'billing.payers:read' },
       { id: 'billing-catalog', labelKey: 'nav.billingCatalog', icon: 'consultations', route: '/billing/catalog', permission: 'billing.catalog:read' },
     ],
   },

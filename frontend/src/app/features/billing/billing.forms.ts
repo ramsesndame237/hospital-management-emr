@@ -1,5 +1,5 @@
 import { APPROVAL_KINDS, APPROVAL_STATUSES } from '../../core/billing/approval.models';
-import { BillableItem, INVOICE_STATUSES, PAYMENT_MODES, ITEM_CATEGORIES, SOURCE_CATEGORIES } from '../../core/billing/billing.models';
+import { BillableItem, Payer, INVOICE_STATUSES, PAYMENT_MODES, ITEM_CATEGORIES, SOURCE_CATEGORIES } from '../../core/billing/billing.models';
 import { FieldSchema, OptionSpec } from '../../shared/form-builder/form-schema';
 import { failureNotice } from '../../shared/failure-message';
 
@@ -173,7 +173,7 @@ export function itemFields(o: { readonly item: BillableItem | null; readonly dig
     ...(creating
       ? ([{
           type: 'code', name: 'code', label: 'billing.catalog.code', hint: 'billing.catalog.codeHint', value: '', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono',
-          validators: [{ type: 'required', message: 'billing.catalog.codeRequired' }, { type: 'maxLength', value: 32 }, { type: 'pattern', value: '^\s*[A-Za-z0-9][A-Za-z0-9_.-]*\s*$', message: 'billing.catalog.codeFormat' }],
+          validators: [{ type: 'required', message: 'billing.catalog.codeRequired' }, { type: 'maxLength', value: 32 }, { type: 'pattern', value: '^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$', message: 'billing.catalog.codeFormat' }],
         }] as const)
       : []),
     { type: 'text', name: 'name', label: 'billing.catalog.name', value: o.item?.name ?? '', autofocus: !creating, normalize: 'trim', validators: [{ type: 'required', message: 'billing.catalog.nameRequired' }, { type: 'maxLength', value: 200 }] },
@@ -185,10 +185,54 @@ export function itemFields(o: { readonly item: BillableItem | null; readonly dig
     {
       type: 'code', name: 'sourceCode', label: 'billing.catalog.sourceCode', hint: 'billing.catalog.sourceCodeHint', value: o.item?.sourceCode ?? '', normalize: 'uppercase', inputClass: 'font-mono',
       showIf: { field: 'category', in: SOURCE_CATEGORIES },
-      validators: [{ type: 'maxLength', value: 30 }, { type: 'pattern', value: '^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)?\s*$', message: 'billing.catalog.sourceCodeFormat' }],
+      validators: [{ type: 'maxLength', value: 30 }, { type: 'pattern', value: '^\\s*([A-Za-z0-9][A-Za-z0-9_.-]*)?\\s*$', message: 'billing.catalog.sourceCodeFormat' }],
     },
     { type: 'paragraph', name: 'audit', text: 'billing.auditNote', tone: 'muted' },
     { type: 'submit', name: 'submit', label: creating ? 'billing.catalog.create' : 'billing.save', busyLabel: 'billing.saving' },
+    { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
+  ];
+}
+
+const DAY = '^\\s*(\\d{4}-\\d{2}-\\d{2})?\\s*$';
+
+/** Nouvelle couverture d'un patient : l'assureur, le numéro d'assuré, le pourcentage pris en charge et la validité (facultative). */
+export function coverageFields(o: { readonly payers: readonly Payer[]; readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'select', name: 'payerId', label: 'billing.coverage.payer', placeholder: 'billing.coverage.choosePayer', value: '', autofocus: true, options: o.payers.map((p) => ({ value: p.id, label: p.name })), validators: [{ type: 'required', message: 'billing.coverage.payerRequired' }], span: 6 },
+    { type: 'text', name: 'policyNumber', label: 'billing.coverage.policy', value: '', normalize: 'trim', inputClass: 'font-mono', span: 6, validators: [{ type: 'required', message: 'billing.coverage.policyRequired' }, { type: 'maxLength', value: 40 }] },
+    { type: 'text', name: 'percent', label: 'billing.coverage.percentLabel', hint: 'billing.coverage.percentHint', value: '', inputMode: 'numeric', inputClass: 'font-mono', span: 4, normalize: 'trim', validators: [{ type: 'required', message: 'billing.coverage.percentRequired' }, { type: 'pattern', value: '^\\s*(100|[1-9]\\d?)\\s*$', message: 'billing.coverage.percentInvalid' }] },
+    { type: 'text', name: 'validFrom', label: 'billing.coverage.validFrom', hint: 'billing.coverage.dateHint', value: '', inputClass: 'font-mono', span: 4, normalize: 'trim', validators: [{ type: 'pattern', value: DAY, message: 'billing.coverage.dateInvalid' }] },
+    { type: 'text', name: 'validUntil', label: 'billing.coverage.validUntil', hint: 'billing.coverage.dateHint', value: '', inputClass: 'font-mono', span: 4, normalize: 'trim', validators: [{ type: 'pattern', value: DAY, message: 'billing.coverage.dateInvalid' }] },
+    { type: 'submit', name: 'submit', label: 'billing.coverage.record', busyLabel: 'billing.saving' },
+    { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
+  ];
+}
+/** Création (code compris) ou changement de nom d'un assureur ; le code ne change jamais. */
+export function payerFields(o: { readonly payer: Payer | null; readonly notice: string | null }): FieldSchema[] {
+  const creating = o.payer === null;
+  return [
+    ...failureNotice(o.notice),
+    ...(creating
+      ? ([{
+          type: 'code', name: 'code', label: 'billing.payers.code', hint: 'billing.payers.codeHint', value: '', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono',
+          validators: [{ type: 'required', message: 'billing.payers.codeRequired' }, { type: 'maxLength', value: 20 }, { type: 'pattern', value: '^\\s*[A-Za-z0-9][A-Za-z0-9_.-]*\\s*$', message: 'billing.payers.codeFormat' }],
+        }] as const)
+      : []),
+    { type: 'text', name: 'name', label: 'billing.payers.name', value: o.payer?.name ?? '', autofocus: !creating, normalize: 'trim', validators: [{ type: 'required', message: 'billing.payers.nameRequired' }, { type: 'maxLength', value: 120 }] },
+    { type: 'submit', name: 'submit', label: creating ? 'billing.payers.create' : 'billing.save', busyLabel: 'billing.saving' },
+    { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
+  ];
+}
+
+/** Règlement de la part d'un assureur : la référence (virement, bordereau) est obligatoire et conservée. */
+export function settleFields(o: { readonly notice: string | null }): FieldSchema[] {
+  return [
+    ...failureNotice(o.notice),
+    { type: 'message', name: 'warning', tone: 'warning', appearance: 'outlined', title: 'billing.claims.settleTitle', text: 'billing.claims.settleText' },
+    { type: 'text', name: 'reference', label: 'billing.claims.reference', hint: 'billing.claims.referenceHint', value: '', autofocus: true, normalize: 'trim', inputClass: 'font-mono', validators: [{ type: 'required', message: 'billing.claims.referenceRequired' }, { type: 'maxLength', value: 60 }] },
+    { type: 'paragraph', name: 'audit', text: 'billing.auditNote', tone: 'muted' },
+    { type: 'submit', name: 'submit', label: 'billing.claims.settle', busyLabel: 'billing.saving' },
     { type: 'button', name: 'cancel', label: 'billing.cancel', variant: 'outline' },
   ];
 }

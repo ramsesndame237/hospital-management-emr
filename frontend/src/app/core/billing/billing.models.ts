@@ -41,6 +41,18 @@ export interface Payment {
   readonly receivedAt: string;
 }
 
+/** La prise en charge d'un assureur (tiers payant) sur une facture. */
+export interface InvoiceCoverage {
+  readonly payerId: string;
+  readonly payerName: string | null;
+  readonly policyNumber: string | null;
+  readonly percent: number;
+  /** La part de l'assureur, entier dans la plus petite unité de la devise. */
+  readonly amount: number;
+  readonly settledAt: string | null;
+  readonly settlementReference: string | null;
+}
+
 export interface Invoice {
   readonly id: string;
   readonly number: string;
@@ -55,6 +67,10 @@ export interface Invoice {
   readonly subtotal: number;
   readonly discount: number;
   readonly discountReason: string | null;
+  /** Sous-total moins remise : ce que coûtent les soins avant la part de l'assureur. */
+  readonly grossTotal: number;
+  readonly coverage: InvoiceCoverage | null;
+  /** À payer PAR LE PATIENT (après remise et part de l'assureur). */
   readonly total: number;
   readonly paid: number;
   readonly balance: number;
@@ -77,6 +93,8 @@ export interface InvoiceSummary {
   readonly patient: BilledPatient | null;
   readonly subtotal: number;
   readonly discount: number;
+  /** La part de l'assureur (0 sans prise en charge). */
+  readonly payerShare: number;
   readonly total: number;
   readonly paid: number;
   readonly balance: number;
@@ -205,3 +223,52 @@ export const isPayable = (invoice: Pick<Invoice, 'status' | 'balance'>): boolean
 /** Une facture sans encaissement peut être annulée (brouillon ou émise). */
 export const isCancellable = (invoice: Pick<Invoice, 'status' | 'payments'>): boolean =>
   (invoice.status === 'DRAFT' || invoice.status === 'ISSUED') && invoice.payments.length === 0;
+
+export interface Payer {
+  readonly id: string;
+  readonly code: string;
+  readonly name: string;
+  readonly active: boolean;
+}
+
+/** Couverture d'un patient : son assureur, son numéro d'assuré, le pourcentage pris en charge et sa validité. */
+export interface PatientCoverage {
+  readonly id: string;
+  readonly patientId: string;
+  readonly payer: { readonly id: string; readonly code: string; readonly name: string } | null;
+  readonly policyNumber: string;
+  readonly percent: number;
+  readonly validFrom: string;
+  readonly validUntil: string | null;
+  /** Peut s'appliquer aujourd'hui : active, commencée, pas expirée. */
+  readonly validToday: boolean;
+}
+
+export interface CoverageInput {
+  readonly payerId: string;
+  readonly policyNumber: string;
+  readonly percent: number;
+  readonly validFrom?: string;
+  readonly validUntil?: string;
+}
+
+/** Créance d'assureur : la part d'une facture émise qu'il doit régler. */
+export interface Claim {
+  readonly invoiceId: string;
+  readonly invoiceNumber: string;
+  readonly patient: BilledPatient | null;
+  readonly payerId: string;
+  readonly payerName: string;
+  readonly policyNumber: string | null;
+  readonly percent: number;
+  readonly amount: number;
+  readonly issuedAt: string;
+  readonly settledAt: string | null;
+  readonly settlementReference: string | null;
+}
+
+export interface ClaimFilter {
+  readonly payerId?: string;
+  /** `false` : à recouvrer ; `true` : réglées ; absent : toutes. */
+  readonly settled?: boolean;
+}

@@ -223,6 +223,29 @@ export class InvoicePatientDto {
   firstName!: string;
 }
 
+export class InvoiceCoverageDto {
+  @DocProperty({ description: "Identifiant de l'assureur.", example: '5d81b4cd-ecd1-47f4-9185-d6c4be1e1c73', format: 'uuid' })
+  payerId!: string;
+
+  @DocProperty({ description: "Nom de l'assureur.", example: 'Assurance Santé Plus', nullable: true })
+  payerName!: string | null;
+
+  @DocProperty({ description: "Numéro d'assuré.", example: 'AS-123456', nullable: true })
+  policyNumber!: string | null;
+
+  @DocProperty({ description: 'Pourcentage pris en charge (1 à 100).', example: 80 })
+  percent!: number;
+
+  @DocProperty({ description: "Part de l'assureur (entier, plus petite unité de la devise).", example: 4800 })
+  amount!: number;
+
+  @DocProperty({ description: "Quand la part a été réglée par l'assureur ; `null` tant qu'elle ne l'est pas.", example: null, nullable: true })
+  settledAt!: string | null;
+
+  @DocProperty({ description: 'Référence du règlement (virement, bordereau).', example: null, nullable: true })
+  settlementReference!: string | null;
+}
+
 export class InvoiceDto {
   @DocProperty({ description: 'Identifiant de la facture.', example: '2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d', format: 'uuid' })
   id!: string;
@@ -257,7 +280,13 @@ export class InvoiceDto {
   @DocProperty({ description: 'Motif de la remise.', example: null, nullable: true })
   discountReason!: string | null;
 
-  @DocProperty({ description: 'À payer : sous-total moins remise.', example: 6000 })
+  @DocProperty({ description: 'Sous-total moins remise : ce que coûtent les soins, avant la part de l\'assureur.', example: 6000 })
+  grossTotal!: number;
+
+  @DocProperty({ description: 'Prise en charge par un assureur (tiers payant) ; `null` sans assurance.', type: InvoiceCoverageDto, nullable: true })
+  coverage!: InvoiceCoverageDto | null;
+
+  @DocProperty({ description: 'À payer PAR LE PATIENT : le total moins la remise et moins la part de l\'assureur.', example: 6000 })
   total!: number;
 
   @DocProperty({ description: 'Déjà encaissé.', example: 2000 })
@@ -307,7 +336,10 @@ export class InvoiceSummaryDto {
   @DocProperty({ description: 'Remise.', example: 1000 })
   discount!: number;
 
-  @DocProperty({ description: 'À payer.', example: 6000 })
+  @DocProperty({ description: "Part de l'assureur (0 sans prise en charge).", example: 0 })
+  payerShare!: number;
+
+  @DocProperty({ description: 'À payer par le patient.', example: 6000 })
   total!: number;
 
   @DocProperty({ description: 'Déjà encaissé.', example: 2000 })
