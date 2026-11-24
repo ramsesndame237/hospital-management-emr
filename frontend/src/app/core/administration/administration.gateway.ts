@@ -4,9 +4,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.config';
 import { ApiError, toApiError } from '../http/api-error';
 import { Translator } from '../i18n/translator';
-import {
-  ChildInput, Facility, FacilityInput, FacilityStatus, NodeChanges, Organization, ReferenceOption, ServiceInput, StructureNode, StructureTree,
-} from './administration.models';
+import { ChildInput, Facility, FacilityChanges, FacilityInput, FacilityLocation, FacilityStatus, NodeChanges, Organization, ReferenceOption, ServiceInput, StructureNode, StructureTree } from './administration.models';
 
 /**
  * Port d'accès à l'administration de l'établissement : organisation, sites et structure (services, unités, salles, lits).
@@ -18,7 +16,9 @@ export abstract class AdministrationGateway {
   abstract saveOrganization(name: string): Promise<Organization>;
   abstract listFacilities(): Promise<readonly Facility[]>;
   abstract registerFacility(input: FacilityInput): Promise<Facility>;
-  abstract updateFacility(id: string, changes: { name?: string; code?: string }): Promise<Facility>;
+  abstract updateFacility(id: string, changes: FacilityChanges): Promise<Facility>;
+  /** Le code que recevrait un site de ce nom et de cette localisation (sans rien enregistrer). */
+  abstract previewFacilityCode(name: string, location: FacilityLocation): Promise<string>;
   abstract changeFacilityStatus(id: string, status: FacilityStatus): Promise<Facility>;
   abstract structure(facilityId: string, includeInactive: boolean): Promise<StructureTree>;
   abstract createService(facilityId: string, input: ServiceInput): Promise<StructureNode>;
@@ -63,8 +63,12 @@ export class HttpAdministrationGateway extends AdministrationGateway {
     return this.call(this.http.post<Facility>(`${this.base}/facilities`, input));
   }
 
-  override updateFacility(id: string, changes: { name?: string; code?: string }): Promise<Facility> {
+  override updateFacility(id: string, changes: FacilityChanges): Promise<Facility> {
     return this.call(this.http.patch<Facility>(`${this.base}/facilities/${id}`, changes));
+  }
+
+  override async previewFacilityCode(name: string, location: FacilityLocation): Promise<string> {
+    return (await this.call(this.http.post<{ code: string }>(`${this.base}/facilities/code-preview`, { name, location }))).code;
   }
 
   override changeFacilityStatus(id: string, status: FacilityStatus): Promise<Facility> {

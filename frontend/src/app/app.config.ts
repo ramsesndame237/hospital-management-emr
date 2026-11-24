@@ -4,6 +4,7 @@ import { TitleStrategy, provideRouter, withComponentInputBinding, withNavigation
 import { provideSpartanHlm } from '@spartan-ng/helm/utils';
 import { routes } from './app.routes';
 import { AdministrationGateway, HttpAdministrationGateway } from './core/administration/administration.gateway';
+import { Geocoder, NominatimGeocoder } from './core/geo/geocoder';
 import { ApprovalGateway, HttpApprovalGateway } from './core/billing/approval.gateway';
 import { BillingGateway, HttpBillingGateway } from './core/billing/billing.gateway';
 import { CashSessionGateway, HttpCashSessionGateway } from './core/billing/cash-session.gateway';
@@ -38,6 +39,7 @@ export const appConfig: ApplicationConfig = {
     { provide: AuthGateway, useClass: HttpAuthGateway },
     { provide: Translator, useClass: JsonTranslator },
     { provide: AdministrationGateway, useClass: HttpAdministrationGateway },
+    { provide: Geocoder, useClass: NominatimGeocoder },
     { provide: IdentityAdminGateway, useClass: HttpIdentityAdminGateway },
     { provide: StaffGateway, useClass: HttpStaffGateway },
     { provide: InpatientGateway, useClass: HttpInpatientGateway },

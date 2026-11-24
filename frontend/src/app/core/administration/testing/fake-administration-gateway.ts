@@ -1,10 +1,8 @@
 import { AdministrationGateway } from '../administration.gateway';
-import {
-  ChildInput, Facility, FacilityInput, FacilityStatus, NodeChanges, Organization, ReferenceOption, ServiceInput, StructureNode, StructureTree, childKindOf,
-} from '../administration.models';
+import { ChildInput, Facility, FacilityInput, FacilityStatus, NodeChanges, Organization, ReferenceOption, ServiceInput, StructureNode, StructureTree, childKindOf, FacilityChanges, FacilityLocation } from '../administration.models';
 
 export const facility = (over: Partial<Facility> = {}): Facility => ({
-  id: 'f-1', organizationId: 'o-1', code: 'YDE1-hcy-01', name: 'Hôpital Central de Yaoundé', status: 'OPERATIONAL_OPEN', operational: true, ...over,
+  id: 'f-1', organizationId: 'o-1', code: 'YDE1-hcy-01', name: 'Hôpital Central de Yaoundé', status: 'OPERATIONAL_OPEN', operational: true, location: null, ...over,
 });
 
 export const node = (over: Partial<StructureNode> & Pick<StructureNode, 'id' | 'kind' | 'code' | 'name'>): StructureNode => ({
@@ -44,7 +42,8 @@ export class FakeAdministrationGateway extends AdministrationGateway {
   override registerFacility = vi.fn<(input: FacilityInput) => Promise<Facility>>().mockImplementation((input) =>
     Promise.resolve(facility({ id: 'f-new', ...input, status: input.status ?? 'OPERATIONAL_UNDER_CONSTRUCTION', operational: input.status === 'OPERATIONAL_OPEN' })),
   );
-  override updateFacility = vi.fn<(id: string, changes: { name?: string; code?: string }) => Promise<Facility>>().mockImplementation((id, changes) => Promise.resolve(facility({ id, ...changes })));
+  override updateFacility = vi.fn<(id: string, changes: FacilityChanges) => Promise<Facility>>().mockImplementation((id, changes) => Promise.resolve(facility({ id, ...changes } as Partial<Facility>)));
+  override previewFacilityCode = vi.fn<(name: string, location: FacilityLocation) => Promise<string>>().mockResolvedValue('CMYA-hcy-01');
   override changeFacilityStatus = vi.fn<(id: string, status: FacilityStatus) => Promise<Facility>>().mockImplementation((id, status) =>
     Promise.resolve(facility({ id, status, operational: status === 'OPERATIONAL_OPEN' })),
   );

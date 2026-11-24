@@ -2,7 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { SQL_EXECUTOR, SqlExecutor } from '../../database/sql-executor';
 import { CLOCK, Clock, ID_GENERATOR, IdGenerator } from '../../shared-kernel/ports';
 import { AUDIT_LOG, AuditLog } from '../audit/domain/audit-log.port';
-import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, RegisterFacilityUseCase } from './application/use-cases/facilities';
+import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, PreviewFacilityCodeUseCase, RegisterFacilityUseCase } from './application/use-cases/facilities';
 import { GetOrganizationUseCase, SetupOrganizationUseCase } from './application/use-cases/organization';
 import { GetStructureNodeUseCase, GetStructureTreeUseCase, ListServicesUseCase, ManageStructureUseCases } from './application/use-cases/structure';
 import {
@@ -52,6 +52,7 @@ export class AdministrationModule {
           inject: [FACILITY_REPOSITORY, AUDIT_LOG, CLOCK],
           useFactory: (f: FacilityRepository, a: AuditLog, c: Clock) => new ManageFacilityUseCases(f, a, c),
         },
+        { provide: PreviewFacilityCodeUseCase, inject: [FACILITY_REPOSITORY], useFactory: (f: FacilityRepository) => new PreviewFacilityCodeUseCase(f) },
         { provide: ListServicesUseCase, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new ListServicesUseCase(s) },
         { provide: GetStructureNodeUseCase, inject: [STRUCTURE_REPOSITORY], useFactory: (s: StructureRepository) => new GetStructureNodeUseCase(s) },
         {

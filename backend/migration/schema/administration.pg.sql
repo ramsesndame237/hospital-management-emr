@@ -24,6 +24,22 @@ CREATE TABLE IF NOT EXISTS administration_facilities (
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
+-- Localisation de l'établissement (l'adresse d'un bâtiment, jamais celle d'un patient) : elle sert à composer son code.
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS country_code char(2);
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS region text;
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS commune text;
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS street text;
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS latitude numeric(9, 6);
+ALTER TABLE administration_facilities ADD COLUMN IF NOT EXISTS longitude numeric(9, 6);
+DO $$ BEGIN
+  ALTER TABLE administration_facilities ADD CONSTRAINT administration_facilities_location_check CHECK (
+    (country_code IS NULL OR country_code ~ '^[A-Z]{2}$')
+    AND (country_code IS NOT NULL OR (region IS NULL AND commune IS NULL AND street IS NULL AND latitude IS NULL AND longitude IS NULL))
+    AND (latitude IS NULL) = (longitude IS NULL)
+    AND (latitude IS NULL OR latitude BETWEEN -90 AND 90)
+    AND (longitude IS NULL OR longitude BETWEEN -180 AND 180)
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_administration_facilities_code ON administration_facilities (code);
 CREATE INDEX IF NOT EXISTS ix_administration_facilities_org ON administration_facilities (organization_id);
 

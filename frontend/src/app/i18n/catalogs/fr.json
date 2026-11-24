@@ -2,6 +2,23 @@
   "app": {
     "name": "Sanjeevani EMR"
   },
+  "location": {
+    "title": "Localisation",
+    "country": "Pays",
+    "chooseCountry": "Choisir un pays",
+    "search": "Rechercher un lieu (quartier, rue, établissement)",
+    "searchPlaceholder": "Ex. : Hôpital Central, Yaoundé",
+    "searchButton": "Rechercher",
+    "searching": "Recherche…",
+    "results": "Lieux trouvés",
+    "noResult": "Aucun lieu trouvé. Précisez la recherche ou saisissez la localisation à la main.",
+    "unavailable": "Le service de recherche de lieux est injoignable. Saisissez la région, la commune et la rue à la main.",
+    "map": "Carte",
+    "mapHint": "Cliquez sur la carte pour placer le site. Les cartes et la recherche viennent d’OpenStreetMap ; seule votre saisie ou le point cliqué est transmis.",
+    "region": "Région",
+    "commune": "Commune",
+    "street": "Rue"
+  },
   "common": {
     "pageLoading": "Chargement de la page",
     "loading": "Chargement…",
@@ -322,7 +339,12 @@
       "created": "Site « {name} » enregistré.",
       "updated": "Site « {name} » mis à jour.",
       "statusChanged": "Statut de « {name} » modifié.",
-      "empty": "Aucun site enregistré pour le moment."
+      "empty": "Aucun site enregistré pour le moment.",
+      "codeAutoTitle": "Code du site",
+      "codeAuto": "Ce site recevra le code {code}, composé d’après sa localisation et son nom.",
+      "codePending": "Le code du site sera composé automatiquement dès que vous aurez choisi le pays et saisi le nom.",
+      "codeCurrent": "Code du site : {code} (il ne change pas).",
+      "locationRequired": "Choisissez au moins le pays du site : le code en dépend."
     },
     "structure": {
       "title": "Structure des sites",

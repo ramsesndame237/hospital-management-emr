@@ -7,10 +7,33 @@ import { FacilityCode } from '../../domain/value-objects/facility-code';
 import { FacilityId } from '../../domain/value-objects/facility-id';
 import { FacilityName } from '../../domain/value-objects/facility-name';
 import { FacilityStatus } from '../../domain/value-objects/FacilityStatus';
+import { FacilityLocation, FacilityLocationInput } from '../../domain/value-objects/facility-location';
+import { codePrefix, formatCode, nameInitials, nextSequence } from '../../domain/facility-code-generator';
 import { ORGANIZATION_NOT_FOUND } from './organization';
 
 const NOT_FOUND = new DomainError('FACILITY_NOT_FOUND', 'Établissement introuvable.');
 const DUPLICATE_CODE = new DomainError('FACILITY_CODE_ALREADY_EXISTS', 'Un établissement utilise déjà ce code.');
+const LOCATION_REQUIRED = new DomainError('FACILITY_CODE_LOCATION_REQUIRED', 'Sans code, la localisation (au moins le pays) est obligatoire : le code en est déduit.');
+const SEQUENCE_EXHAUSTED = new DomainError('FACILITY_CODE_SEQUENCE_EXHAUSTED', 'Les 99 numéros d’ordre de ce début de code sont pris : précisez une autre commune ou un autre nom.');
+
+/** Compose le code d'un nouvel établissement d'après sa localisation et son nom, avec le premier numéro d'ordre libre. */
+async function generateCode(facilities: FacilityRepository, name: FacilityName, location: FacilityLocation): Promise<Result<FacilityCode>> {
+  const s = location.state;
+  const prefix = codePrefix(s.countryCode, s.commune ?? s.region);
+  const initials = nameInitials(name.value);
+  const sequence = nextSequence(await facilities.codesWithPrefix(`${prefix}-${initials}-`), prefix, initials);
+  if (sequence === null) return err(SEQUENCE_EXHAUSTED);
+  return FacilityCode.create(formatCode(prefix, initials, sequence));
+}
+
+export interface FacilityLocationView {
+  readonly countryCode: string;
+  readonly region: string | null;
+  readonly commune: string | null;
+  readonly street: string | null;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
+}
 
 export interface FacilityView {
   readonly id: string;
@@ -19,6 +42,8 @@ export interface FacilityView {
   readonly name: string;
   readonly status: string;
   readonly operational: boolean;
+  /** Où se trouve l'établissement ; `null` pour un établissement créé avant la localisation. */
+  readonly location: FacilityLocationView | null;
 }
 
 export const toFacilityView = (f: Facility): FacilityView => ({
@@ -28,6 +53,7 @@ export const toFacilityView = (f: Facility): FacilityView => ({
   name: f.getName().value,
   status: f.getStatus().getValue(),
   operational: f.isOperational(),
+  location: f.getLocation() ? { ...f.getLocation()!.state } : null,
 });
 
 async function loadFacility(facilities: FacilityRepository, rawId: string): Promise<Result<Facility>> {
@@ -67,33 +93,74 @@ export class RegisterFacilityUseCase {
     private readonly clock: Clock,
   ) {}
 
-  async execute(actorId: string, input: { name: string; code: string; status?: string }): Promise<Result<FacilityView>> {
+  /**
+   * Sans `code`, il est composé d'après la localisation et le nom (voir `facility-code-generator`) : la localisation est alors obligatoire. Un `code` fourni
+   * est contrôlé et reste accepté (reprise de données). Deux enregistrements simultanés qui visent le même numéro d'ordre ne s'écrasent pas : le second est
+   * refait avec le numéro suivant.
+   */
+  async execute(actorId: string, input: { name: string; code?: string | null; status?: string; location?: FacilityLocationInput | null }): Promise<Result<FacilityView>> {
     const name = FacilityName.create(input.name);
     if (!name.ok) return err(name.error);
-    const code = FacilityCode.create(input.code);
-    if (!code.ok) return err(code.error);
     const status = input.status === undefined ? undefined : FacilityStatus.create(input.status);
     if (status && !status.ok) return err(status.error);
+    const location = input.location ? FacilityLocation.create(input.location) : null;
+    if (location && !location.ok) return err(location.error);
 
     const organization = await this.organizations.find();
     if (!organization) return err(ORGANIZATION_NOT_FOUND);
-    if (await this.facilities.findByCode(code.value)) return err(DUPLICATE_CODE);
+    const explicit = (input.code ?? '').trim();
+    if (explicit === '' && !location) return err(LOCATION_REQUIRED);
 
-    const id = FacilityId.create(this.ids.next());
-    if (!id.ok) return err(id.error);
-    const created = Facility.create(name.value, code.value, id.value, organization.getId(), status?.value);
-    if (!created.ok) return err(created.error);
-    await this.facilities.save(created.value);
+    let created: Result<Facility> | null = null;
+    for (let attempt = 0; attempt < 3 && !created?.ok; attempt += 1) {
+      const code = explicit !== '' ? FacilityCode.create(explicit) : await generateCode(this.facilities, name.value, (location as { value: FacilityLocation }).value);
+      if (!code.ok) return err(code.error);
+      if (await this.facilities.findByCode(code.value)) {
+        if (explicit !== '') return err(DUPLICATE_CODE);
+        continue; // un autre enregistrement vient de prendre ce numéro d'ordre : on recalcule
+      }
+      const id = FacilityId.create(this.ids.next());
+      if (!id.ok) return err(id.error);
+      created = Facility.create(name.value, code.value, id.value, organization.getId(), status?.value, location?.value ?? null);
+      if (!created.ok) return err(created.error);
+      try {
+        await this.facilities.save(created.value);
+      } catch (error) {
+        // Course perdue sur l'index unique du code : si le code est maintenant pris et qu'il était composé, on recommence ; sinon l'erreur est réelle.
+        if (explicit === '' && (await this.facilities.findByCode(code.value))) {
+          created = null;
+          continue;
+        }
+        throw error;
+      }
+    }
+    if (!created || !created.ok) return err(DUPLICATE_CODE);
+    const code = created.value.getCode();
+    const id = created.value.getId();
     await this.audit.record({
       action: 'administration.facility.register',
       outcome: 'SUCCESS',
       actorId,
       resourceType: 'facility',
-      resourceId: id.value.value,
-      metadata: { code: code.value.value, name: name.value.value, status: created.value.getStatus().getValue() },
+      resourceId: id.value,
+      metadata: { code: code.value, name: name.value.value, status: created.value.getStatus().getValue(), generatedCode: explicit === '', ...(location ? { country: location.value.state.countryCode } : {}) },
       occurredAt: this.clock.now(),
     });
     return ok(toFacilityView(created.value));
+  }
+}
+
+/** Le code que recevrait un établissement de ce nom et de cette localisation, sans rien enregistrer : l'écran le montre avant la création. */
+export class PreviewFacilityCodeUseCase {
+  constructor(private readonly facilities: FacilityRepository) {}
+
+  async execute(input: { name: string; location: FacilityLocationInput }): Promise<Result<{ code: string }>> {
+    const name = FacilityName.create(input.name);
+    if (!name.ok) return err(name.error);
+    const location = FacilityLocation.create(input.location);
+    if (!location.ok) return err(location.error);
+    const code = await generateCode(this.facilities, name.value, location.value);
+    return code.ok ? ok({ code: code.value.value }) : err(code.error);
   }
 }
 
@@ -106,9 +173,11 @@ export class ManageFacilityUseCases {
   ) {}
 
   /** Seuls les champs fournis changent ; rien n'est écrit (ni journalisé) si les valeurs sont identiques. */
-  async update(actorId: string, id: string, input: { name?: string; code?: string }): Promise<Result<FacilityView>> {
+  async update(actorId: string, id: string, input: { name?: string; code?: string; location?: FacilityLocationInput | null }): Promise<Result<FacilityView>> {
     const name = input.name === undefined ? undefined : FacilityName.create(input.name);
     if (name && !name.ok) return err(name.error);
+    const location = input.location === undefined || input.location === null ? undefined : FacilityLocation.create(input.location);
+    if (location && !location.ok) return err(location.error);
     const code = input.code === undefined ? undefined : FacilityCode.create(input.code);
     if (code && !code.ok) return err(code.error);
 
@@ -126,6 +195,14 @@ export class ManageFacilityUseCases {
       if (owner && !owner.getId().equals(facility.getId())) return err(DUPLICATE_CODE);
       metadata.previousCode = facility.getCode().value;
       facility.updateCode(code.value);
+    }
+    // `location: null` efface la localisation ; absente, elle reste ; fournie, elle remplace l'ancienne (le code, lui, ne change pas tout seul).
+    if (input.location === null && facility.getLocation()) {
+      metadata.locationCleared = 'true';
+      facility.updateLocation(null);
+    } else if (location?.ok && !location.value.equals(facility.getLocation())) {
+      metadata.locationChanged = 'true';
+      facility.updateLocation(location.value);
     }
     if (Object.keys(metadata).length === 0) return ok(toFacilityView(facility));
 
