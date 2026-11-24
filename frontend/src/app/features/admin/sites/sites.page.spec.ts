@@ -2,16 +2,26 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AdministrationGateway } from '../../../core/administration/administration.gateway';
 import { FakeAdministrationGateway } from '../../../core/administration/testing/fake-administration-gateway';
 import { ApiError } from '../../../core/http/api-error';
+import { Geocoder } from '../../../core/geo/geocoder';
+import { MAP_FACTORY } from '../../../shared/location-picker/location-picker';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { configureApp, settle, watchMissingKeys } from '../../../testing/app-testing';
 import { SitesPage } from './sites.page';
 
 const MANAGE = ['administration.facilities:read', 'administration.facilities:manage'];
 
+const noMap = async () => ({ setView: () => undefined, setMarker: () => undefined, onClick: () => undefined, destroy: () => undefined });
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe('SitesPage (ADM-32)', () => {
   let fixture: ComponentFixture<SitesPage>;
   let admin: FakeAdministrationGateway;
   let missingKeys: () => string[];
+  const PROVIDERS = () => [
+    { provide: AdministrationGateway, useValue: admin },
+    { provide: Geocoder, useValue: { search: vi.fn().mockResolvedValue([]), reverse: vi.fn().mockResolvedValue(null) } },
+    { provide: MAP_FACTORY, useValue: noMap },
+  ];
   const root = () => fixture.nativeElement as HTMLElement;
   const q = <T extends HTMLElement>(selector: string) => root().querySelector<T>(selector);
   const text = () => root().textContent ?? '';
@@ -19,7 +29,7 @@ describe('SitesPage (ADM-32)', () => {
 
   async function setup(permissions: readonly string[] = MANAGE) {
     admin = new FakeAdministrationGateway();
-    const { i18n } = configureApp({ roles: ['SYSTEM_ADMIN'], permissions, providers: [{ provide: AdministrationGateway, useValue: admin }] });
+    const { i18n } = configureApp({ roles: ['SYSTEM_ADMIN'], permissions, providers: PROVIDERS() });
     missingKeys = watchMissingKeys(i18n);
     fixture = TestBed.createComponent(SitesPage);
     await settle(fixture);
@@ -35,6 +45,15 @@ describe('SitesPage (ADM-32)', () => {
     input.value = value;
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+  }
+
+  async function chooseCountry(code: string) {
+    const select = q<HTMLSelectElement>('app-location-picker select')!;
+    select.value = code;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await wait(450); // pause de saisie avant la demande du code proposé
+    await settle(fixture);
   }
 
   async function submit(formId: string) {
@@ -55,51 +74,64 @@ describe('SitesPage (ADM-32)', () => {
     expect(q('a[href="/admin/structure/f-1"]')).not.toBeNull();
   });
 
-  it('enregistre un site « en projet » par défaut et l’ajoute à la liste, triée par nom', async () => {
+  it('compose le code d’après la localisation et le nom, le montre avant l’enregistrement, puis enregistre le site', async () => {
     await setup();
     await click(buttonNamed('Ajouter un site'));
     expect(q('aside h2')?.textContent).toContain('Nouveau site');
+    expect(q('#sites-create-code')).toBeNull(); // plus de saisie du code
+    expect(text()).toContain('sera composé automatiquement');
     await type('#sites-create-name', '  Annexe de Bafoussam ');
-    await type('#sites-create-code', 'BFM1-ann-03');
+    await chooseCountry('CM');
+    expect(admin.previewFacilityCode).toHaveBeenCalledWith('Annexe de Bafoussam', expect.objectContaining({ countryCode: 'CM' }));
+    expect(text()).toContain('CMYA-hcy-01');
     await submit('sites-create');
-    expect(admin.registerFacility).toHaveBeenCalledWith({ name: 'Annexe de Bafoussam', code: 'BFM1-ann-03', status: 'OPERATIONAL_UNDER_CONSTRUCTION' });
+    expect(admin.registerFacility).toHaveBeenCalledWith({
+      name: 'Annexe de Bafoussam',
+      location: { countryCode: 'CM', region: null, commune: null, street: null, latitude: null, longitude: null },
+      status: 'OPERATIONAL_UNDER_CONSTRUCTION',
+    });
     expect(q('aside')).toBeNull();
-    expect([...root().querySelectorAll('tbody tr td:nth-child(2)')].map((td) => td.textContent?.trim())).toEqual([
-      'Annexe de Bafoussam', 'Clinique Annexe de Douala', 'Hôpital Central de Yaoundé',
-    ]);
     expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Site « Annexe de Bafoussam » enregistré.');
   });
 
-  it('refuse un code mal formé sans appeler le serveur', async () => {
+  it('exige le pays avant d’enregistrer, sans appeler le serveur', async () => {
     await setup();
     await click(buttonNamed('Ajouter un site'));
     await type('#sites-create-name', 'Annexe');
-    await type('#sites-create-code', 'abc');
     await submit('sites-create');
-    expect(text()).toContain('Le code ne respecte pas le format attendu');
+    expect(text()).toContain('Choisissez au moins le pays du site');
     expect(admin.registerFacility).not.toHaveBeenCalled();
   });
 
-  it('garde le panneau ouvert et explique le refus quand le code existe déjà', async () => {
+  it('garde le panneau ouvert et explique le refus renvoyé par le serveur', async () => {
     await setup();
     admin.registerFacility.mockRejectedValue(new ApiError(409, 'FACILITY_CODE_ALREADY_EXISTS', 'Un établissement utilise déjà ce code.'));
     await click(buttonNamed('Ajouter un site'));
     await type('#sites-create-name', 'Doublon');
-    await type('#sites-create-code', 'YDE1-hcy-01');
+    await chooseCountry('CM');
     await submit('sites-create');
     expect(q('aside [role=alert]')?.textContent).toContain('Un établissement utilise déjà ce code.');
     expect(q<HTMLInputElement>('#sites-create-name')?.value).toBe('Doublon');
     expect(root().querySelectorAll('tbody tr')).toHaveLength(2);
   });
 
-  it('modifie le nom et le code d’un site', async () => {
+  it('modifie le nom d’un site sans toucher au code ni à la localisation', async () => {
     await setup();
     await click(buttonNamed('Modifier Hôpital Central de Yaoundé'));
     expect(q<HTMLInputElement>('#sites-edit-f-1-name')?.value).toBe('Hôpital Central de Yaoundé');
+    expect(text()).toContain('YDE1-hcy-01');
     await type('#sites-edit-f-1-name', 'Hôpital Central');
     await submit('sites-edit-f-1');
-    expect(admin.updateFacility).toHaveBeenCalledWith('f-1', { name: 'Hôpital Central', code: 'YDE1-hcy-01' });
+    expect(admin.updateFacility).toHaveBeenCalledWith('f-1', { name: 'Hôpital Central' });
     expect(text()).toContain('Hôpital Central');
+  });
+
+  it('envoie la nouvelle localisation quand on la change en modifiant un site', async () => {
+    await setup();
+    await click(buttonNamed('Modifier Hôpital Central de Yaoundé'));
+    await chooseCountry('SN');
+    await submit('sites-edit-f-1');
+    expect(admin.updateFacility).toHaveBeenCalledWith('f-1', { name: 'Hôpital Central de Yaoundé', location: expect.objectContaining({ countryCode: 'SN' }) });
   });
 
   describe('changement de statut', () => {
@@ -166,7 +198,7 @@ describe('SitesPage (ADM-32)', () => {
   it('dit qu’aucun site n’est enregistré', async () => {
     admin = new FakeAdministrationGateway();
     admin.listFacilities.mockResolvedValue([]);
-    const { i18n } = configureApp({ roles: ['SYSTEM_ADMIN'], permissions: MANAGE, providers: [{ provide: AdministrationGateway, useValue: admin }] });
+    const { i18n } = configureApp({ roles: ['SYSTEM_ADMIN'], permissions: MANAGE, providers: PROVIDERS() });
     missingKeys = watchMissingKeys(i18n);
     fixture = TestBed.createComponent(SitesPage);
     await settle(fixture);

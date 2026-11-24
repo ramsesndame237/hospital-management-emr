@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild
 import { RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { AdministrationGateway } from '../../../core/administration/administration.gateway';
-import { Facility, FacilityStatus } from '../../../core/administration/administration.models';
+import { Facility, FacilityLocation, FacilityStatus } from '../../../core/administration/administration.models';
+import { LocationPicker, LocationValue } from '../../../shared/location-picker/location-picker';
 import { hasPermission } from '../../../core/auth/permissions';
 import { SessionStore } from '../../../core/auth/session.store';
 import { Translator } from '../../../core/i18n/translator';
@@ -18,10 +19,13 @@ type Panel =
   | { readonly kind: 'edit'; readonly facility: Facility }
   | { readonly kind: 'status'; readonly facility: Facility };
 
+const toPicker = (l: FacilityLocation | null): LocationValue | null =>
+  l ? { countryCode: l.countryCode, region: l.region ?? '', commune: l.commune ?? '', street: l.street ?? '', latitude: l.latitude, longitude: l.longitude } : null;
+
 /** ADM-32 — Sites : liste des établissements de l'organisation, création, modification et changement de statut. */
 @Component({
   selector: 'app-sites-page',
-  imports: [RouterLink, HlmButtonImports, FormBuilderComponent, StatusTag],
+  imports: [RouterLink, HlmButtonImports, FormBuilderComponent, StatusTag, LocationPicker],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -82,7 +86,10 @@ type Panel =
           @for (current of panelRows(); track current.key) {
             <aside class="flex flex-col gap-4 border border-border bg-card p-6" [attr.aria-labelledby]="'sites-panel-title'">
               <h2 id="sites-panel-title" class="text-lg leading-[26px] font-semibold text-foreground">{{ i18n.t(current.titleKey, { name: current.name }) }}</h2>
-              <app-form-builder #form [fields]="current.fields" [busy]="busy()" [formId]="'sites-' + current.key" (submitted)="submit($event)" (action)="onAction($event)" />
+              @if (current.withLocation) {
+                <app-location-picker [initial]="current.initialLocation" (changed)="onLocation($event)" />
+              }
+              <app-form-builder #form [fields]="current.fields" [busy]="busy()" [formId]="'sites-' + current.key" (submitted)="submit($event)" (action)="onAction($event)" (valueChange)="onValue($event)" />
             </aside>
           }
         </div>
@@ -103,6 +110,13 @@ export class SitesPage {
   protected readonly panel = signal<Panel | null>(null);
   protected readonly busy = signal(false);
   private readonly notice = signal<string | null>(null);
+  /** Localisation choisie dans le sélecteur (`null` : pays pas encore choisi) et le code que le serveur donnerait. */
+  private readonly location = signal<FacilityLocation | null>(null);
+  private readonly locationTouched = signal(false);
+  private readonly name = signal('');
+  private readonly codePreview = signal<string | null>(null);
+  private previewTimer: ReturnType<typeof setTimeout> | undefined;
+  private previewSeq = 0;
 
   protected readonly canManage = computed(() => hasPermission(this.user()?.permissions ?? [], 'administration.facilities:manage'));
   protected readonly loadFailure = computed(() => failureNotice(this.loadError()));
@@ -116,11 +130,11 @@ export class SitesPage {
     if (!panel) return [];
     switch (panel.kind) {
       case 'create':
-        return [{ key: 'create', titleKey: 'admin.sites.addTitle', name: '', fields: facilityFields({ facility: null, notice }) }];
+        return [{ key: 'create', titleKey: 'admin.sites.addTitle', name: '', withLocation: true, initialLocation: null, fields: facilityFields({ facility: null, codePreview: this.codePreview(), notice }) }];
       case 'edit':
-        return [{ key: `edit-${panel.facility.id}`, titleKey: 'admin.sites.editTitle', name: panel.facility.name, fields: facilityFields({ facility: panel.facility, notice }) }];
+        return [{ key: `edit-${panel.facility.id}`, titleKey: 'admin.sites.editTitle', name: panel.facility.name, withLocation: true, initialLocation: toPicker(panel.facility.location), fields: facilityFields({ facility: panel.facility, codePreview: null, notice }) }];
       case 'status':
-        return [{ key: `status-${panel.facility.id}`, titleKey: 'admin.sites.statusTitle', name: panel.facility.name, fields: facilityStatusFields({ facility: panel.facility, notice }) }];
+        return [{ key: `status-${panel.facility.id}`, titleKey: 'admin.sites.statusTitle', name: panel.facility.name, withLocation: false, initialLocation: null, fields: facilityStatusFields({ facility: panel.facility, notice }) }];
     }
   });
 
@@ -145,7 +159,43 @@ export class SitesPage {
 
   protected open(panel: Panel): void {
     this.notice.set(null);
+    this.location.set(panel.kind === 'edit' ? panel.facility.location : null);
+    this.locationTouched.set(false);
+    this.name.set(panel.kind === 'edit' ? panel.facility.name : '');
+    this.codePreview.set(null);
     this.panel.set(panel);
+  }
+
+  protected onLocation(value: LocationValue | null): void {
+    this.locationTouched.set(true);
+    this.location.set(value ? { countryCode: value.countryCode, region: value.region.trim() || null, commune: value.commune.trim() || null, street: value.street.trim() || null, latitude: value.latitude, longitude: value.longitude } : null);
+    this.schedulePreview();
+  }
+
+  protected onValue(value: Record<string, unknown>): void {
+    const name = typeof value['name'] === 'string' ? value['name'].trim() : '';
+    if (name === this.name()) return;
+    this.name.set(name);
+    this.schedulePreview();
+  }
+
+  /** Le code proposé suit le nom et la localisation (après une courte pause de saisie) ; seule la création en a besoin. */
+  private schedulePreview(): void {
+    clearTimeout(this.previewTimer);
+    if (this.panel()?.kind !== 'create') return;
+    const location = this.location();
+    const name = this.name();
+    if (!location || !name) {
+      this.codePreview.set(null);
+      return;
+    }
+    const seq = ++this.previewSeq;
+    this.previewTimer = setTimeout(() => {
+      this.gateway.previewFacilityCode(name, location).then(
+        (code) => { if (seq === this.previewSeq) this.codePreview.set(code); },
+        () => { if (seq === this.previewSeq) this.codePreview.set(null); },
+      );
+    }, 400);
   }
 
   protected onAction(event: FormAction): void {
@@ -156,14 +206,18 @@ export class SitesPage {
     const panel = this.panel();
     if (!panel) return;
     this.notice.set(null);
+    if (panel.kind === 'create' && !this.location()) {
+      this.notice.set(this.i18n.t('admin.sites.locationRequired'));
+      return;
+    }
     this.busy.set(true);
     try {
       if (panel.kind === 'create') {
-        const created = await this.gateway.registerFacility({ name: String(value['name']), code: String(value['code']), status: value['status'] as FacilityStatus });
+        const created = await this.gateway.registerFacility({ name: String(value['name']), location: this.location() ?? undefined, status: value['status'] as FacilityStatus });
         this.facilities.update((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
         this.toast.show(this.i18n.t('admin.sites.created', { name: created.name }));
       } else if (panel.kind === 'edit') {
-        const updated = await this.gateway.updateFacility(panel.facility.id, { name: String(value['name']), code: String(value['code']) });
+        const updated = await this.gateway.updateFacility(panel.facility.id, { name: String(value['name']), ...(this.locationTouched() ? { location: this.location() } : {}) });
         this.replace(updated);
         this.toast.show(this.i18n.t('admin.sites.updated', { name: updated.name }));
       } else {

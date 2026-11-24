@@ -3,9 +3,9 @@ import { DocGroup, DocOperation } from '../../api-docs';
 import type { DocParam } from '../../api-docs';
 import { CurrentUser, RequirePermissions } from '../../iam/presentation/decorators';
 import type { AuthUser } from '../../iam/presentation/decorators';
-import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, RegisterFacilityUseCase } from '../application/use-cases/facilities';
+import { GetFacilityUseCase, ListFacilitiesUseCase, ManageFacilityUseCases, PreviewFacilityCodeUseCase, RegisterFacilityUseCase } from '../application/use-cases/facilities';
 import { GetOrganizationUseCase, SetupOrganizationUseCase } from '../application/use-cases/organization';
-import { ChangeFacilityStatusDto, FacilityDto, FacilityPageDto, OrganizationDto, RegisterFacilityDto, SetupOrganizationDto, UpdateFacilityDto } from './dto/administration.dto';
+import { ChangeFacilityStatusDto, FacilityCodePreviewDto, FacilityDto, FacilityPageDto, OrganizationDto, PreviewFacilityCodeDto, RegisterFacilityDto, SetupOrganizationDto, UpdateFacilityDto } from './dto/administration.dto';
 import { unwrap } from './http-errors';
 
 const ID: DocParam = { name: 'id', description: "Identifiant de l'établissement.", example: '7c1e0c1e-6f2a-4f55-8c61-0b6f3e0d9a21', format: 'uuid' };
@@ -30,6 +30,7 @@ export class AdministrationController {
     private readonly getFacility: GetFacilityUseCase,
     private readonly registerFacility: RegisterFacilityUseCase,
     private readonly manageFacilities: ManageFacilityUseCases,
+    private readonly previewCode: PreviewFacilityCodeUseCase,
   ) {}
 
   @DocOperation({
@@ -97,8 +98,20 @@ export class AdministrationController {
   }
 
   @DocOperation({
+    summary: "Voir le code d'un établissement avant de le créer",
+    description: "Compose, sans rien enregistrer, le code que recevrait un établissement de ce nom et de cette localisation : `PPLL-nnn-SS` (pays + 2 premières lettres de la commune, initiales du nom sans les mots-outils, premier numéro d'ordre libre). Même calcul que la création.",
+    auth: 'bearer',
+    responses: [{ status: 200, description: 'Le code proposé.', type: FacilityCodePreviewDto }],
+    errors: [400, 422],
+  })
+  @RequirePermissions('administration.facilities:manage') @HttpCode(200) @Post('facilities/code-preview')
+  async codePreview(@Body() dto: PreviewFacilityCodeDto): Promise<FacilityCodePreviewDto> {
+    return unwrap(await this.previewCode.execute(dto));
+  }
+
+  @DocOperation({
     summary: 'Modifier un établissement',
-    description: 'Change le nom et/ou le code. Les champs absents restent inchangés. Le statut se change séparément.',
+    description: 'Change le nom, le code et/ou la localisation. Les champs absents restent inchangés (`location: null` efface la localisation). Le statut se change séparément.',
     auth: 'bearer',
     responses: [{ status: 200, description: 'Établissement mis à jour.', type: FacilityDto }],
     errors: [400, 404, 409, 422],

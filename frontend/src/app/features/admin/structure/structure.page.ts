@@ -373,14 +373,14 @@ export class StructurePage {
         case 'service': {
           const specialtyCode = text('specialtyCode');
           const created = await this.gateway.createService(facilityId, {
-            code: text('code'), name: text('name'), serviceType: text('serviceType') as ServiceType, ...(specialtyCode ? { specialtyCode } : {}),
+            name: text('name'), serviceType: text('serviceType') as ServiceType, ...(specialtyCode ? { specialtyCode } : {}),
           });
           this.toast.show(this.i18n.t('admin.structure.created', { name: created.name }));
           break;
         }
         case 'child': {
           const floor = text('floor');
-          const created = await this.gateway.createChild(panel.parent.id, { code: text('code'), name: text('name'), ...(floor ? { floor } : {}) });
+          const created = await this.gateway.createChild(panel.parent.id, { name: text('name'), ...(floor ? { floor } : {}) });
           this.expanded.update((set) => new Set(set).add(panel.parent.id));
           this.toast.show(this.i18n.t('admin.structure.created', { name: created.name }));
           break;

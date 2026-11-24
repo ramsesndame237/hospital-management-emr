@@ -17,6 +17,7 @@ class InMemoryFacilities implements FacilityRepository {
   readonly byId = new Map<string, Facility>();
   async findById(id: FacilityId) { return this.byId.get(id.value) ?? null; }
   async findByCode(code: FacilityCode) { return [...this.byId.values()].find((f) => f.getCode().equals(code)) ?? null; }
+  async codesWithPrefix(prefix: string) { return [...this.byId.values()].map((f) => f.getCode().value).filter((c) => c.startsWith(prefix)); }
   async save(f: Facility) { this.byId.set(f.getId().value, f); }
   async list(offset: number, limit: number) {
     const all = [...this.byId.values()].sort((a, b) => a.getName().value.localeCompare(b.getName().value));

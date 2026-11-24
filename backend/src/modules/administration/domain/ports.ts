@@ -15,6 +15,8 @@ export interface OrganizationRepository {
 export interface FacilityRepository {
   findById(id: FacilityId): Promise<Facility | null>;
   findByCode(code: FacilityCode): Promise<Facility | null>;
+  /** Les codes déjà pris qui commencent par ce préfixe (ex. `CMYA-hcy-`) : sert à trouver le prochain numéro d'ordre libre. */
+  codesWithPrefix(prefix: string): Promise<string[]>;
   /** Insère ou met à jour l'établissement. */
   save(facility: Facility): Promise<void>;
   list(offset: number, limit: number): Promise<{ items: Facility[]; total: number }>;

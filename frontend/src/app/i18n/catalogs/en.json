@@ -2,6 +2,23 @@
   "app": {
     "name": "Sanjeevani EMR"
   },
+  "location": {
+    "title": "Location",
+    "country": "Country",
+    "chooseCountry": "Choose a country",
+    "search": "Search for a place (district, street, facility)",
+    "searchPlaceholder": "E.g. Central Hospital, Yaoundé",
+    "searchButton": "Search",
+    "searching": "Searching…",
+    "results": "Places found",
+    "noResult": "No place found. Refine the search or enter the location by hand.",
+    "unavailable": "The place search service cannot be reached. Enter the region, commune and street by hand.",
+    "map": "Map",
+    "mapHint": "Click the map to place the site. Maps and search come from OpenStreetMap; only your input or the clicked point is sent.",
+    "region": "Region",
+    "commune": "Commune",
+    "street": "Street"
+  },
   "common": {
     "pageLoading": "Loading the page",
     "loading": "Loading…",
@@ -322,7 +339,12 @@
       "created": "Site “{name}” registered.",
       "updated": "Site “{name}” updated.",
       "statusChanged": "Status of “{name}” changed.",
-      "empty": "No site registered yet."
+      "empty": "No site registered yet.",
+      "codeAutoTitle": "Site code",
+      "codeAuto": "This site will get the code {code}, built from its location and name.",
+      "codePending": "The site code is built automatically once you have chosen the country and entered the name.",
+      "codeCurrent": "Site code: {code} (it does not change).",
+      "locationRequired": "Choose at least the site's country: the code depends on it."
     },
     "structure": {
       "title": "Site structure",
@@ -343,6 +365,7 @@
       "collapse": "Collapse {name}",
       "name": "Name",
       "level": "Level",
+      "codeAuto": "The code is built automatically when saved and cannot be changed afterwards.",
       "code": "Code",
       "codeHint": "Letters, digits, “_”, “-” or “.” (32 characters at most). The code can no longer be changed.",
       "codeRequired": "Enter a code.",

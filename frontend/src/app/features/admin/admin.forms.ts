@@ -26,8 +26,11 @@ export function organizationFields(o: { readonly name: string; readonly exists: 
   ];
 }
 
-/** Création (code, nom, statut initial) ou modification (nom, code) d'un site. */
-export function facilityFields(o: { readonly facility: Facility | null; readonly notice: string | null }): FieldSchema[] {
+/**
+ * Création (nom, statut initial) ou modification (nom) d'un site. Le CODE n'est plus saisi : il est composé d'après la localisation et le nom (ex. `CMYA-hcy-01`) ;
+ * `codePreview` est celui que le serveur donnerait maintenant (absent tant que le pays et le nom ne sont pas choisis).
+ */
+export function facilityFields(o: { readonly facility: Facility | null; readonly codePreview: string | null; readonly notice: string | null }): FieldSchema[] {
   const creating = o.facility === null;
   return [
     ...failureNotice(o.notice),
@@ -35,10 +38,11 @@ export function facilityFields(o: { readonly facility: Facility | null; readonly
       type: 'text', name: 'name', label: 'admin.sites.name', value: o.facility?.name ?? '', autofocus: true, normalize: 'trim',
       validators: [{ type: 'required', message: 'admin.sites.nameRequired' }, { type: 'maxLength', value: 200 }],
     },
-    {
-      type: 'text', name: 'code', label: 'admin.sites.code', hint: 'admin.sites.codeHint', placeholder: 'admin.sites.codePlaceholder', value: o.facility?.code ?? '', normalize: 'trim', inputClass: 'font-mono',
-      validators: [{ type: 'required', message: 'admin.sites.codeRequired' }, { type: 'pattern', value: FACILITY_CODE, message: 'admin.sites.codeFormat' }],
-    },
+    creating
+      ? (o.codePreview
+        ? { type: 'message', name: 'code', tone: 'info', appearance: 'outlined', title: 'admin.sites.codeAutoTitle', text: 'admin.sites.codeAuto', params: { code: o.codePreview } }
+        : { type: 'paragraph', name: 'code', text: 'admin.sites.codePending', tone: 'muted' })
+      : { type: 'paragraph', name: 'code', text: 'admin.sites.codeCurrent', params: { code: o.facility?.code ?? '' }, tone: 'muted' },
     ...(creating
       ? ([{ type: 'select', name: 'status', label: 'admin.sites.initialStatus', hint: 'admin.sites.initialStatusHint', value: 'OPERATIONAL_UNDER_CONSTRUCTION', options: statusOptions() }] as const)
       : []),
@@ -60,19 +64,13 @@ export function facilityStatusFields(o: { readonly facility: Facility; readonly 
   ];
 }
 
-const CODE_RULES = [
-  { type: 'required', message: 'admin.structure.codeRequired' },
-  { type: 'maxLength', value: 32 },
-  { type: 'pattern', value: '^\\s*[A-Za-z0-9_.-]+\\s*$', message: 'admin.structure.codeFormat' },
-] as const;
-
-/** Création d'un service (code, nom, nature, spécialité) ou modification (nom, nature, spécialité ; le code ne change plus). */
+/** Création d'un service (nom, nature, spécialité ; le code est composé automatiquement) ou modification (nom, nature, spécialité ; le code ne change plus). */
 export function serviceFields(o: { readonly node: StructureNode | null; readonly specialties: readonly ReferenceOption[]; readonly notice: string | null }): FieldSchema[] {
   const creating = o.node === null;
   return [
     ...failureNotice(o.notice),
     ...(creating
-      ? ([{ type: 'code', name: 'code', label: 'admin.structure.code', hint: 'admin.structure.codeHint', value: '', normalize: 'uppercase', inputClass: 'font-mono', validators: CODE_RULES }] as const)
+      ? ([{ type: 'paragraph', name: 'code', text: 'admin.structure.codeAuto', tone: 'muted' }] as const)
       : []),
     { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
     {
@@ -95,9 +93,9 @@ export function childFields(o: { readonly kind: NodeKind; readonly node: Structu
   return [
     ...failureNotice(o.notice),
     ...(creating
-      ? ([{ type: 'code', name: 'code', label: 'admin.structure.code', hint: 'admin.structure.codeHint', value: '', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono', validators: CODE_RULES }] as const)
+      ? ([{ type: 'paragraph', name: 'code', text: 'admin.structure.codeAuto', tone: 'muted' }] as const)
       : []),
-    { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: !creating, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
     ...(o.kind === 'ROOM'
       ? ([{ type: 'text', name: 'floor', label: 'admin.structure.floor', hint: 'admin.structure.floorHint', value: o.node?.floor ?? '', normalize: 'trim', validators: [{ type: 'maxLength', value: 32 }] }] as const)
       : []),

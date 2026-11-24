@@ -19,6 +19,7 @@ class InMemoryFacilities implements FacilityRepository {
   }
   async findById(id: FacilityId) { return this.byId.get(id.value) ?? null; }
   async findByCode() { return null; }
+  async codesWithPrefix() { return []; }
   async save() { /* inutilisé */ }
   async list() { return { items: [...this.byId.values()], total: this.byId.size }; }
 }
