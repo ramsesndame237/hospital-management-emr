@@ -3,12 +3,14 @@ import { Clock, IdGenerator } from '../../../../shared-kernel/ports';
 import { DomainError, err, ok, Result } from '../../../../shared-kernel/result';
 import { FacilityRepository, SpecialtyDirectory, StructureRepository } from '../../domain/ports';
 import { StructureNode } from '../../domain/structure/structure-node';
+import { childCodeCandidate, MAX_CODE_ATTEMPTS, serviceCodeCandidate } from '../../domain/structure/node-code-generator';
 import { FloorLabel, NodeCode, NodeId, NodeName, parseServiceType, SpecialtyCode } from '../../domain/structure/values';
 import { FacilityId } from '../../domain/value-objects/facility-id';
 
 const FACILITY_NOT_FOUND = new DomainError('FACILITY_NOT_FOUND', 'Établissement introuvable.');
 const NODE_NOT_FOUND = new DomainError('STRUCTURE_NODE_NOT_FOUND', 'Élément de structure introuvable.');
 const DUPLICATE_CODE = new DomainError('STRUCTURE_CODE_ALREADY_EXISTS', 'Un élément de même niveau utilise déjà ce code à cet endroit.');
+const NO_FREE_CODE = new DomainError('STRUCTURE_CODE_EXHAUSTED', 'Aucun code libre : précisez un code.');
 const SPECIALTY_UNKNOWN = new DomainError('STRUCTURE_SPECIALTY_UNKNOWN', "Cette spécialité n'existe pas ou n'est plus active.");
 const SERVICE_TYPE_REQUIRED = new DomainError('STRUCTURE_SERVICE_TYPE_INVALID', 'Le type de service est obligatoire.');
 const PARENT_INACTIVE = new DomainError('STRUCTURE_PARENT_INACTIVE', "L'élément parent est désactivé : on ne peut rien y ajouter ni y réactiver.");
@@ -106,6 +108,9 @@ export class GetStructureTreeUseCase {
 }
 
 /** Création et modification de la structure. Chaque changement réel est journalisé ; rien n'est écrit si rien ne change. */
+/** Le niveau d'un enfant d'après celui de son parent. */
+const childKind = (parentKind: string): string => ({ SERVICE: 'UNIT', UNIT: 'ROOM', ROOM: 'BED' }[parentKind] ?? '');
+
 export class ManageStructureUseCases {
   constructor(
     private readonly facilities: FacilityRepository,
@@ -119,10 +124,8 @@ export class ManageStructureUseCases {
   async createService(
     actorId: string,
     facilityId: string,
-    input: { code: string; name: string; serviceType: string; specialtyCode?: string | null },
+    input: { code?: string; name: string; serviceType: string; specialtyCode?: string | null },
   ): Promise<Result<NodeView>> {
-    const code = NodeCode.create(input.code);
-    if (!code.ok) return err(code.error);
     const name = NodeName.create(input.name);
     if (!name.ok) return err(name.error);
     const serviceType = input.serviceType ? parseServiceType(input.serviceType) : err(SERVICE_TYPE_REQUIRED);
@@ -131,7 +134,8 @@ export class ManageStructureUseCases {
     if (!specialty.ok) return err(specialty.error);
     const facility = await loadFacilityId(this.facilities, facilityId);
     if (!facility.ok) return err(facility.error);
-    if (await this.structure.findSibling(facility.value, null, code.value)) return err(DUPLICATE_CODE);
+    const code = await this.freeCode(input.code, facility.value, null, (n) => serviceCodeCandidate(name.value.value, n));
+    if (!code.ok) return err(code.error);
 
     const id = NodeId.create(this.ids.next());
     if (!id.ok) return err(id.error);
@@ -142,16 +146,15 @@ export class ManageStructureUseCases {
   }
 
   /** Ajoute une unité (sous un service), une salle (sous une unité) ou un lit (sous une salle) : le niveau suit celui du parent. */
-  async createChild(actorId: string, parentId: string, input: { code: string; name: string; floor?: string | null }): Promise<Result<NodeView>> {
-    const code = NodeCode.create(input.code);
-    if (!code.ok) return err(code.error);
+  async createChild(actorId: string, parentId: string, input: { code?: string; name: string; floor?: string | null }): Promise<Result<NodeView>> {
     const name = NodeName.create(input.name);
     if (!name.ok) return err(name.error);
     const floor = input.floor ? FloorLabel.create(input.floor) : undefined;
     if (floor && !floor.ok) return err(floor.error);
     const parent = await loadNode(this.structure, parentId);
     if (!parent.ok) return err(parent.error);
-    if (await this.structure.findSibling(parent.value.facilityId, parent.value.id, code.value)) return err(DUPLICATE_CODE);
+    const code = await this.freeCode(input.code, parent.value.facilityId, parent.value.id, (n) => childCodeCandidate(childKind(parent.value.kind), n));
+    if (!code.ok) return err(code.error);
 
     const id = NodeId.create(this.ids.next());
     if (!id.ok) return err(id.error);
@@ -232,6 +235,29 @@ export class ManageStructureUseCases {
     await this.structure.save(node);
     await this.record(actorId, active ? 'administration.structure.activate' : 'administration.structure.deactivate', node, {});
     return ok(toNodeView(node));
+  }
+
+  /**
+   * Le code à utiliser : celui qui est fourni (contrôlé, et unique parmi les frères) ou, sans code fourni, le premier code composé qui soit libre.
+   * Reprise de données : fournir un code reste possible.
+   */
+  private async freeCode(
+    given: string | undefined,
+    facilityId: FacilityId,
+    parentId: NodeId | null,
+    candidate: (sequence: number) => string,
+  ): Promise<Result<NodeCode>> {
+    if (given !== undefined && given.trim() !== '') {
+      const code = NodeCode.create(given);
+      if (!code.ok) return err(code.error);
+      return (await this.structure.findSibling(facilityId, parentId, code.value)) ? err(DUPLICATE_CODE) : ok(code.value);
+    }
+    for (let n = 1; n <= MAX_CODE_ATTEMPTS; n += 1) {
+      const code = NodeCode.create(candidate(n));
+      if (!code.ok) return err(code.error);
+      if (!(await this.structure.findSibling(facilityId, parentId, code.value))) return ok(code.value);
+    }
+    return err(NO_FREE_CODE);
   }
 
   /** Spécialité facultative : absente ou `null` → aucune ; sinon elle doit exister et être active dans le référentiel. */

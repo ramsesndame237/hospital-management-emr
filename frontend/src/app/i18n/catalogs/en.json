@@ -365,6 +365,7 @@
       "collapse": "Collapse {name}",
       "name": "Name",
       "level": "Level",
+      "codeAuto": "The code is built automatically when saved and cannot be changed afterwards.",
       "code": "Code",
       "codeHint": "Letters, digits, “_”, “-” or “.” (32 characters at most). The code can no longer be changed.",
       "codeRequired": "Enter a code.",

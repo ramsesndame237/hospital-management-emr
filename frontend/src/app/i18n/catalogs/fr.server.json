@@ -149,6 +149,7 @@
     "REFERENTIAL_ENTRY_CODE_ALREADY_EXISTS": "Une entrée de ce catalogue utilise déjà ce code.",
     "STRUCTURE_ID_INVALID": "L'identifiant de cet élément de structure est invalide.",
     "STRUCTURE_CODE_INVALID": "Code invalide : « {value} » (1 à 32 caractères : lettres, chiffres, « _ », « - », « . »).",
+    "STRUCTURE_CODE_EXHAUSTED": "Aucun code libre : précisez un code.",
     "STRUCTURE_NAME_INVALID": "Le nom doit comporter de 1 à 200 caractères.",
     "STRUCTURE_FLOOR_INVALID": "L'étage doit comporter de 1 à 32 caractères.",
     "STRUCTURE_SERVICE_TYPE_INVALID": "Type de service invalide : « {value} ».",

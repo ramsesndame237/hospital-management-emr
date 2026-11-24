@@ -49,10 +49,10 @@ export class FakeAdministrationGateway extends AdministrationGateway {
   );
   override structure = vi.fn<(facilityId: string, includeInactive: boolean) => Promise<StructureTree>>().mockImplementation(() => Promise.resolve(sampleTree()));
   override createService = vi.fn<(facilityId: string, input: ServiceInput) => Promise<StructureNode>>().mockImplementation((facilityId, input) =>
-    Promise.resolve(node({ id: 's-new', kind: 'SERVICE', facilityId, code: input.code.toUpperCase(), name: input.name, serviceType: input.serviceType, specialtyCode: input.specialtyCode ?? null })),
+    Promise.resolve(node({ id: 's-new', kind: 'SERVICE', facilityId, code: (input.code ?? 'AUTO').toUpperCase(), name: input.name, serviceType: input.serviceType, specialtyCode: input.specialtyCode ?? null })),
   );
   override createChild = vi.fn<(parentId: string, input: ChildInput) => Promise<StructureNode>>().mockImplementation((parentId, input) =>
-    Promise.resolve(node({ id: 'c-new', kind: childKindOf('SERVICE') ?? 'UNIT', parentId, code: input.code.toUpperCase(), name: input.name, floor: input.floor ?? null })),
+    Promise.resolve(node({ id: 'c-new', kind: childKindOf('SERVICE') ?? 'UNIT', parentId, code: (input.code ?? 'AUTO').toUpperCase(), name: input.name, floor: input.floor ?? null })),
   );
   override updateNode = vi.fn<(id: string, changes: NodeChanges) => Promise<StructureNode>>().mockImplementation((id, changes) =>
     Promise.resolve(node({ id, kind: 'SERVICE', code: 'PED', name: changes.name ?? 'Pédiatrie' })),

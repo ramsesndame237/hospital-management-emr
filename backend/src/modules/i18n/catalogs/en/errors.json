@@ -47,6 +47,7 @@
   "REFERENTIAL_ENTRY_CODE_ALREADY_EXISTS": "Another entry in this catalog already uses this code.",
   "STRUCTURE_ID_INVALID": "This structure element identifier is invalid.",
   "STRUCTURE_CODE_INVALID": "Invalid code: \"{value}\" (1 to 32 characters: letters, digits, \"_\", \"-\", \".\").",
+  "STRUCTURE_CODE_EXHAUSTED": "No free code left: please give a code.",
   "STRUCTURE_NAME_INVALID": "The name must be 1 to 200 characters long.",
   "STRUCTURE_FLOOR_INVALID": "The floor must be 1 to 32 characters long.",
   "STRUCTURE_SERVICE_TYPE_INVALID": "Invalid service type: \"{value}\".",

@@ -91,14 +91,16 @@ export interface StructureTree {
 }
 
 export interface ServiceInput {
-  readonly code: string;
+  /** Absent : le code est composé automatiquement. */
+  readonly code?: string;
   readonly name: string;
   readonly serviceType: ServiceType;
   readonly specialtyCode?: string;
 }
 
 export interface ChildInput {
-  readonly code: string;
+  /** Absent : le code est composé automatiquement. */
+  readonly code?: string;
   readonly name: string;
   readonly floor?: string;
 }

@@ -64,19 +64,13 @@ export function facilityStatusFields(o: { readonly facility: Facility; readonly 
   ];
 }
 
-const CODE_RULES = [
-  { type: 'required', message: 'admin.structure.codeRequired' },
-  { type: 'maxLength', value: 32 },
-  { type: 'pattern', value: '^\\s*[A-Za-z0-9_.-]+\\s*$', message: 'admin.structure.codeFormat' },
-] as const;
-
-/** Création d'un service (code, nom, nature, spécialité) ou modification (nom, nature, spécialité ; le code ne change plus). */
+/** Création d'un service (nom, nature, spécialité ; le code est composé automatiquement) ou modification (nom, nature, spécialité ; le code ne change plus). */
 export function serviceFields(o: { readonly node: StructureNode | null; readonly specialties: readonly ReferenceOption[]; readonly notice: string | null }): FieldSchema[] {
   const creating = o.node === null;
   return [
     ...failureNotice(o.notice),
     ...(creating
-      ? ([{ type: 'code', name: 'code', label: 'admin.structure.code', hint: 'admin.structure.codeHint', value: '', normalize: 'uppercase', inputClass: 'font-mono', validators: CODE_RULES }] as const)
+      ? ([{ type: 'paragraph', name: 'code', text: 'admin.structure.codeAuto', tone: 'muted' }] as const)
       : []),
     { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
     {
@@ -99,9 +93,9 @@ export function childFields(o: { readonly kind: NodeKind; readonly node: Structu
   return [
     ...failureNotice(o.notice),
     ...(creating
-      ? ([{ type: 'code', name: 'code', label: 'admin.structure.code', hint: 'admin.structure.codeHint', value: '', autofocus: true, normalize: 'uppercase', inputClass: 'font-mono', validators: CODE_RULES }] as const)
+      ? ([{ type: 'paragraph', name: 'code', text: 'admin.structure.codeAuto', tone: 'muted' }] as const)
       : []),
-    { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: !creating, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
+    { type: 'text', name: 'name', label: 'admin.structure.name', value: o.node?.name ?? '', autofocus: true, normalize: 'trim', validators: [{ type: 'required', message: 'admin.structure.nameRequired' }, { type: 'maxLength', value: 200 }] },
     ...(o.kind === 'ROOM'
       ? ([{ type: 'text', name: 'floor', label: 'admin.structure.floor', hint: 'admin.structure.floorHint', value: o.node?.floor ?? '', normalize: 'trim', validators: [{ type: 'maxLength', value: 32 }] }] as const)
       : []),

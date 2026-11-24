@@ -117,13 +117,12 @@ describe('StructurePage (ADM-33 / ADM-34)', () => {
     it('ajoute un service avec sa nature et sa spécialité', async () => {
       await setup();
       await click(buttonNamed('Ajouter un service'));
-      await type('#structure-service-code', 'chir');
       await type('#structure-service-name', 'Chirurgie');
       const specialty = q<HTMLSelectElement>('#structure-service-specialtyCode')!;
       specialty.value = 'GENERAL_SURGERY';
       specialty.dispatchEvent(new Event('change'));
       await submit('structure-service');
-      expect(admin.createService).toHaveBeenCalledWith('f-1', { code: 'CHIR', name: 'Chirurgie', serviceType: 'CLINICAL', specialtyCode: 'GENERAL_SURGERY' });
+      expect(admin.createService).toHaveBeenCalledWith('f-1', { name: 'Chirurgie', serviceType: 'CLINICAL', specialtyCode: 'GENERAL_SURGERY' });
       expect(admin.structure).toHaveBeenCalledTimes(2); // relecture après l’ajout
       expect(TestBed.inject(ToastService).toasts()[0].message).toBe('« Chirurgie » ajouté.');
       expect(q('aside')).toBeNull();
@@ -132,21 +131,19 @@ describe('StructurePage (ADM-33 / ADM-34)', () => {
     it('n’envoie pas de spécialité quand aucune n’est choisie', async () => {
       await setup();
       await click(buttonNamed('Ajouter un service'));
-      await type('#structure-service-code', 'ADM');
       await type('#structure-service-name', 'Administration');
       await submit('structure-service');
-      expect(admin.createService).toHaveBeenCalledWith('f-1', { code: 'ADM', name: 'Administration', serviceType: 'CLINICAL' });
+      expect(admin.createService).toHaveBeenCalledWith('f-1', { name: 'Administration', serviceType: 'CLINICAL' });
     });
 
     it('ajoute une salle avec son étage sous une unité', async () => {
       await setup();
       await click(buttonNamed('Ajouter une salle'));
       expect(q('aside h2')?.textContent).toContain('Néonatologie');
-      await type('#structure-child-u-1-code', 's2');
       await type('#structure-child-u-1-name', 'Salle 2');
       await type('#structure-child-u-1-floor', '1');
       await submit('structure-child-u-1');
-      expect(admin.createChild).toHaveBeenCalledWith('u-1', { code: 'S2', name: 'Salle 2', floor: '1' });
+      expect(admin.createChild).toHaveBeenCalledWith('u-1', { name: 'Salle 2', floor: '1' });
     });
 
     it('ne propose pas d’étage pour un lit, et rien sous un lit', async () => {
@@ -157,11 +154,12 @@ describe('StructurePage (ADM-33 / ADM-34)', () => {
       expect(bed.textContent).not.toContain('Ajouter');
     });
 
-    it('exige un code et un nom avant tout appel', async () => {
+    it('ne demande pas de code (composé automatiquement) et exige un nom avant tout appel', async () => {
       await setup();
       await click(buttonNamed('Ajouter un service'));
+      expect(q('#structure-service-code')).toBeNull();
+      expect(text()).toContain('composé automatiquement');
       await submit('structure-service');
-      expect(text()).toContain('Saisissez un code.');
       expect(text()).toContain('Saisissez un nom.');
       expect(admin.createService).not.toHaveBeenCalled();
     });
@@ -170,7 +168,6 @@ describe('StructurePage (ADM-33 / ADM-34)', () => {
       await setup();
       admin.createService.mockRejectedValue(new ApiError(409, 'STRUCTURE_CODE_ALREADY_EXISTS', 'Un élément de même niveau utilise déjà ce code à cet endroit.'));
       await click(buttonNamed('Ajouter un service'));
-      await type('#structure-service-code', 'PED');
       await type('#structure-service-name', 'Doublon');
       await submit('structure-service');
       expect(q('aside [role=alert]')?.textContent).toContain('utilise déjà ce code');

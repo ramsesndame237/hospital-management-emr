@@ -3,13 +3,13 @@ import { DocProperty } from '../../../api-docs';
 
 const SERVICE_TYPES = ['CLINICAL', 'MEDICO_TECHNICAL', 'ADMINISTRATIVE', 'SUPPORT'];
 const KINDS = ['SERVICE', 'UNIT', 'ROOM', 'BED'];
-const CODE_HELP = 'Code (1 à 32 caractères : lettres, chiffres, « _ », « - », « . »), normalisé en majuscules. Unique parmi les éléments de même parent ; **ne pourra plus être modifié**.';
+const CODE_HELP = "**Facultatif** : sans code, il est composé automatiquement (initiales du nom pour un service, `U01`, `R01`, `B01`… pour une unité, une salle, un lit). Fourni, il compte 1 à 32 caractères (lettres, chiffres, « _ », « - », « . »), normalisé en majuscules, unique parmi les éléments de même parent ; **il ne pourra plus être modifié**.";
 
 /** Bornes de taille partout : pas de corps géants. Les règles précises (formats, hiérarchie) sont dans le domaine. */
 export class CreateServiceDto {
-  @DocProperty({ description: CODE_HELP, example: 'PED', maxLength: 32 })
-  @IsString() @MaxLength(32)
-  code!: string;
+  @DocProperty({ description: CODE_HELP, example: 'PED', maxLength: 32, optional: true })
+  @IsOptional() @IsString() @MaxLength(32)
+  code?: string;
 
   @DocProperty({ description: 'Nom du service.', example: 'Pédiatrie', minLength: 1, maxLength: 200 })
   @IsString() @MinLength(1) @MaxLength(200)
@@ -25,9 +25,9 @@ export class CreateServiceDto {
 }
 
 export class CreateChildDto {
-  @DocProperty({ description: CODE_HELP, example: 'U1', maxLength: 32 })
-  @IsString() @MaxLength(32)
-  code!: string;
+  @DocProperty({ description: CODE_HELP, example: 'U01', maxLength: 32, optional: true })
+  @IsOptional() @IsString() @MaxLength(32)
+  code?: string;
 
   @DocProperty({ description: "Nom de l'unité, de la salle ou du lit.", example: 'Unité de néonatologie', minLength: 1, maxLength: 200 })
   @IsString() @MinLength(1) @MaxLength(200)

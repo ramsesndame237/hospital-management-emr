@@ -365,6 +365,7 @@
       "collapse": "Replier {name}",
       "name": "Nom",
       "level": "Niveau",
+      "codeAuto": "Le code est composé automatiquement à l’enregistrement et ne pourra plus être modifié.",
       "code": "Code",
       "codeHint": "Lettres, chiffres, « _ », « - » ou « . » (32 caractères au plus). Le code ne pourra plus être modifié.",
       "codeRequired": "Saisissez un code.",
